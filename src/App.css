@@ -438,6 +438,36 @@
 
 .match-cta { display: flex; align-items: center; }
 
+.match-reasoning {
+  font-size: 13px;
+  color: var(--text-soft);
+  background: rgba(83, 74, 183, 0.04);
+  border-left: 2px solid rgba(83, 74, 183, 0.3);
+  padding: 8px 12px;
+  border-radius: 6px;
+  line-height: 1.5;
+  font-style: italic;
+}
+
+.provider-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  width: fit-content;
+}
+.provider-openai {
+  background: linear-gradient(135deg, rgba(31, 142, 92, 0.15), rgba(83, 74, 183, 0.15));
+  color: var(--brand);
+}
+.provider-heuristic {
+  background: rgba(20, 18, 31, 0.06);
+  color: var(--text-soft);
+}
+
 .ok {
   color: var(--success);
   font-weight: 600;

@@ -7,6 +7,7 @@ export default function MatchPage() {
   const [projects, setProjects] = useState([]);
   const [matches, setMatches] = useState(null);
   const [project, setProject] = useState(null);
+  const [provider, setProvider] = useState(null);
   const [allocating, setAllocating] = useState({});
   const [allocated, setAllocated] = useState({});
   const [error, setError] = useState(null);
@@ -31,6 +32,7 @@ export default function MatchPage() {
       .then((d) => {
         setProject(d.project);
         setMatches(d.matches);
+        setProvider(d.provider || 'heuristic');
       })
       .catch((e) => setError(e.message));
   }, [selectedId]);
@@ -100,6 +102,13 @@ export default function MatchPage() {
                   <span key={s} className="tag tag-strong">{s}</span>
                 ))}
               </div>
+              {provider && (
+                <div className={`provider-badge provider-${provider}`}>
+                  {provider === 'openai'
+                    ? '🧠 Ranked by OpenAI'
+                    : '⚙️ Heuristic ranking (add OPENAI_API_KEY for AI)'}
+                </div>
+              )}
             </div>
           )}
 
@@ -131,6 +140,7 @@ export default function MatchPage() {
                       ))}
                     </div>
                     {c.daily_rate_gbp && <div className="muted">£{c.daily_rate_gbp}/day</div>}
+                    {m.reasoning && <div className="match-reasoning">{m.reasoning}</div>}
                   </div>
                   <div className="match-cta">
                     {allocated[c.id] ? (
