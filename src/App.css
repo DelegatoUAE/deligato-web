@@ -1,0 +1,228 @@
+/* ============== AUTH PAGES ============== */
+
+.auth-shell {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background:
+    radial-gradient(1200px 600px at 80% -10%, rgba(122, 111, 226, 0.18), transparent 60%),
+    radial-gradient(900px 500px at -10% 110%, rgba(83, 74, 183, 0.15), transparent 60%),
+    var(--bg);
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 420px;
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 32px;
+}
+
+.auth-card .brand {
+  margin: 0;
+  font-size: 28px;
+  letter-spacing: -0.02em;
+  color: var(--brand);
+}
+
+.auth-card .tagline {
+  margin: 4px 0 24px;
+  color: var(--text-soft);
+  font-size: 14px;
+}
+
+.auth-card h2 {
+  margin: 0 0 16px;
+  font-size: 20px;
+}
+
+.auth-card form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.auth-card label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-soft);
+}
+
+.auth-card input,
+.auth-card select {
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--text);
+  font-size: 15px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.auth-card input:focus,
+.auth-card select:focus {
+  outline: none;
+  border-color: var(--brand-2);
+  box-shadow: 0 0 0 3px rgba(83, 74, 183, 0.18);
+}
+
+.auth-card small {
+  color: var(--text-soft);
+  font-size: 12px;
+}
+
+.auth-card button[type="submit"] {
+  margin-top: 6px;
+  padding: 12px 14px;
+  background: var(--brand);
+  color: #fff;
+  border: 0;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 15px;
+  transition: background 0.15s, transform 0.05s;
+}
+.auth-card button[type="submit"]:hover { background: var(--brand-2); }
+.auth-card button[type="submit"]:active { transform: translateY(1px); }
+.auth-card button[type="submit"]:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.auth-card .alt {
+  margin: 20px 0 0;
+  font-size: 14px;
+  color: var(--text-soft);
+  text-align: center;
+}
+
+.error {
+  margin: 4px 0 0;
+  padding: 10px 12px;
+  background: rgba(192, 38, 60, 0.07);
+  border: 1px solid rgba(192, 38, 60, 0.2);
+  color: var(--error);
+  border-radius: 10px;
+  font-size: 13px;
+}
+
+/* ============== DASHBOARD ============== */
+
+.dashboard {
+  min-height: 100vh;
+  background: var(--bg);
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 32px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.brand-mark {
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--brand);
+  letter-spacing: -0.01em;
+}
+
+.user-chip {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+  color: var(--text-soft);
+}
+
+.role-pill {
+  padding: 4px 10px;
+  background: rgba(83, 74, 183, 0.1);
+  color: var(--brand-2);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.link-btn {
+  background: none;
+  border: 0;
+  color: var(--brand-2);
+  font-size: 14px;
+  padding: 0;
+}
+.link-btn:hover { text-decoration: underline; }
+
+.content {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 32px;
+}
+
+.welcome h1 {
+  margin: 0 0 4px;
+  font-size: 26px;
+  letter-spacing: -0.01em;
+}
+.welcome p {
+  margin: 0 0 24px;
+  color: var(--text-soft);
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.card {
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 20px;
+  box-shadow: var(--shadow);
+}
+
+.card-label {
+  font-size: 13px;
+  color: var(--text-soft);
+  margin-bottom: 4px;
+}
+
+.card-value {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--brand);
+  letter-spacing: -0.02em;
+}
+
+.card-foot {
+  font-size: 12px;
+  color: var(--text-soft);
+  margin-top: 4px;
+}
+
+.next-up {
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 20px 24px;
+  box-shadow: var(--shadow);
+}
+
+.next-up h2 {
+  margin: 0 0 12px;
+  font-size: 16px;
+  color: var(--text);
+}
+
+.next-up ul {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--text-soft);
+  font-size: 14px;
+  line-height: 1.7;
+}
