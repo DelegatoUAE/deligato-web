@@ -1,0 +1,6 @@
+{
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}</content>
+<parameter name="filePath">/Users/Wealthface/Desktop/AI Projects/Deligato/Deligato/web/vercel.json
