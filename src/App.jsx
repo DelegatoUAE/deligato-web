@@ -7,6 +7,7 @@ import HomePage from './pages/HomePage';
 import ProjectsPage from './pages/ProjectsPage';
 import ConsultantsPage from './pages/ConsultantsPage';
 import MatchPage from './pages/MatchPage';
+import ConsultantDetailPage from './pages/ConsultantDetailPage';
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
 import './App.css';
@@ -29,6 +30,7 @@ export default function App() {
       <Route path="/" element={<Protected>{(me) => <HomePage me={me} />}</Protected>} />
       <Route path="/projects" element={<Protected>{() => <ProjectsPage />}</Protected>} />
       <Route path="/consultants" element={<Protected>{() => <ConsultantsPage />}</Protected>} />
+      <Route path="/consultants/:id" element={<Protected>{() => <ConsultantDetailPage />}</Protected>} />
       <Route path="/match" element={<Protected>{() => <MatchPage />}</Protected>} />
     </Routes>
   );

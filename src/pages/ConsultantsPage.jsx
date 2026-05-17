@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { apiFetch } from '../lib/auth';
 
 const SENIORITIES = ['all', 'junior', 'mid', 'senior', 'principal'];
 const AVAILABILITIES = ['all', 'available', 'partial', 'booked', 'leave'];
 
 export default function ConsultantsPage() {
+  const navigate = useNavigate();
   const [consultants, setConsultants] = useState(null);
   const [seniority, setSeniority] = useState('all');
   const [availability, setAvailability] = useState('all');
@@ -62,7 +64,7 @@ export default function ConsultantsPage() {
       ) : (
         <div className="consultant-grid">
           {consultants.map((c) => (
-            <div key={c.id} className="consultant-card">
+            <div key={c.id} className="consultant-card" onClick={() => navigate(`/consultants/${c.id}`)}>
               <div className="consultant-head">
                 <div className="avatar">{c.full_name.split(' ').map((p) => p[0]).slice(0, 2).join('')}</div>
                 <div>
