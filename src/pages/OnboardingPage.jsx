@@ -36,6 +36,7 @@ export default function OnboardingPage() {
   });
   const [errors, setErrors] = useState({});
   const [busy, setBusy] = useState(false);
+  const [moreSectors, setMoreSectors] = useState(false);
   const [error, setError] = useState(null);
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
   const setNum = (k, dec = false) => (e) => setF({ ...f, [k]: e.target.value.replace(dec ? /[^0-9.]/g : /[^0-9]/g, '') });
@@ -89,7 +90,8 @@ export default function OnboardingPage() {
     } catch (e) {
       const fields = e.body?.error?.fields || e.body?.fields;
       if (fields && typeof fields === 'object' && Object.keys(fields).length) {
-        setErrors(fields);
+        // Server messages start with the field's API name ("team_size must be..."); show them in plain words.
+        setErrors(Object.fromEntries(Object.entries(fields).map(([k, v]) => [k, String(v).replace(/^[a-z_]+ (?=must)/, '').replace(/^./, (c) => c.toUpperCase())])));
         const first = Object.keys(fields)[0];
         const at = STEP_OF[first];
         if (at != null) setStep(at);
@@ -131,7 +133,9 @@ export default function OnboardingPage() {
               <Select value={f.sector} onChange={set('sector')} placeholder="Choose the closest" options={vocab.sectors || []} />
             </FormField>
             <FormField label="Other sectors you touch" optional wide error={errors.sub_sectors} hint="Helps with investors whose thesis is a neighbouring sector.">
-              {() => <ChipToggle label="Other sectors" options={(vocab.sectors || []).filter((x) => x !== f.sector)} value={f.sub_sectors} onChange={(v) => setF({ ...f, sub_sectors: v.slice(0, 5) })} />}
+              {() => (moreSectors
+                ? <ChipToggle label="Other sectors" options={(vocab.sectors || []).filter((x) => x !== f.sector && x !== 'Generalist')} value={f.sub_sectors} onChange={(v) => setF({ ...f, sub_sectors: v.slice(0, 5) })} />
+                : <div className="ui-row">{f.sub_sectors.length > 0 && <span>{f.sub_sectors.join(', ')}</span>}<Button variant="link" size="sm" onClick={() => setMoreSectors(true)}>{f.sub_sectors.length ? 'Change' : 'Add up to 5'}</Button></div>)}
             </FormField>
             <FormField label="Business model" optional>
               <Select value={f.business_model} onChange={set('business_model')} placeholder="Not sure" options={(vocab.business_models || []).filter((m) => m !== 'Any')} />

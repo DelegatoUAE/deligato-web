@@ -503,3 +503,9 @@
   .inv-score .inv-bucket { max-width: none; text-align: left; align-self: end; font-size: var(--text-sm); }
   .inv-score .tier { align-self: start; }
 }
+@media (max-width: 600px) {
+  .ui-card-head { flex-wrap: wrap; }
+  .ui-card-head > * { min-width: 0; }
+  .ui-card-action { max-width: 100%; flex-shrink: 1; }
+  .ui-card-head .ui-badge { white-space: normal; max-width: 100%; }
+}

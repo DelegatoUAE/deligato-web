@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate, useParams, useLocation } from 'react-router-dom';
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
@@ -6,7 +7,6 @@ import ResetPasswordPage from './pages/ResetPasswordPage';
 import DashboardPage from './pages/DashboardPage';
 import WelcomePage from './pages/WelcomePage';
 import OnboardingPage from './pages/OnboardingPage';
-import DevImportPage from './pages/DevImportPage';
 import CapitalOverviewPage from './pages/CapitalOverviewPage';
 import ReadinessPage from './pages/ReadinessPage';
 import ReadinessAssessPage from './pages/ReadinessAssessPage';
@@ -34,7 +34,8 @@ import NotFoundPage from './pages/NotFoundPage';
 import ConsultantsPage from './pages/ConsultantsPage';
 import ConsultantDetailPage from './pages/ConsultantDetailPage';
 import MatchPage from './pages/MatchPage';
-import Showcase from './design/Showcase';
+const DevImportPage = import.meta.env.DEV ? lazy(() => import('./pages/DevImportPage')) : null;
+const Showcase = import.meta.env.DEV ? lazy(() => import('./design/Showcase')) : null;
 import ProtectedRoute from './components/ProtectedRoute';
 import CompanyProvider from './components/CompanyProvider';
 import AppLayout from './components/AppLayout';
@@ -63,7 +64,7 @@ function RedirectParam({ to }) {
   return <Navigate to={`${path}${search}`} replace />;
 }
 
-const devImportOn = import.meta.env.VITE_DEV_IMPORT === 'true';
+const devImportOn = (import.meta.env.DEV && import.meta.env.VITE_DEV_IMPORT === 'true');
 
 export default function App() {
   return (
@@ -72,12 +73,12 @@ export default function App() {
       <Route path="/signup" element={<SignupPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
-      {import.meta.env.DEV && <Route path="/design" element={<Showcase />} />}
+      {Showcase && <Route path="/design" element={<Suspense fallback={null}><Showcase /></Suspense>} />}
 
       <Route path="/" element={<Protected gate="open"><DashboardPage /></Protected>} />
       <Route path="/welcome" element={<Protected gate="welcome"><WelcomePage /></Protected>} />
       <Route path="/onboarding" element={<Protected gate="open"><OnboardingPage /></Protected>} />
-      {devImportOn && <Route path="/dev/import" element={<Protected gate="open" staffOnly><DevImportPage /></Protected>} />}
+      {devImportOn && <Route path="/dev/import" element={<Protected gate="open" staffOnly><Suspense fallback={null}><DevImportPage /></Suspense></Protected>} />}
 
       {/* Capital Access (primary) */}
       <Route path="/capital" element={<Protected><CapitalOverviewPage /></Protected>} />

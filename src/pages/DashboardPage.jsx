@@ -50,7 +50,7 @@ function Waiting({ staff, name }) {
           <div className="ui-stack ui-stack-sm" style={{ justifyItems: 'center' }}>
             <div className="ui-row">
               <Button as={Link} to="/onboarding" variant="accent">Set up your company</Button>
-              {staff && import.meta.env.VITE_DEV_IMPORT === 'true' && <Button as={Link} to="/dev/import" variant="secondary">Import a test company</Button>}
+              {staff && (import.meta.env.DEV && import.meta.env.VITE_DEV_IMPORT === 'true') && <Button as={Link} to="/dev/import" variant="secondary">Import a test company</Button>}
             </div>
             <Link to="/experts">Looking for an expert instead? Find an Expert →</Link>
           </div>
@@ -149,7 +149,7 @@ export default function DashboardPage() {
 
       <section className="home-actions" aria-labelledby="nba-h">
         <h2 id="nba-h">Your next best actions</h2>
-        {actions.length ? <NextActions actions={actions} company={company} onDismiss={dismiss} /> : (
+        {runLoading || readinessLoading || !pipeline ? <Skeleton h="180px" /> : actions.length ? <NextActions actions={actions} company={company} onDismiss={dismiss} /> : (
           <p className="ui-muted">You're up to date. Review your matches or add to your data room. <Link to="/capital/matches">See matches</Link></p>
         )}
       </section>

@@ -37,7 +37,7 @@ export default function CapitalNeedForm({ firstRun = false, onSaved, submitLabel
   const [saveError, setSaveError] = useState(null);
   const [timingNote, setTimingNote] = useState(false);
 
-  const set = (k, v) => { setForm((f) => ({ ...f, [k]: v })); setEdited((e) => ({ ...e, [k]: true })); };
+  const set = (k, v) => { setForm((f) => ({ ...f, [k]: v })); setEdited((e) => ({ ...e, [k]: true })); setErrors((e) => (e[k] ? { ...e, [k]: null } : e)); };
   const instruments = vocab.instruments || FALLBACK_INSTRUMENTS;
   const types = vocab.investor_types || [];
   const blocs = vocab.blocs || ['GLOBAL', 'GCC', 'MENA', 'EUROPE', 'UK', 'NORTH_AMERICA', 'AFRICA', 'ASIA'];

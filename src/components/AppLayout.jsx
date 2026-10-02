@@ -77,7 +77,7 @@ export default function AppLayout({ children }) {
         { id: 'ws-experts', label: 'Expert admin', icon: 'users', href: '/workspace/experts' },
         { id: 'ws-projects', label: 'All projects', icon: 'file', href: '/experts/projects' },
         { id: 'ws-match', label: 'AI Match', icon: 'spark', href: '/workspace/match' },
-        ...(import.meta.env.VITE_DEV_IMPORT === 'true' ? [{ id: 'ws-import', label: 'Import (dev)', icon: 'download', href: '/dev/import' }] : []),
+        ...((import.meta.env.DEV && import.meta.env.VITE_DEV_IMPORT === 'true') ? [{ id: 'ws-import', label: 'Import (dev)', icon: 'download', href: '/dev/import' }] : []),
       ],
     });
   }
