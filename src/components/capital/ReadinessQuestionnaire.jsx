@@ -25,7 +25,7 @@ export default function ReadinessQuestionnaire({ companyId, onScored, onCancel }
 
   if (qQ.error) {
     return isMissingEndpoint(qQ.error)
-      ? <EmptyState compact icon="info" title="The readiness questionnaire isn't connected here yet." body="Your score from Conncct is shown above. You can retake the questions in Conncct." />
+      ? <EmptyState compact icon="info" title="The readiness questionnaire isn't connected here yet." body="Your imported score is shown above." />
       : <Alert tone="bad">Couldn't load the questions. {qQ.error.message}</Alert>;
   }
   if (!qQ.data) return <Skeleton variant="text" lines={6} />;
@@ -71,7 +71,7 @@ export default function ReadinessQuestionnaire({ companyId, onScored, onCancel }
         {onCancel && <Button variant="ghost" onClick={onCancel}>Cancel</Button>}
         {answered < required.length && <span className="ui-muted">Answer every required question to see your score.</span>}
       </div>
-      <p className="ui-faint">Scored by {qQ.data.label || 'the Conncct engine'} · methodology {qQ.data.methodology || 'conncct-14'} v{qQ.data.methodology_version || '–'}.</p>
+      <p className="ui-faint">Scored with the Conncct method · methodology {qQ.data.methodology || 'conncct-14'} v{qQ.data.methodology_version || '–'}.</p>
     </div>
   );
 }

@@ -68,7 +68,7 @@ export default function PackagesPage() {
       {p.tagline && <p>{p.tagline}</p>}
       <ul className="pkg-incl">{(p.includes || []).slice(0, 6).map((x) => <li key={x}>{x}</li>)}</ul>
       {p.price_pending ? <Button variant="secondary" size="sm" onClick={() => setChoosing(p)} disabled={isRequested(p)}>{isRequested(p) ? 'Requested' : 'Ask about pricing'}</Button>
-        : p.price_usd === 0 ? <Badge tone="neutral">{p.id === 'readiness-free' ? 'In Conncct' : 'Free'}</Badge>
+        : p.price_usd === 0 ? <Badge tone="neutral">{p.id === 'readiness-free' ? 'Included' : 'Free'}</Badge>
           : <Button variant="secondary" size="sm" onClick={() => setChoosing(p)} disabled={isRequested(p)}>{isRequested(p) ? 'Requested' : `Choose ${p.name}`}</Button>}
     </Card>
   );
@@ -86,7 +86,7 @@ export default function PackagesPage() {
           )}
           <Button variant="accent" onClick={() => setChoosing(starPkg)} disabled={isRequested(starPkg)}>{activeIds.has(starPkg.id) ? 'Active (POC, no payment taken)' : isRequested(starPkg) ? `Requested${requested[starPkg.id] ? ` on ${fmtDate(requested[starPkg.id])}` : ''}` : `Choose ${starPkg.name}`}</Button>
         </Card>
-      ) : <Alert tone="info">{rec.reason_lines?.[0] || 'Get your free readiness score in Conncct for a tailored recommendation.'}</Alert>}
+      ) : <Alert tone="info">{rec.reason_lines?.[0] || 'Get your free readiness score for a tailored recommendation.'}</Alert>}
 
       <h2 className="sec-h">Start small</h2>
       <div className="ui-grid ui-grid-3">{entry.map(card)}</div>

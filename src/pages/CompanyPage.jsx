@@ -6,12 +6,12 @@ import { useCompany } from '../components/company-context';
 import { ReadinessSnapshot } from '../components/capital/Readiness';
 import { ConncctSourceTag } from '../components/capital/bits';
 import { completeness } from '../lib/capital';
-import { conncctLink, deleteCompany } from '../lib/companies';
+import { deleteCompany } from '../lib/companies';
 import { isMissingEndpoint } from '../lib/auth';
 import { fmtUsd, fmtDateTime, timingLabel } from '../lib/format';
 
 function Unknown({ href }) {
-  return <span className="unknown-pill" title="Not set in Conncct. Every match shows this as unknown, and confidence drops.">unknown {href && <a href={href} target="_blank" rel="noreferrer">Set in Conncct ↗</a>}</span>;
+  return <span className="unknown-pill" title="Not set yet. Every match shows this as unknown, and confidence drops.">unknown {href && <Link to="/company/business">Set it</Link>}</span>;
 }
 function Row({ label, value, href }) {
   const empty = value === null || value === undefined || value === '' || (Array.isArray(value) && !value.length);
@@ -26,7 +26,7 @@ export default function CompanyPage() {
   const [confirmName, setConfirmName] = useState('');
   const [busy, setBusy] = useState(false);
   const c = completeness(company);
-  const href = conncctLink(company);
+  const href = '/company/business';
   const r = readiness?.readiness;
   const isOwner = !company.owner_user_id || company.owner_user_id === me?.user?.id;
 
@@ -34,7 +34,7 @@ export default function CompanyPage() {
     setBusy(true);
     try {
       await deleteCompany(company.id);
-      toast.success(`${company.name} was removed from Deligato. Your Conncct profile is unchanged.`);
+      toast.success(`${company.name} was removed from Deligato.`);
       reloadCompanies();
       navigate('/');
     } catch (e) {
@@ -45,9 +45,9 @@ export default function CompanyPage() {
   return (
     <div className="company">
       <SubNav section="company" />
-      <PageHeader title={company.name} subtitle="This profile and score are managed in Conncct."
-        meta={<><ConncctSourceTag link={false} /><div className="co-meter"><ProgressBar value={c.known} max={c.total} label="Matching inputs" valueText={`${c.known} of ${c.total}`} tone="gold" /></div></>}
-        actions={<Button as="a" href={href} target="_blank" rel="noreferrer" variant="secondary">Update in Conncct ↗</Button>} />
+      <PageHeader title={company.name} subtitle="The facts that drive your routes and matches."
+        meta={<>{company.source === 'conncct' && <ConncctSourceTag />}<div className="co-meter"><ProgressBar value={c.known} max={c.total} label="Matching inputs" valueText={`${c.known} of ${c.total}`} tone="gold" /></div></>}
+        actions={<Button as={Link} to="/company/business" variant="secondary">Edit company details</Button>} />
       <div className="ui-grid ui-grid-2">
         <Card title="Identity">
           <dl className="facts">
@@ -83,8 +83,8 @@ export default function CompanyPage() {
             <p className="ui-muted">Founders: {company.founders.map((f) => `${f.name}${f.role ? ` (${f.role})` : ''}`).join(' · ')} <Badge tone="outline" size="sm">Visible to you only</Badge></p>
           )}
         </Card>
-        <Card title="Capital readiness · from Conncct" action={<Link to="/capital/readiness">Full breakdown</Link>}>
-          {r ? <ReadinessSnapshot readiness={r} showLink={false} source={readiness} /> : <Alert tone="info">Not yet scored in Conncct. <a href={conncctLink(company, 'readiness')} target="_blank" rel="noreferrer">Get your free score in Conncct ↗</a></Alert>}
+        <Card title="Capital readiness" action={<Link to="/capital/readiness">Full breakdown</Link>}>
+          {r ? <ReadinessSnapshot readiness={r} showLink={false} source={readiness} /> : <Alert tone="info">Not yet scored. <Link to="/capital/readiness/assess">Get your free readiness score</Link></Alert>}
         </Card>
         <Card title="The raise" action={<Badge tone="brand" size="sm">Managed here</Badge>}>
           <p>{[fmtUsd(company.raise_usd) || 'Amount not set', company.instrument || 'instrument not set', timingLabel(company.raise_timing), (company.investor_types_sought || []).join(', ') || 'any investor type', (company.target_markets || []).join(', ')].filter(Boolean).join(' · ')}</p>
@@ -96,7 +96,7 @@ export default function CompanyPage() {
         <Button variant="link" size="sm" onClick={() => setRemoving(true)}>Remove this company from Deligato</Button>
       </p>
       <Modal open={removing} onClose={() => setRemoving(false)} size="sm" title={`Remove ${company.name} from Deligato?`}
-        description="This deletes your matches, pipeline, outreach drafts and data-room files here. Your Conncct profile and score are not affected."
+        description="This deletes your matches, pipeline, outreach drafts and data-room files here."
         footer={<><Button variant="ghost" onClick={() => setRemoving(false)}>Cancel</Button><Button variant="danger" loading={busy} disabled={confirmName.trim() !== company.name} onClick={remove}>Remove from Deligato</Button></>}>
         <FormField label={`Type ${company.name} to confirm`}><Input value={confirmName} onChange={(e) => setConfirmName(e.target.value)} /></FormField>
       </Modal>

@@ -7,7 +7,6 @@ import { LoadError } from '../components/capital/bits';
 import useApi from '../lib/useApi';
 import { getRouting, normaliseRoute, selectRoutes, ROUTE_FIT } from '../lib/routing';
 import { runMatch } from '../lib/capital';
-import { conncctLink } from '../lib/companies';
 import { fmtUsd, timingLabel } from '../lib/format';
 import { readinessSource } from '../lib/readiness';
 
@@ -46,7 +45,7 @@ function RouteCard({ r, coverage, country, onSee, seeing }) {
       {r.fit === 'unlikely' && r.blockers[0] && <p className="rcard-block"><span aria-hidden="true">✕</span> {r.blockers[0].text}</p>}
       {r.cautions.map((c, i) => <p key={i} className="rcard-caution">⚠ {c.text}</p>)}
       {(r.dilution || r.time_to_cash) && <p className="ui-muted rcard-meta">{[r.dilution, r.time_to_cash].filter(Boolean).join(' · ')}</p>}
-      {level === 'good' && <p className="ui-muted rcard-meta">{n} providers on record · {coverage.verified_count} Conncct Verified</p>}
+      {level === 'good' && <p className="ui-muted rcard-meta">{n} providers on record · {coverage.verified_count} Research Verified</p>}
       {level === 'thin' && <p className="rcard-thin">Thin coverage: only {thinN} providers on record for this route{coverage.hq_accepting_count != null && coverage.hq_accepting_count < 3 && country ? ` that accept ${country}` : ''}. Treat these as a starting point, not the whole market.</p>}
       {level === 'none' && <p className="rcard-thin">No providers on record for this route yet. This says more about our database than about your company.</p>}
       <div className="rcard-foot">
@@ -95,7 +94,7 @@ export default function FindCapitalPage() {
 
   const r = readiness?.readiness;
   const steps = [
-    { label: 'Your company', description: 'From Conncct', status: 'done', href: '/company' },
+    { label: 'Your company', description: 'Done', status: 'done', href: '/company' },
     { label: 'Readiness', description: r ? readinessSource(readiness).label : 'Optional', status: r ? 'done' : 'upcoming', href: '/capital/readiness' },
     { label: 'Your raise', description: capitalNeedConfirmed ? 'Confirmed' : 'To confirm', status: capitalNeedConfirmed ? 'done' : 'current', href: '/capital/need' },
     { label: 'Capital routes', description: 'This page', status: capitalNeedConfirmed ? 'current' : 'upcoming' },
@@ -111,7 +110,7 @@ export default function FindCapitalPage() {
     ? <Button as={Link} to="/capital/need" variant="link" size="sm">Edit your raise</Button>
     : READINESS_FIELDS.includes(field) && !(r && readinessSource(readiness).key === 'conncct')
       ? <Button as={Link} to="/capital/readiness/assess" variant="link" size="sm">Update your readiness answers</Button>
-      : <Button as="a" href={conncctLink(company)} target="_blank" rel="noreferrer" variant="link" size="sm">Update in Conncct ↗</Button>);
+      : <Button as={Link} to="/company/business" variant="link" size="sm">Edit company details</Button>);
 
   return (
     <div className="find">

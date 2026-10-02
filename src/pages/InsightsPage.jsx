@@ -63,7 +63,7 @@ export default function InsightsPage() {
                 <span className="bars-label">{passReasonLabel(p.reason || p.reason_code)}</span>
                 <span className="bars-track"><i style={{ width: `${(p.count / maxPass) * 100}%` }} /></span>
                 <span className="bars-n">{p.count}</span>
-                {READINESS_LINK[p.reason || p.reason_code] && <span className="bars-link">{passReasonLabel(p.reason || p.reason_code)} links to your Conncct {READINESS_LINK[p.reason || p.reason_code]} factor. <Link to="/capital/improve">See advice</Link></span>}
+                {READINESS_LINK[p.reason || p.reason_code] && <span className="bars-link">{passReasonLabel(p.reason || p.reason_code)} links to your readiness {READINESS_LINK[p.reason || p.reason_code]} factor. <Link to="/capital/improve">See advice</Link></span>}
               </li>
             ))}</ul>
           ) : <p className="ui-muted">No passes recorded yet.</p>}

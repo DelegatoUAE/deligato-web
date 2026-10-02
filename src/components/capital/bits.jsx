@@ -7,19 +7,12 @@ export function FundraisingNotice({ short = false }) {
   return <p className="fr-notice">{short ? 'You stay in control of every contact.' : FUNDRAISING_LINE}</p>;
 }
 
-/** "From Conncct" + "Update in Conncct ↗" on read-only imported values. */
-export function ConncctSourceTag({ href, label = 'From Conncct', link = true }) {
+/** "Imported" tag on values that arrived from a readiness partner (stealth: no partner name, no external link). */
+export function ConncctSourceTag({ label = 'Imported' }) {
   return (
     <span className="srctag">
       <Badge tone="outline" size="sm">{label}</Badge>
-      {link && href && <a href={href} target="_blank" rel="noreferrer" className="srctag-link">Update in Conncct ↗</a>}
     </span>
-  );
-}
-
-export function ConncctLink({ href, children = 'Update in Conncct ↗', variant = 'secondary', size = 'sm' }) {
-  return (
-    <Button as="a" href={href} target="_blank" rel="noreferrer" variant={variant} size={size}>{children}</Button>
   );
 }
 

@@ -27,12 +27,12 @@ export function bandLabel(r) {
 }
 
 
-/** D14 source label: the bridge snapshot is "From Conncct"; the embedded engine says so. */
+/** D14 source label. Stealth: "Conncct" appears only as the methodology name; an imported score says "Imported". */
 export function readinessSource(out) {
   const embedded = out?.engine === 'embedded' || ['conncct_embedded', 'deligato_reference'].includes(out?.source);
   return embedded
     ? { key: 'embedded', label: 'Conncct method, assessed here', foot: 'Assessed here with the Conncct method on' }
-    : { key: 'conncct', label: 'From Conncct', foot: 'Scored in Conncct on' };
+    : { key: 'conncct', label: 'Imported score', foot: 'Imported, scored with the Conncct method on' };
 }
 
 /** Gaps (00 §3 K5): missing/unknown factors, or under 60% of their points; debt_type excluded. */

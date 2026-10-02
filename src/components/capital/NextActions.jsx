@@ -1,10 +1,9 @@
 import { Link } from 'react-router-dom';
 import { Button } from '../../design/ui';
 import ExpertBridgeLink from '../ExpertBridgeLink';
-import { conncctLink } from '../../lib/companies';
 
 /** 00 §4.3: numbered actions, secondary-style CTA, quiet dismiss, optional calm expert line (U and R only). */
-export default function NextActions({ actions, company, onDismiss }) {
+export default function NextActions({ actions, onDismiss }) {
   return (
     <ol className="nba">
       {actions.map((a, i) => (
@@ -16,9 +15,7 @@ export default function NextActions({ actions, company, onDismiss }) {
             {a.bridge && (a.pool === 'U' || a.pool === 'R') && <ExpertBridgeLink kind={a.bridge.kind} gapKey={a.bridge.key} from="home" />}
           </div>
           <div className="nba-cta">
-            {a.href === 'conncct'
-              ? <Button as="a" href={conncctLink(company, 'readiness')} target="_blank" rel="noreferrer" variant="secondary" size="sm">{a.cta} ↗</Button>
-              : <Button as={Link} to={a.to} variant="secondary" size="sm">{a.cta}</Button>}
+            <Button as={Link} to={a.to} variant="secondary" size="sm">{a.cta}</Button>
             {a.dismissible && onDismiss && (
               <button type="button" className="nba-x" aria-label={`Not now: ${a.title}`} title="Not now" onClick={() => onDismiss(a)}>×</button>
             )}

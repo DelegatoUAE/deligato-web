@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { Alert, Button, Card, ChipToggle, FormField, Input, ProgressSteps, Select, Textarea, useToast } from '../design/ui';
 import { useCompany } from '../components/company-context';
-import { createCompany, conncctLink } from '../lib/companies';
+import { createCompany } from '../lib/companies';
 import { POSITIONING, fmtUsd } from '../lib/format';
 
 const COUNTRIES = ['AE', 'SA', 'QA', 'KW', 'BH', 'OM', 'EG', 'JO', 'LB', 'MA', 'TN', 'NG', 'KE', 'ZA', 'GB', 'IE', 'FR', 'DE', 'NL', 'ES', 'IT', 'SE', 'CH', 'US', 'CA', 'BR', 'MX', 'IN', 'PK', 'SG', 'ID', 'MY', 'VN', 'PH', 'AU', 'NZ', 'JP', 'KR', 'TR'];
@@ -134,7 +134,7 @@ export default function OnboardingPage() {
           {step < 3 ? <Button variant="primary" onClick={next}>Continue</Button> : <Button variant="accent" loading={busy} onClick={create}>Create my company</Button>}
         </div>
       </Card>
-      <p className="ui-faint onboard-foot">Already on Conncct? Your company and readiness score can arrive from there instead. <a href={conncctLink(null)} target="_blank" rel="noreferrer">Open Conncct ↗</a> · <Link to="/experts">Only looking for an expert?</Link></p>
+      <p className="ui-faint onboard-foot"><Link to="/experts">Only looking for an expert?</Link></p>
     </div>
   );
 }

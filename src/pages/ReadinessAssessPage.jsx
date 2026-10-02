@@ -49,7 +49,7 @@ export default function ReadinessAssessPage() {
   if (readiness?.readiness && readinessSource(readiness).key === 'conncct') return <Navigate to="/capital/readiness" replace />;
   if (qQ.error) {
     return isMissingEndpoint(qQ.error)
-      ? <EmptyState icon="info" title="The readiness questions aren't connected in this environment yet." body="You can answer them in Conncct instead." />
+      ? <EmptyState icon="info" title="The readiness questions aren't connected in this environment yet." body="Please try again later." />
       : <Alert tone="bad">Couldn't load the questions. {qQ.error.message}</Alert>;
   }
   if (!qQ.data) return <Skeleton h="320px" />;
@@ -115,7 +115,7 @@ export default function ReadinessAssessPage() {
           ? <Button variant="accent" onClick={finish} loading={busy} disabled={answered < required.length}>See my score</Button>
           : <Button variant="primary" onClick={() => setI(idx + 1)} disabled={!canNext}>Next</Button>}
       </div>
-      <p className="ui-faint">Uses Conncct's readiness method · {qQ.data.label || qQ.data.provider?.label || 'Conncct method'}. Your answers stay private to {company.name}.</p>
+      <p className="ui-faint">Uses the Conncct method. Your answers stay private to {company.name}.</p>
     </div>
   );
 }

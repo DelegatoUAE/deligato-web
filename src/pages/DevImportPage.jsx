@@ -28,7 +28,7 @@ export default function DevImportPage() {
 
   return (
     <div>
-      <PageHeader title="Import a Conncct company (dev)" subtitle="Load a QA persona, or any payload, as if Conncct had sent it. Staff and development only." />
+      <PageHeader title="Import a test company (dev)" subtitle="Load a QA persona, or any payload, as if a readiness partner had sent it. Staff and development only." />
       <Card title="Fixtures">
         <ul className="fixtures">
           {PERSONA_FIXTURES.map((f) => (

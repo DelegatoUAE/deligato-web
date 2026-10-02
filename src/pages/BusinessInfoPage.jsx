@@ -53,7 +53,7 @@ export default function BusinessInfoPage() {
             <FormField label="Keywords" wide hint="Comma-separated. These feed thesis matching."><Input value={form.keywords} onChange={(e) => setForm({ ...form, keywords: e.target.value })} /></FormField>
             <FormField label="Traction" wide hint="Customers, revenue, growth, partnerships. Numbers help."><Textarea rows={4} value={form.traction} onChange={(e) => setForm({ ...form, traction: e.target.value })} /></FormField>
           </div>
-          <Alert tone="info">Stage, sector, headquarters and your readiness score are managed in Conncct. A later Conncct update may replace what you change here.</Alert>
+          {company.source === 'conncct' && <Alert tone="info">Stage, sector, headquarters and your readiness score were imported. A later import may replace what you change here.</Alert>}
           <Button variant="primary" onClick={save} loading={busy} disabled={!dirty}>Save changes</Button>
         </Card>
         <Card title="Company intelligence" subtitle="How an investor would likely read your company, from your profile only.">

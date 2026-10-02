@@ -12,7 +12,7 @@ const EARLY = ['Idea', 'Pre-seed'];
 function sourceTag(company, field, edited) {
   if (edited) return <Badge tone="info" size="sm">Edited here</Badge>;
   const src = company?.capital_need_sources?.[field];
-  if (src === 'conncct' || (!src && company?.source === 'conncct' && company?.[field] != null)) return <Badge tone="outline" size="sm">From Conncct</Badge>;
+  if (src === 'conncct' || (!src && company?.source === 'conncct' && company?.[field] != null)) return <Badge tone="outline" size="sm">Imported</Badge>;
   return null;
 }
 
@@ -134,12 +134,12 @@ export default function CapitalNeedForm({ firstRun = false, onSaved, submitLabel
 
       {uof.length > 0 && (
         <div className="need-uof is-wide">
-          <span className="ui-label">Use of funds <Badge tone="outline" size="sm">From Conncct</Badge></span>
+          <span className="ui-label">Use of funds <Badge tone="outline" size="sm">Imported</Badge></span>
           <p>{uof.map((u) => `${u.category}${u.pct != null ? ` ${u.pct}%` : ''}`).join(' · ')}</p>
         </div>
       )}
 
-      <p className="need-note is-wide">Your readiness score is calculated in Conncct and isn't changed here.</p>
+      <p className="need-note is-wide">Your readiness score isn't changed here.</p>
       {saveError && <Alert tone="bad">Couldn't save your capital need. {saveError}</Alert>}
       {timingNote && <Alert tone="warn">Saved your raise, instrument, investor types and markets. Your timing couldn't be stored yet; it stays on this screen until the companies service is connected.</Alert>}
       <div className="need-actions is-wide">

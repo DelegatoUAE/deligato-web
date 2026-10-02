@@ -12,15 +12,22 @@ export const ROUTE_FIT = {
   unlikely: { label: 'Unlikely', tone: 'neutral' },
 };
 
+// Stealth: the partner's name never shows as a fact source (API label is filed as C11).
+const SOURCE_TEXT = { conncct_readiness: 'Your readiness answer', 'Conncct readiness answer': 'Your readiness answer' };
+const fact = (x) => {
+  const o = typeof x === 'string' ? { text: x } : x;
+  return o && SOURCE_TEXT[o.source] ? { ...o, source: SOURCE_TEXT[o.source] } : o;
+};
+
 export function normaliseRoute(r) {
   return {
     key: r.key,
     label: r.label || r.key,
     fit: r.fit || 'possible',
     confidence: r.confidence || null,
-    reasons: (r.reasons || []).map((x) => (typeof x === 'string' ? { text: x } : x)),
-    blockers: (r.blockers || []).map((x) => (typeof x === 'string' ? { text: x } : x)),
-    cautions: (r.cautions || []).map((x) => (typeof x === 'string' ? { text: x } : x)),
+    reasons: (r.reasons || []).map(fact),
+    blockers: (r.blockers || []).map(fact),
+    cautions: (r.cautions || []).map(fact),
     unknowns: r.unknowns || [],
     description: r.description || null,
     typical_use: r.typical_use || null,

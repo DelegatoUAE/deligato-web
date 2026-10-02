@@ -45,23 +45,23 @@ export function ReadinessSnapshot({ readiness, variant = 'compact', conncctHref,
     <div className={`rsnap rsnap-${variant}`}>
       <div className="rsnap-dial">
         <ScoreRing variant="readiness" value={value === null ? null : Math.round(value)} band={prov ? undefined : name} bandTone={tone} label="Readiness" size={variant === 'full' ? 'md' : 'sm'} />
-        {exact && value !== null && <div className="rsnap-exact">{src.key === 'embedded' ? 'Score' : 'Score as sent by Conncct'}: <strong>{value}</strong></div>}
+        {exact && value !== null && <div className="rsnap-exact">{src.key === 'embedded' ? 'Score' : 'Imported score'}: <strong>{value}</strong></div>}
       </div>
       <div className="rsnap-body">
         <div className="rsnap-chips"><BandChip readiness={r} /><SrcBadge tone="outline" size="sm">{src.label}</SrcBadge></div>
         {variant === 'full' && description && !prov && <p className="rsnap-desc">{description}</p>}
-        {prov && <p className="rsnap-desc">Your readiness isn't final yet. Finish your readiness in Conncct.</p>}
+        {prov && <p className="rsnap-desc">Your readiness isn't final yet. Some questions are still unanswered.</p>}
         {gap && variant !== 'full' && <p className="rsnap-gap">Biggest gap: <strong>{gap}</strong></p>}
         <p className="rsnap-meta">
           {src.foot} {fmtDate(r?.computed_at) || 'an unknown date'}
           {variant === 'full' && r?.methodology_version ? ` · methodology v${r.methodology_version}` : ''}
         </p>
         {stale && (
-          <p className="rsnap-stale">This score is from {fmtDate(r.computed_at)}. Update it in Conncct for current advice.</p>
+          <p className="rsnap-stale">This score is from {fmtDate(r.computed_at)}. Update your answers for current advice.</p>
         )}
         {showLink && variant !== 'full' && <Link to="/capital/readiness" className="rsnap-link">View details</Link>}
         {variant === 'full' && conncctHref && (
-          <a className="rsnap-link" href={conncctHref} target="_blank" rel="noreferrer">To change this score, update your answers in Conncct ↗</a>
+          <p className="rsnap-meta">This score was imported from your readiness partner. Changes to it are made there.</p>
         )}
       </div>
     </div>
@@ -73,7 +73,7 @@ const STATUS_WORD = { met: 'met', partial: 'partial', missing: 'missing', unknow
 /** Factor bars in payload order. Unknown is dashed, never a fail. */
 export function FactorBars({ readiness }) {
   const factors = readiness?.factors || [];
-  if (!factors.length) return <p className="ui-muted">Conncct sent the score without a factor breakdown.</p>;
+  if (!factors.length) return <p className="ui-muted">This score arrived without a factor breakdown.</p>;
   const gapKey = typeof readiness?.insight?.biggest_gap === 'object' ? readiness.insight.biggest_gap?.key : readiness?.insight?.biggest_gap;
   return (
     <ul className="factors">
@@ -100,9 +100,9 @@ export function ReadinessPill({ readiness, source }) {
   if (!readiness) return <Link to="/capital/readiness/assess" className="rpill rpill-none">Readiness · not scored yet</Link>;
   const { tone } = bandOf(readiness);
   return (
-    <Link to="/capital/readiness" className={`rpill rpill-${tone || 'none'}`} title="Your Capital Readiness Score, from Conncct">
+    <Link to="/capital/readiness" className={`rpill rpill-${tone || 'none'}`} title="Your Capital Readiness Score (Conncct method)">
       <span className="rpill-dot" aria-hidden="true" />
-      Readiness {Math.round(Number(readiness.score))} · {bandLabel(readiness)}<span className="rpill-src"> · {readinessSource(source).key === 'embedded' ? 'assessed here' : 'Conncct'}</span>
+      Readiness {Math.round(Number(readiness.score))} · {bandLabel(readiness)}<span className="rpill-src"> · {readinessSource(source).key === 'embedded' ? 'assessed here' : 'imported'}</span>
     </Link>
   );
 }

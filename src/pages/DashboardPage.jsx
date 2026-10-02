@@ -7,7 +7,6 @@ import { getUnlocks, listRuns, getRunNormalised, stageLabel } from '../lib/capit
 import { getRecommendation } from '../lib/packages';
 import { getRouting, normaliseRoute } from '../lib/routing';
 import { listExpertRequests } from '../lib/experts';
-import { conncctLink } from '../lib/companies';
 import { fmtUsd, fmtPrice, firstName, humanise, daysSince, POSITIONING } from '../lib/format';
 import { rankActions, countGaps, partOfDay } from '../lib/home';
 import { bandLabel, readinessSource } from '../lib/readiness';
@@ -51,7 +50,6 @@ function Waiting({ staff, name }) {
           <div className="ui-stack ui-stack-sm" style={{ justifyItems: 'center' }}>
             <div className="ui-row">
               <Button as={Link} to="/onboarding" variant="accent">Set up your company</Button>
-              <Button as="a" href={conncctLink(null)} target="_blank" rel="noreferrer" variant="secondary">Bring it from Conncct ↗</Button>
               {staff && import.meta.env.VITE_DEV_IMPORT === 'true' && <Button as={Link} to="/dev/import" variant="secondary">Import a test company</Button>}
             </div>
             <Link to="/experts">Looking for an expert instead? Find an Expert →</Link>

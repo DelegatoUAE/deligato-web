@@ -7,7 +7,7 @@ import { GateCard, LoadError } from '../components/capital/bits';
 import useApi from '../lib/useApi';
 import { getUnlocks, runMatch, investorHref, filterLabel } from '../lib/capital';
 import { getAdvice } from '../lib/advice';
-import { saveCapitalNeed, conncctLink } from '../lib/companies';
+import { saveCapitalNeed } from '../lib/companies';
 import ExpertBridgeLink from '../components/ExpertBridgeLink';
 import { fmtInt, fmtUsd } from '../lib/format';
 import { logEvent } from '../lib/events';
@@ -31,7 +31,6 @@ export default function AdvicePage() {
   const [applying, setApplying] = useState(false);
   const r = readiness?.readiness;
   const trial = entitlements?.improvement_plan !== 'full';
-  const href = conncctLink(company);
 
   async function apply(u) {
     setApplying(true);
@@ -98,8 +97,8 @@ export default function AdvicePage() {
                       </>
                     ) : (
                       <>
-                        {u.field === 'stage' && <p className="ui-faint">Stage must stay credible. Stage is set in Conncct.</p>}
-                        <Button as="a" href={href} target="_blank" rel="noreferrer" size="sm" variant="secondary">Update in Conncct ↗</Button>
+                        {u.field === 'stage' && <p className="ui-faint">Stage must stay credible.</p>}
+                        <Button as={Link} to="/company/business" size="sm" variant="secondary">Edit company details</Button>
                         <ExpertBridgeLink kind="match_blocker" gapKey={u.kind || u.field} from="improve" />
                       </>
                     )}
@@ -120,18 +119,18 @@ export default function AdvicePage() {
                 <p><strong>{x.label} so {fmtInt(x.moves_from_unknown)} investors can be properly checked.</strong></p>
                 <p className="ui-muted">Some will fit, some won't. Your list may get shorter but more accurate.{x.field === 'instrument' ? " Today these count as eligible only because we don't know your instrument." : ''}</p>
                 {NEED_FIELDS.includes(x.field) ? <Button as={Link} to="/capital/need" size="sm" variant="secondary">Set in Capital need</Button>
-                  : <Button as="a" href={href} target="_blank" rel="noreferrer" size="sm" variant="secondary">Update in Conncct ↗</Button>}
+                  : <Button as={Link} to="/company/business" size="sm" variant="secondary">Edit company details</Button>}
               </li>
             ))}
           </ul>
         </Card>
       )}
 
-      <Card title="What investors are looking for" subtitle="Readiness in Conncct">
+      <Card title="What investors are looking for" subtitle="From your readiness score (Conncct method)">
         {links.length ? (
           <ul className="levers">{links.map((l, i) => (
             <li key={l.id || i} className="lever">
-              <p><strong>{l.factor_label || l.factor}</strong>{l.points != null ? ` · Conncct factor ${l.points} / ${l.max}` : ''}</p>
+              <p><strong>{l.factor_label || l.factor}</strong>{l.points != null ? ` · ${l.points} / ${l.max} points` : ''}</p>
               {l.message && <p className="ui-muted">{l.message}</p>}
             </li>
           ))}</ul>
@@ -140,16 +139,16 @@ export default function AdvicePage() {
             const f = r.factors?.find((x) => x.key === imp.factor);
             return (
               <li key={i} className="lever">
-                <p><strong>{f?.label || imp.label || imp.factor}</strong>{f ? ` · Conncct factor ${f.points} / ${f.max}` : ''}</p>
-                <p className="ui-muted">Conncct suggests: {imp.action}{imp.impact_points ? ` (Conncct estimate +${imp.impact_points})` : ''}</p>
+                <p><strong>{f?.label || imp.label || imp.factor}</strong>{f ? ` · ${f.points} / ${f.max} points` : ''}</p>
+                <p className="ui-muted">Suggested: {imp.action}{imp.impact_points ? ` (estimated +${imp.impact_points})` : ''}</p>
                 <div className="ui-row">
-                  <Button as="a" href={conncctLink(company, 'readiness')} target="_blank" rel="noreferrer" size="sm" variant="secondary">Improve in Conncct ↗</Button>
+                  <Button as={Link} to="/capital/readiness" size="sm" variant="secondary">See readiness</Button>
                 </div>
                 <ExpertBridgeLink kind="readiness_factor" gapKey={imp.factor} from="improve" />
               </li>
             );
           })}</ul>
-        ) : <p className="ui-muted">No readiness suggestions from Conncct yet.</p>}
+        ) : <p className="ui-muted">No readiness suggestions yet.</p>}
       </Card>
 
       {gaps.length > 0 && (

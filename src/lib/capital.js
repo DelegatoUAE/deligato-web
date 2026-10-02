@@ -275,14 +275,14 @@ export function tierWithinBucket(r) {
 // the conservative reading: unknown → Unknown, an inference from their own
 // text → AI Inferred, anything else → Public Source (never "Verified" without proof).
 export const PROVENANCE_LABEL = {
-  provider_verified: 'Capital Provider Verified', conncct_verified: 'Conncct Verified', licensed: 'Licensed Data Provider',
+  provider_verified: 'Capital Provider Verified', conncct_verified: 'Research Verified', licensed: 'Licensed Data Provider',
   public_source: 'Public Source', ai_inferred: 'AI Inferred', unknown: 'Unknown',
-  verified: 'Conncct Verified', asserted: 'Public Source', inferred_read: 'AI Inferred', inferred_default: 'AI Inferred', weak_record: 'Public Source', absent: 'Unknown',
+  verified: 'Research Verified', asserted: 'Public Source', inferred_read: 'AI Inferred', inferred_default: 'AI Inferred', weak_record: 'Public Source', absent: 'Unknown',
 };
 export function fitProvenance(r, dim) {
   const fr = r?.fit_reasons?.[dim];
   const raw = r?.fit_provenance?.[dim] || (fr && typeof fr === 'object' ? fr.provenance : null);
-  if (raw && typeof raw === 'object') return raw.label_text || PROVENANCE_LABEL[raw.label] || PROVENANCE_LABEL[raw.tier] || 'Unknown';
+  if (raw && typeof raw === 'object') return (raw.label === 'conncct_verified' ? PROVENANCE_LABEL.conncct_verified : raw.label_text) || PROVENANCE_LABEL[raw.label] || PROVENANCE_LABEL[raw.tier] || 'Unknown';
   if (raw) return PROVENANCE_LABEL[raw] || raw;
   if (fr && typeof fr === 'object' && fr.inferred) return 'AI Inferred';
   if (normState(r?.fits?.[dim]) === 'unknown') return 'Unknown';

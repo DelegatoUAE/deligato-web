@@ -19,7 +19,7 @@ export default function CapitalOverviewPage() {
   const bucket = (k) => run?.counts?.[`${k}_bucket`] ?? run?.results.filter((x) => x.bucket === k).length;
 
   const steps = [
-    { label: 'Company', description: 'From Conncct', status: 'done', href: '/company' },
+    { label: 'Company', description: 'Done', status: 'done', href: '/company' },
     { label: 'Readiness', description: r ? bandLabel(r) : 'Not scored', status: r ? 'done' : 'current', href: '/capital/readiness' },
     { label: 'Capital need', description: capitalNeedConfirmed ? `${fmtUsd(company.raise_usd) || ''} ${company.instrument || ''}` : 'To confirm', status: capitalNeedConfirmed ? 'done' : 'current', href: '/capital/find?step=need' },
     { label: 'Routes and matches', description: run ? `${fmtInt(run.counts?.eligible)} eligible` : 'Not run yet', status: run ? 'done' : capitalNeedConfirmed ? 'current' : 'upcoming', href: '/capital/find?step=routing' },

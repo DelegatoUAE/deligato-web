@@ -99,13 +99,7 @@ export const PERSONA_FIXTURES = [
   { key: 'india-healthtech-series-a-strong', company_id: '10000000-0000-4000-a000-000000000006', label: 'PulseCare Diagnostics · India healthtech · Series A', email: 'founder.in@test.local' },
 ];
 
-// Conncct links (H3). Until the payload carries conncct_links, the generic
-// Conncct address is used.
-const CONNCCT_HOME = import.meta.env.VITE_CONNCCT_URL || 'https://conncct.com';
-export function conncctLink(company, kind = 'profile_edit') {
-  const links = company?.conncct_links || {};
-  return links[kind] || links.company || CONNCCT_HOME;
-}
+// No outbound links to the readiness partner: Conncct is in stealth (coordinator, 3 Oct).
 
 // ---- readiness provider adapter (D14) ---------------------------
 // Conncct's 14-question engine behind the bridge. Questions and wording come

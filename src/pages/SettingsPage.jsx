@@ -116,10 +116,10 @@ function Privacy({ companyId }) {
           <Button variant="secondary" iconLeft="download" onClick={doExport} loading={busy === 'export'}>Export my data</Button>
           <Button variant="danger" onClick={() => setDel(true)}>Delete my Deligato account</Button>
         </div>
-        <p className="ui-muted">Your company profile and readiness score live in Conncct and are not affected here.</p>
+        
       </Card>
       <Modal open={del} onClose={() => setDel(false)} size="sm" title="Delete your Deligato account?"
-        description="This permanently deletes your matches, pipeline, outreach drafts, data-room files and history here. Your Conncct profile and readiness score are not affected. This can't be undone."
+        description="This permanently deletes your matches, pipeline, outreach drafts, data-room files and history here. This can't be undone."
         footer={<><Button variant="ghost" onClick={() => setDel(false)}>Cancel</Button><Button variant="danger" disabled={typed !== 'DELETE'} loading={busy === 'delete'} onClick={doDelete}>Delete my account</Button></>}>
         <FormField label="Type DELETE to confirm"><Input value={typed} onChange={(e) => setTyped(e.target.value)} /></FormField>
       </Modal>

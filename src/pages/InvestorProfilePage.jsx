@@ -14,13 +14,12 @@ import {
 import { submitCorrection, recordNotFit, CORRECTION_FIELDS, FEEDBACK_DOWN_REASONS } from '../lib/learning';
 import { recordOutcome, kindForRoute } from '../lib/fundraising';
 import { runTask } from '../lib/intelligence';
-import { conncctLink } from '../lib/companies';
 import { fmtUsd, fmtDate } from '../lib/format';
 
 // D16 provenance labels. Derived from the record's own evidence until the
 // data module publishes per-field labels (it then wins: profile.field_provenance).
 const PROV = {
-  provider: 'Capital Provider Verified', conncct: 'Conncct Verified', licensed: 'Licensed Data Provider',
+  provider: 'Capital Provider Verified', conncct: 'Research Verified', licensed: 'Licensed Data Provider',
   public: 'Public Source', ai: 'AI Inferred', unknown: 'Unknown',
 };
 function provenance(profile, field, value) {
@@ -53,7 +52,7 @@ function fitDetail(dim, m, company, result) {
   if (state === 'unknown') {
     const own = { stage: 'your stage', ticket: 'how much you are raising', geography: 'where you are headquartered', sector: 'your sector' }[dim];
     if (own && missingOwn.includes(own)) {
-      return dim === 'ticket' ? "You haven't set your raise amount." : 'Not set in your Conncct profile.';
+      return dim === 'ticket' ? "You haven't set your raise amount." : 'Not set in your company profile.';
     }
     return 'Not on record for this investor.';
   }
@@ -229,7 +228,7 @@ export default function InvestorProfilePage() {
                   Missing on your side: {result.missing_from_your_profile.join(', ')}.{' '}
                   {result.missing_from_your_profile.some((x) => /raising|instrument/.test(x))
                     ? <Link to="/capital/need">Set in Capital need</Link>
-                    : <a href={conncctLink(company)} target="_blank" rel="noreferrer">Update in Conncct ↗</a>}
+                    : <Link to="/company/business">Edit company details</Link>}
                 </p>
               )}
               {result.why_matched && <div className="mcard-why"><span className="mcard-why-label">Why you match</span><p>{result.why_matched}</p></div>}
@@ -321,7 +320,7 @@ export default function InvestorProfilePage() {
         </Card>
 
         <Card id="sources" title="Sources">
-          <p className="ui-muted">Each fact above carries where it comes from: Capital Provider Verified, Conncct Verified, Licensed Data Provider, Public Source, AI Inferred or Unknown. Inferred values are never shown as verified.</p>
+          <p className="ui-muted">Each fact above carries where it comes from: Capital Provider Verified, Research Verified, Licensed Data Provider, Public Source, AI Inferred or Unknown. Inferred values are never shown as verified.</p>
           {ev.derived_note && <p className="ui-muted">{ev.derived_note}</p>}
           {locked ? <p className="ui-faint">Source links are included from Investor-Ready.</p> : (ev.urls || []).length ? (
             <ul className="plain-list src-list">{ev.urls.map((u) => <li key={u}><a href={u} target="_blank" rel="noreferrer">{u.replace(/^https?:\/\//, '').slice(0, 70)}</a></li>)}</ul>

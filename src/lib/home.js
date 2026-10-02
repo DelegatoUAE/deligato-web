@@ -30,7 +30,7 @@ export function rankActions(inputs = {}) {
   // 1. setup (never dismissible), at most 2; S2+S3 together only without S1
   const setup = [];
   if (!r) setup.push({ pool: 'S', key: 'S1', title: 'Get your Capital Readiness Score', why: '14 short questions. It shows how investors are likely to read your company.', cta: 'Get your score', to: '/capital/readiness/assess' });
-  else if (r.provisional && inputs.readinessSource === 'conncct') setup.push({ pool: 'S', key: 'S1', title: 'Finish your readiness in Conncct', why: 'Your score is provisional until every question is answered.', cta: 'Open Conncct', href: 'conncct' });
+  else if (r.provisional && inputs.readinessSource === 'conncct') setup.push({ pool: 'S', key: 'S1', title: 'Finish your readiness questions', why: 'Your score is provisional until every question is answered.', cta: 'See readiness', to: '/capital/readiness' });
   if (!inputs.capitalNeedConfirmed) setup.push({ pool: 'S', key: 'S2', title: "Confirm what you're raising", why: 'Amount, instrument and timing drive every route and match.', cta: 'Confirm your raise', to: '/capital/need' });
   if (!inputs.hasRun && (inputs.capitalNeedConfirmed || !setup.some((s) => s.key === 'S1'))) {
     setup.push({ pool: 'S', key: 'S3', title: 'Find your capital routes and matches', why: 'See which kinds of capital fit, then the providers inside them.', cta: 'Find capital', to: '/capital/find' });
@@ -90,7 +90,7 @@ export function rankActions(inputs = {}) {
     cands.push({
       pool: 'R', key: f.key, raw: gap, score: 45 + Math.round(30 * gap) + (far ? 10 : 0),
       title: unknown ? `${f.label} isn't answered yet` : `${f.label} is a readiness gap (${f.points} of ${f.max})`,
-      why: imp ? `Conncct suggests: "${imp.action}"` : 'Investors read this factor closely.',
+      why: imp ? `Suggested: "${imp.action}"` : 'Investors read this factor closely.',
       cta: 'See readiness', to: '/capital/readiness#gaps', bridge: { kind: 'readiness_factor', key: f.key },
     });
   }

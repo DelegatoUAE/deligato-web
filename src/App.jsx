@@ -72,7 +72,7 @@ export default function App() {
       <Route path="/signup" element={<SignupPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
-      <Route path="/design" element={<Showcase />} />
+      {import.meta.env.DEV && <Route path="/design" element={<Showcase />} />}
 
       <Route path="/" element={<Protected gate="open"><DashboardPage /></Protected>} />
       <Route path="/welcome" element={<Protected gate="welcome"><WelcomePage /></Protected>} />
