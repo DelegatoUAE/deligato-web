@@ -1,41 +1,23 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { apiFetch } from '../lib/auth';
+import useApi from '../lib/useApi';
+import { useToast } from '../design/ui';
 
 export default function MatchPage() {
   const [params, setParams] = useSearchParams();
-  const [projects, setProjects] = useState([]);
-  const [matches, setMatches] = useState(null);
-  const [project, setProject] = useState(null);
-  const [provider, setProvider] = useState(null);
+  const toast = useToast();
   const [allocating, setAllocating] = useState({});
-  const [allocated, setAllocated] = useState({});
-  const [error, setError] = useState(null);
+  const [allocatedFor, setAllocated] = useState({ id: null, map: {} });
   const selectedId = params.get('project_id') || '';
-
-  useEffect(() => {
-    apiFetch('/projects')
-      .then((d) => setProjects(d.projects))
-      .catch((e) => setError(e.message));
-  }, []);
-
-  useEffect(() => {
-    if (!selectedId) {
-      setMatches(null);
-      setProject(null);
-      return;
-    }
-    setMatches(null);
-    setError(null);
-    setAllocated({});
-    apiFetch(`/projects/${selectedId}/matches`)
-      .then((d) => {
-        setProject(d.project);
-        setMatches(d.matches);
-        setProvider(d.provider || 'heuristic');
-      })
-      .catch((e) => setError(e.message));
-  }, [selectedId]);
+  const projectsQ = useApi(() => apiFetch('/projects').then((d) => d.projects || []), []);
+  const matchQ = useApi(() => (selectedId ? apiFetch(`/projects/${selectedId}/matches`) : null), [selectedId]);
+  const projects = projectsQ.data || [];
+  const matches = selectedId ? matchQ.data?.matches ?? null : null;
+  const project = selectedId ? matchQ.data?.project ?? null : null;
+  const provider = matchQ.data?.provider || 'heuristic';
+  const error = (projectsQ.error || matchQ.error)?.message || null;
+  const allocated = allocatedFor.id === selectedId ? allocatedFor.map : {};
 
   function onSelect(e) {
     const next = new URLSearchParams(params);
@@ -56,9 +38,9 @@ export default function MatchPage() {
           status: 'proposed',
         }),
       });
-      setAllocated((s) => ({ ...s, [consultantId]: true }));
+      setAllocated((s) => ({ id: selectedId, map: { ...(s.id === selectedId ? s.map : {}), [consultantId]: true } }));
     } catch (e) {
-      alert(`Could not allocate: ${e.message}`);
+      toast.error(`Could not allocate: ${e.message}`);
     } finally {
       setAllocating((s) => ({ ...s, [consultantId]: false }));
     }

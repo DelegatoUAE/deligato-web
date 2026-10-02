@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import useApi from '../lib/useApi';
 import { useNavigate } from 'react-router-dom';
 import { apiFetch } from '../lib/auth';
 
@@ -7,24 +8,19 @@ const AVAILABILITIES = ['all', 'available', 'partial', 'booked', 'leave'];
 
 export default function ConsultantsPage() {
   const navigate = useNavigate();
-  const [consultants, setConsultants] = useState(null);
   const [seniority, setSeniority] = useState('all');
   const [availability, setAvailability] = useState('all');
   const [skill, setSkill] = useState('');
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    setConsultants(null);
-    setError(null);
+  const q = useApi(() => {
     const params = new URLSearchParams();
     if (seniority !== 'all') params.set('seniority', seniority);
     if (availability !== 'all') params.set('availability', availability);
     if (skill.trim()) params.set('skill', skill.trim());
     const qs = params.toString();
-    apiFetch(`/consultants${qs ? '?' + qs : ''}`)
-      .then((d) => setConsultants(d.consultants))
-      .catch((e) => setError(e.message));
+    return apiFetch(`/consultants${qs ? '?' + qs : ''}`).then((d) => d.consultants);
   }, [seniority, availability, skill]);
+  const consultants = q.data ?? null;
+  const error = q.error?.message || null;
 
   return (
     <section>

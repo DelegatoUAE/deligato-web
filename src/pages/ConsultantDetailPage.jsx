@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { apiFetch } from '../lib/auth';
+import useApi from '../lib/useApi';
 
 const BRAND_PURPLE = '#3C3489';
 const SOFT_BG = '#F4F3FF';
@@ -10,16 +10,10 @@ const SHADOW = '0 22px 60px rgba(60, 52, 137, 0.12)';
 export default function ConsultantDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [consultant, setConsultant] = useState(null);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    setConsultant(null);
-    setError(null);
-    apiFetch(`/consultants/${id}`)
-      .then((d) => setConsultant(d.consultant || d))
-      .catch((e) => setError(e.message));
-  }, [id]);
+  // Staff-only legacy view (founders use /experts/:id). Kept per D1/D13.
+  const q = useApi(() => apiFetch(`/consultants/${id}`).then((d) => d.consultant || d), [id]);
+  const consultant = q.data ?? null;
+  const error = q.error?.message || null;
 
   const handleBack = () => navigate('/consultants');
   const initials = consultant
