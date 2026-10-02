@@ -72,7 +72,7 @@ function Privacy({ companyId }) {
 
   return (
     <div className="ui-stack">
-      <Card title="AI use" subtitle="What we send: company-level facts (stage, sector, raise, traction…), never names, emails, founder details or files. Nothing is used to train the provider's models.">
+      <Card title="Consents" subtitle="What we send: company-level facts (stage, sector, raise, traction…), never names, emails, founder details or files. Nothing is used to train the provider's models.">
         {cQ.error || tQ.error ? (
           <Alert tone="warn">{isMissingEndpoint(cQ.error || tQ.error) ? "Consent settings aren't connected in this environment yet." : (cQ.error || tQ.error).message}</Alert>
         ) : !cQ.data || !tQ.data ? <Skeleton variant="text" lines={3} /> : (
@@ -84,7 +84,7 @@ function Privacy({ companyId }) {
                   <div>
                     <strong>{t.title || humanise(t.scope)}</strong>
                     {t.required_for && <p className="ui-muted">Used for {t.required_for}.</p>}
-                    {!on && <p className="ui-faint">Off: your matches are ranked by rules only, and outreach uses templates.</p>}
+                    {!on && t.scope === 'ai_processing' && <p className="ui-faint">Off: your matches are ranked by rules only, and outreach uses templates.</p>}
                   </div>
                   <label className="switch">
                     <input type="checkbox" role="switch" checked={on} disabled={busy === t.scope} onChange={(e) => toggle(t, e.target.checked)} aria-label={t.title || t.scope} />

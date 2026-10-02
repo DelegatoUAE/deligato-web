@@ -13,7 +13,7 @@ export default class ErrorBoundary extends Component {
   }
 
   componentDidCatch(error) {
-    console.error('[screen]', error); // eslint-disable-line no-console
+    console.error('[screen]', error);
   }
 
   componentDidUpdate(prev) {

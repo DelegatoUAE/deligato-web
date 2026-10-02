@@ -25,6 +25,7 @@ const PROV = {
 };
 function provenance(profile, field, value) {
   const server = profile.field_provenance?.[field];
+  if (server && typeof server === 'object') return server.label_text || PROV[server.label] || server.label || PROV.unknown;
   if (server) return PROV[server] || server;
   const empty = value === null || value === undefined || value === '' || (Array.isArray(value) && !value.length) || value === 'Unknown';
   if (empty) return PROV.unknown;
@@ -32,11 +33,13 @@ function provenance(profile, field, value) {
   if (profile.evidence?.verification_level === 'Primary') return PROV.conncct;
   return PROV.public;
 }
-const provTone = (l) => (l === PROV.unknown ? 'outline' : l === PROV.ai ? 'warn' : l === PROV.conncct || l === PROV.provider ? 'ok' : 'neutral');
+const provTone = (l) => (l === PROV.unknown ? 'outline' : l === PROV.ai ? 'warn' : l === PROV.conncct ? 'brand' : l === PROV.provider ? 'ok' : 'neutral');
 
 function Prov({ profile, field, value }) {
   const l = provenance(profile, field, value);
-  return <Badge tone={provTone(l)} size="sm" className="prov">{l}</Badge>;
+  const fp = profile.field_provenance?.[field];
+  const tip = fp && typeof fp === 'object' ? [fp.label_text, fp.basis, fp.source_name, fp.as_of && `as of ${fp.as_of}`].filter(Boolean).join(' · ') : l;
+  return <Badge tone={provTone(l)} size="sm" className="prov" title={tip}>{l}</Badge>;
 }
 
 const list = (a) => (Array.isArray(a) && a.length ? a.join(', ') : null);

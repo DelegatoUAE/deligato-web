@@ -50,7 +50,8 @@ export default function AssistantPanel({ open, onClose }) {
         ...(keepContext && ctx.recordId ? { record_id: ctx.recordId } : {}),
         ...(keepContext && (params.get('run') || run?.run_id) ? { run_id: params.get('run') || run.run_id } : {}),
       };
-      const out = await runTask('assistant', body);
+      const { company_id: cid, ...input } = body;
+      const out = await runTask('assistant', { input, company_id: cid });
       setState({ busy: false, result: out, error: null, asked: text });
       setQuestion('');
     } catch (e) {

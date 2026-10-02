@@ -185,7 +185,6 @@ export default function MatchesPage() {
         <>
           <ProviderBadge provider={run.provider} />
           {run.created_at && <span className="ui-muted">Run {fmtDateTime(run.created_at)}</span>}
-          {run.ai_error && <Badge tone="warn">AI refinement was unavailable, so these are rules-based results.</Badge>}
         </>
       )}
       actions={<Button variant="secondary" onClick={rerun} loading={running}>Re-run</Button>}
@@ -231,6 +230,7 @@ export default function MatchesPage() {
       <SubNav section="capital" />
       {header}
 
+      {run.ai_error && <Alert tone="warn">AI refinement was unavailable, so these are rules-based results.</Alert>}
       {routes.length > 0 && (
         <div className="route-filter">
           <span>Showing {routeParam === 'fits' ? 'every route that fits' : 'route'}:</span>

@@ -280,8 +280,9 @@ export const PROVENANCE_LABEL = {
 };
 export function fitProvenance(r, dim) {
   const fr = r?.fit_reasons?.[dim];
-  const p = r?.fit_provenance?.[dim] || (fr && typeof fr === 'object' ? (typeof fr.provenance === 'string' ? fr.provenance : fr.provenance?.label || fr.provenance?.key || fr.provenance?.tier) : null);
-  if (p) return PROVENANCE_LABEL[p] || p;
+  const raw = r?.fit_provenance?.[dim] || (fr && typeof fr === 'object' ? fr.provenance : null);
+  if (raw && typeof raw === 'object') return raw.label_text || PROVENANCE_LABEL[raw.label] || PROVENANCE_LABEL[raw.tier] || 'Unknown';
+  if (raw) return PROVENANCE_LABEL[raw] || raw;
   if (fr && typeof fr === 'object' && fr.inferred) return 'AI Inferred';
   if (normState(r?.fits?.[dim]) === 'unknown') return 'Unknown';
   if ((r?.likely_outside_reasons || []).some((x) => x.dimension === dim)) return 'AI Inferred';
