@@ -133,8 +133,8 @@ export default function DashboardPage() {
           <StatTile as={Link} to={r ? '/capital/readiness' : '/capital/readiness/assess'} tone="navy" label="Readiness" loading={readinessLoading}
             value={r ? Math.round(Number(r.score)) : 'Not scored yet'} foot={r ? `${bandLabel(r)} · ${src.label}` : 'Get your score'} />
         )}
-        <StatTile as={Link} to="/capital/need" label="Current raise" value={company.raise_usd != null ? `${fmtUsd(company.raise_usd)}${company.instrument ? ` ${company.instrument}` : ''}` : 'Not set'}
-          foot={TIMING[company.raise_timing] || (capitalNeedConfirmed ? 'Timing not set' : 'Confirm your raise')} />
+        <StatTile as={Link} to="/capital/need" label="Current raise" value={company.raise_usd != null ? fmtUsd(company.raise_usd) : 'Not set'}
+          foot={[company.instrument, TIMING[company.raise_timing] || (capitalNeedConfirmed ? 'timing not set' : 'Confirm your raise')].filter(Boolean).join(' · ')} />
         <StatTile as={Link} to="/capital/matches?tier=strong" label="Strong matches" loading={runLoading}
           value={run ? strong : '—'} foot={!run ? 'Appears after your first match' : deltaQ.data?.n ? `+${deltaQ.data.n} since ${deltaQ.data.since}` : `${possible} possible fits`} />
         {pipelineGated ? (

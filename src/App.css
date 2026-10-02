@@ -495,3 +495,11 @@
 .xprofile-grid .ui-card + .ui-card { margin-top: 0; }
 .xprofile-fit { grid-column: 1 / -1; }
 @media (max-width: 900px) { .xprofile-grid { grid-template-columns: 1fr; } }
+@media (max-width: 800px) { .login-side { gap: var(--s-3); } .login-foot { display: none; } .login-line { font-size: var(--text-md); max-width: none; } }
+.home-stats .ui-stat-value { overflow-wrap: anywhere; }
+@media (max-width: 900px) {
+  .inv-score { max-width: none; grid-auto-flow: row; grid-template-columns: auto 1fr; column-gap: var(--s-4); row-gap: 2px; text-align: left; justify-items: start; }
+  .inv-score > :first-child { grid-row: 1 / span 2; }
+  .inv-score .inv-bucket { max-width: none; text-align: left; align-self: end; font-size: var(--text-sm); }
+  .inv-score .tier { align-self: start; }
+}
