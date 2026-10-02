@@ -18,7 +18,12 @@ export const listDrafts = (id) => apiFetch(`${base(id)}/outreach/drafts`);
 export const getDraft = (id, draftId) => apiFetch(`${base(id)}/outreach/drafts/${draftId}`);
 export const createDraft = (id, body) => apiFetch(`${base(id)}/outreach/drafts`, json('POST', body));
 export const updateDraft = (id, draftId, body) => apiFetch(`${base(id)}/outreach/drafts/${draftId}`, json('PATCH', body));
-export const markDraftSent = (id, draftId) => apiFetch(`${base(id)}/outreach/drafts/${draftId}`, json('PATCH', { status: 'sent_by_founder' }));
+/** The founder confirms they sent it themselves. The API wants the draft marked
+ *  ready (approved) first, so this does both, in order. */
+export async function markDraftSent(id, draftId, currentStatus) {
+  if (currentStatus === 'draft') await apiFetch(`${base(id)}/outreach/drafts/${draftId}`, json('PATCH', { status: 'approved' }));
+  return apiFetch(`${base(id)}/outreach/drafts/${draftId}`, json('PATCH', { status: 'sent_by_founder' }));
+}
 export const deleteDraft = (id, draftId) => apiFetch(`${base(id)}/outreach/drafts/${draftId}`, json('PATCH', { status: 'discarded' }));
 
 // ---- CRM + outcomes

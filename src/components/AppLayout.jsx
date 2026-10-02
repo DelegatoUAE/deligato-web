@@ -5,6 +5,7 @@ import { logout } from '../lib/auth';
 import { useCompany } from './company-context';
 import { ReadinessPill } from './capital/Readiness';
 import AssistantPanel from './AssistantPanel';
+import ErrorBoundary from './ErrorBoundary';
 import { CAPITAL_NAV, EXPERT_NAV, COMPANY_NAV } from './nav';
 import { PAGE_SUFFIX } from '../lib/format';
 
@@ -44,7 +45,7 @@ const TABS = [
 ];
 
 export default function AppLayout({ children }) {
-  const { me, staff, companies, company, setCompanyId, readiness, plan, run, pipeline, dataRoom } = useCompany();
+  const { me, staff, companies, company, setCompanyId, readiness, readinessLoading, plan, run, pipeline, dataRoom } = useCompany();
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const [assistantOpen, setAssistantOpen] = useState(false);
@@ -119,13 +120,13 @@ export default function AppLayout({ children }) {
         footer={<Button variant="ghost" size="sm" iconLeft="logout" onClick={onLogout} className="signout">Sign out</Button>}
         topActions={(
           <>
-            <ReadinessPill readiness={readiness?.readiness} source={readiness} />
+            {!readinessLoading && <ReadinessPill readiness={readiness?.readiness} source={readiness} />}
             {plan && <Link to="/settings?tab=plan" className="planlink"><Badge tone="neutral">{plan.label}</Badge></Link>}
             <Button variant="secondary" size="sm" iconLeft="spark" onClick={() => setAssistantOpen(true)} aria-haspopup="dialog">Ask AI</Button>
           </>
         )}
       >
-        <div className="page">{children}</div>
+        <div className="page"><ErrorBoundary resetKey={pathname}>{children}</ErrorBoundary></div>
       </AppShell>
       <nav className="tabbar" aria-label="Quick">
         {TABS.map((t) => (

@@ -172,7 +172,9 @@ export default function PipelinePage() {
         await recordOutcome(companyId, {
           record_id: item.record_id, pipeline_item_id: item.id, outcome: form.outcome,
           reason_code: form.reason || undefined, amount_usd: form.amount ? Number(form.amount) : undefined,
-          instrument: form.instrument || undefined, occurred_on: form.date, note: form.note || undefined,
+          instrument: form.instrument || undefined,
+          // A date-only 'today' reads as UTC midnight server-side; omit it so the server stamps now.
+          occurred_on: form.date && form.date !== todayIso() ? form.date : undefined, note: form.note || undefined,
         });
         toast.success('Outcome saved.');
       } catch (e) {

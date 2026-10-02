@@ -86,7 +86,6 @@ export default function AdvicePage() {
                     <div className="lever-head"><strong>{u.label}</strong><GainLoss u={u} /></div>
                     {u.actionable && <p className="ui-muted">{u.actionable}</p>}
                     {u.caveat && <p className="lever-caveat">{u.caveat}</p>}
-                    <ExpertBridgeLink kind="match_blocker" gapKey={u.kind || u.field} from="improve" />
                     {u.net < 0 && <p className="lever-neg">Net loss: you'd lose {fmtInt(u.loses)} sources you qualify for today to gain {fmtInt(u.unlocks)}.</p>}
                     {u.examples?.length > 0 && (
                       <p className="ui-muted">e.g. {u.examples.map((x, i) => <span key={x.record_id}>{i ? ' · ' : ''}<Link to={investorHref(x.record_id)}>{x.name}</Link></span>)}</p>
@@ -95,11 +94,13 @@ export default function AdvicePage() {
                       <>
                         <p className="ui-faint">Your choice stays yours. Only change your raise if it's right for the company.</p>
                         <Button size="sm" variant="secondary" onClick={() => { setPreview(u); logEvent('advice.lever_tried', { field: u.field, net: u.net }, companyId); }}>Try this</Button>
+                        <ExpertBridgeLink kind="match_blocker" gapKey={u.kind || u.field} from="improve" />
                       </>
                     ) : (
                       <>
                         {u.field === 'stage' && <p className="ui-faint">Stage must stay credible. Stage is set in Conncct.</p>}
                         <Button as="a" href={href} target="_blank" rel="noreferrer" size="sm" variant="secondary">Update in Conncct ↗</Button>
+                        <ExpertBridgeLink kind="match_blocker" gapKey={u.kind || u.field} from="improve" />
                       </>
                     )}
                   </li>

@@ -8,6 +8,12 @@ import { getCatalog, getRecommendation, selectPackage } from '../lib/packages';
 import { fmtPrice, fmtDate } from '../lib/format';
 
 const PERIOD = { monthly: ' / mo', one_time: '', free: '' };
+const creditText = (c) => {
+  if (!c) return null;
+  if (typeof c === 'string') return c;
+  // Product copy (13 §Acceptance 2): "$99, credited against any package".
+  return c.credited_against ? `${c.amount_usd ? `${fmtPrice(c.amount_usd)}, c` : 'C'}redited against any package` : null;
+};
 const priceText = (p) => (p.price_usd === null || p.price_pending ? 'Price on request' : p.price_usd === 0 ? '$0' : `${fmtPrice(p.price_usd)}${PERIOD[p.billing] || ''}`);
 
 export default function PackagesPage() {
@@ -21,12 +27,14 @@ export default function PackagesPage() {
   const [busy, setBusy] = useState(false);
   const [requested, setRequested] = useState({});
   const [compare, setCompare] = useState(false);
+  const [demo, setDemo] = useState(null);
 
   async function choose() {
     setBusy(true);
     try {
       const out = await selectPackage(companyId, choosing.id);
       setRequested((r) => ({ ...r, [choosing.id]: out.selection?.created_at || new Date().toISOString() }));
+      if (out.demo?.banner || out.selection?.status === 'active') setDemo(out.demo?.banner || 'POC: no payment taken');
       reloadEntitlements();
       toast.success(out.already_selected ? `${choosing.name} was already requested.` : `Requested ${choosing.name}. An advisor will be in touch.`);
       setChoosing(null);
@@ -56,18 +64,19 @@ export default function PackagesPage() {
         {activeIds.has(p.id) && <Badge tone="ok">Current</Badge>}
       </div>
       <p className="pkg-price">{priceText(p)}{p.timeline ? <span> · {p.timeline}</span> : null}</p>
-      {p.credit_policy && <p className="ui-muted">{p.credit_policy}</p>}
+      {creditText(p.credit_policy) && <p className="ui-muted">{creditText(p.credit_policy)}</p>}
       {p.tagline && <p>{p.tagline}</p>}
       <ul className="pkg-incl">{(p.includes || []).slice(0, 6).map((x) => <li key={x}>{x}</li>)}</ul>
       {p.price_pending ? <Button variant="secondary" size="sm" onClick={() => setChoosing(p)} disabled={isRequested(p)}>{isRequested(p) ? 'Requested' : 'Ask about pricing'}</Button>
         : p.price_usd === 0 ? <Badge tone="neutral">{p.id === 'readiness-free' ? 'In Conncct' : 'Free'}</Badge>
-          : <Button variant={p.id === star ? 'accent' : 'secondary'} size="sm" onClick={() => setChoosing(p)} disabled={isRequested(p)}>{isRequested(p) ? 'Requested' : `Choose ${p.name}`}</Button>}
+          : <Button variant="secondary" size="sm" onClick={() => setChoosing(p)} disabled={isRequested(p)}>{isRequested(p) ? 'Requested' : `Choose ${p.name}`}</Button>}
     </Card>
   );
 
   return (
     <div className="packages">
       {head}
+      {(demo || activeIds.size > 0) && <Alert tone="warn" title={demo || 'POC: no payment taken'}>The package is active for testing. No payment was taken.</Alert>}
       <Alert tone="info">Proof of concept: no payment is taken in this app. Choosing a package sends a request; an advisor confirms scope and timing with you first.</Alert>
       {recQ.error ? <LoadError error={recQ.error} onRetry={recQ.reload} what="your recommendation" /> : !rec ? <Skeleton h="120px" /> : starPkg ? (
         <Card className="rec-banner" eyebrow={`Recommended for ${company.name}`} title={`${starPkg.name} · ${priceText(starPkg)}${starPkg.timeline ? ` · ${starPkg.timeline}` : ''}`}>

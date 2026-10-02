@@ -16,7 +16,7 @@ const TIP = {
  * never colour alone. Hover shows the evidence label; tap (or Enter) opens
  * it below the row, so it works on touch screens too (D24).
  */
-export default function FitPills({ fits = {}, result = null }) {
+export default function FitPills({ fits = {}, result = null, instrumentUnknown = false }) {
   const [open, setOpen] = useState(null);
   const base = useId();
   const r = result || { fits };
@@ -44,6 +44,13 @@ export default function FitPills({ fits = {}, result = null }) {
             </button>
           </li>
         ))}
+        {instrumentUnknown && (
+          <li>
+            <span className="ui-fit ui-fit-unknown fitpill" aria-label="Instrument: unknown. You haven't set the instrument you're offering." title="You haven't set the instrument you're offering, so we can't check it. Unknown never counts as a match.">
+              <FitMark state="unknown" /><span>Instrument</span><span className="fitpill-word">unknown</span>
+            </span>
+          </li>
+        )}
       </ul>
       <p id={`${base}-p`} className="fitpill-pop" role="status" hidden={!openItem}>
         {openItem && (

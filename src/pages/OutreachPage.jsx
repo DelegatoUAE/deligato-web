@@ -58,7 +58,7 @@ function Composer({ draft, meta, investor, companyId, onUpdated, onPipelineMoved
     setBusy('sent');
     try {
       if (dirty) await updateDraft(companyId, draft.id, { subject, body });
-      const out = await markDraftSent(companyId, draft.id);
+      const out = await markDraftSent(companyId, draft.id, draft.status);
       onUpdated(out.draft);
       const s = out.pipeline_suggestion;
       const target = kind === 'intro_request' ? 'intro_requested' : 'contacted';

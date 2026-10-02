@@ -12,7 +12,7 @@ import { fmtDate } from '../../lib/format';
  * score tile · name · fit chips · why we matched you · caveats · actions.
  * pipelineItem: the existing pipeline row (if any). canTrack: plan includes pipeline.
  */
-export default function MatchCard({ r, runId, pipelineItem, canTrack, canDraft, onSave, onTrack, feedback, onFeedback, busy }) {
+export default function MatchCard({ r, runId, pipelineItem, canTrack, canDraft, onSave, onTrack, feedback, onFeedback, busy, instrumentUnknown = false }) {
   const [askWhy, setAskWhy] = useState(false);
   const [reason, setReason] = useState('wrong_geography');
   const href = investorHref(r.record_id, runId);
@@ -27,7 +27,7 @@ export default function MatchCard({ r, runId, pipelineItem, canTrack, canDraft, 
           <span className="mcard-meta">{[r.type, [r.city, r.country].filter(Boolean).join(', ')].filter(Boolean).join(' · ')}</span>
           {r.fit_tier === 'strong' && <Badge tone={r.bucket === 'eligible' ? 'ok' : 'outline'} size="sm" className="mcard-tier">{tierWithinBucket(r)}</Badge>}
         </div>
-        <FitPills fits={r.fits} result={r} />
+        <FitPills fits={r.fits} result={r} instrumentUnknown={instrumentUnknown} />
         {r.why_matched && (
           <div className="mcard-why">
             <span className="mcard-why-label">Why we matched you</span>
@@ -53,7 +53,7 @@ export default function MatchCard({ r, runId, pipelineItem, canTrack, canDraft, 
       <div className="mcard-actions">
         <Button as={Link} to={href} variant="secondary" size="sm">View investor</Button>
         {pipelineItem ? (
-          <Button as={Link} to="/capital/pipeline" variant="ghost" size="sm" iconLeft="check">In your pipeline</Button>
+          <Button as={Link} to={pipelineItem.stage === 'shortlisted' ? '/capital/saved' : '/capital/pipeline'} variant="ghost" size="sm" iconLeft="check">{pipelineItem.stage === 'shortlisted' ? 'Saved' : 'In your pipeline'}</Button>
         ) : canTrack ? (
           <>
             <Button variant="primary" size="sm" onClick={() => onSave(r)} loading={busy === 'save'} disabled={Boolean(busy)}>Save</Button>

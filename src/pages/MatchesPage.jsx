@@ -223,7 +223,7 @@ export default function MatchesPage() {
   const card = (r) => (
     <MatchCard key={r.record_id} r={r} runId={run.run_id} pipelineItem={pipeByRecord.get(r.record_id)} canTrack={canTrack} canDraft={canDraft}
       busy={busy[r.record_id]} onSave={(x) => track(x, 'shortlisted')} onTrack={(x) => track(x, 'researching')}
-      feedback={fbByResult.get(r.match_result_id)} onFeedback={feedback} />
+      feedback={fbByResult.get(r.match_result_id)} onFeedback={feedback} instrumentUnknown={!company.instrument} />
   );
 
   return (
@@ -234,7 +234,8 @@ export default function MatchesPage() {
       {routes.length > 0 && (
         <div className="route-filter">
           <span>Showing {routeParam === 'fits' ? 'every route that fits' : 'route'}:</span>
-          {routes.map((r) => <Badge key={r.key} tone="brand">{r.label}</Badge>)}
+          {routes.slice(0, routeParam === 'fits' ? 3 : routes.length).map((r) => <Badge key={r.key} tone="brand">{r.label}</Badge>)}
+          {routeParam === 'fits' && routes.length > 3 && <span className="ui-muted">and {routes.length - 3} more</span>}
           {routes.length === 1 && routes[0].coverage && (routes[0].coverage.level === 'thin' || (routes[0].coverage.provider_count ?? 99) < 10) && (
             <span className="rcard-thin">Thin coverage: only {routes[0].coverage.provider_count} providers on record for this route. Treat these as a starting point, not the whole market.</span>
           )}
@@ -271,7 +272,11 @@ export default function MatchesPage() {
             <h2 id="b-eligible" className="tier-h tier-h-strong">Verified eligible <span>({byBucket.eligible.length}{bucketCount('eligible') > byBucket.eligible.length ? ` shown of ${fmtInt(bucketCount('eligible'))}` : ''})</span></h2>
             <p className="ui-muted">Every decisive fit (stage, sector, geography, ticket) rests on researched evidence.</p>
             {byBucket.eligible.length ? byBucket.eligible.map(card) : (
-              <p className="tier-empty">No verified fits yet. That reflects how much of these investors' mandates we have verified, not your company.{topMissing ? ` Adding ${topMissing.label.toLowerCase()} would also sharpen your results.` : ''}</p>
+              bucketCount('eligible') > 0 ? (
+                <p className="tier-empty">{fmtInt(bucketCount('eligible'))} verified {bucketCount('eligible') === 1 ? 'fit is' : 'fits are'} outside the top {run.results.length} your plan shows. <Link to="/packages?highlight=investor-ready">See every match from Investor-Ready</Link>.</p>
+              ) : (
+                <p className="tier-empty">No verified fits yet. That reflects how much of these investors' mandates we have verified, not your company.{topMissing ? ` Adding ${topMissing.label.toLowerCase()} would also sharpen your results.` : ''}</p>
+              )
             )}
           </section>
           <section className="tier" aria-labelledby="b-possible">
