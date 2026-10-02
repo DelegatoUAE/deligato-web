@@ -1,7 +1,8 @@
 import { Link } from 'react-router-dom';
 import { ScoreRing, Badge } from '../../design/ui';
 import { fmtDate, daysSince } from '../../lib/format';
-import { bandOf, provisionalText, bandLabel } from '../../lib/readiness';
+import { bandOf, provisionalText, bandLabel, readinessSource } from '../../lib/readiness';
+import { Badge as SrcBadge } from '../../design/ui';
 
 export function BandChip({ readiness }) {
   const { name, tone } = bandOf(readiness);
@@ -30,7 +31,8 @@ function displayScore(score, exact) {
  * ReadinessSnapshot: the Conncct readiness, read-only.
  * variant compact (dashboard, welcome) | full (company page, factor bars).
  */
-export function ReadinessSnapshot({ readiness, variant = 'compact', conncctHref, showLink = true }) {
+export function ReadinessSnapshot({ readiness, variant = 'compact', conncctHref, showLink = true, source }) {
+  const src = readinessSource(source);
   const r = readiness;
   const { name, tone, description } = bandOf(r);
   const prov = provisionalText(r);
@@ -46,12 +48,12 @@ export function ReadinessSnapshot({ readiness, variant = 'compact', conncctHref,
         {exact && value !== null && <div className="rsnap-exact">Score as sent by Conncct: <strong>{value}</strong></div>}
       </div>
       <div className="rsnap-body">
-        <BandChip readiness={r} />
+        <div className="rsnap-chips"><BandChip readiness={r} /><SrcBadge tone="outline" size="sm">{src.label}</SrcBadge></div>
         {variant === 'full' && description && !prov && <p className="rsnap-desc">{description}</p>}
         {prov && <p className="rsnap-desc">Your readiness isn't final yet. Finish your readiness in Conncct.</p>}
         {gap && variant !== 'full' && <p className="rsnap-gap">Biggest gap: <strong>{gap}</strong></p>}
         <p className="rsnap-meta">
-          Scored in Conncct on {fmtDate(r?.computed_at) || 'an unknown date'}
+          {src.foot} {fmtDate(r?.computed_at) || 'an unknown date'}
           {variant === 'full' && r?.methodology_version ? ` · methodology v${r.methodology_version}` : ''}
         </p>
         {stale && (
@@ -94,13 +96,13 @@ export function FactorBars({ readiness }) {
 }
 
 /** Topbar pill: "Readiness 74 · Investor-Ready · from Conncct". */
-export function ReadinessPill({ readiness }) {
-  if (!readiness) return null;
+export function ReadinessPill({ readiness, source }) {
+  if (!readiness) return <Link to="/capital/readiness/assess" className="rpill rpill-none">Readiness · not scored yet</Link>;
   const { tone } = bandOf(readiness);
   return (
     <Link to="/capital/readiness" className={`rpill rpill-${tone || 'none'}`} title="Your Capital Readiness Score, from Conncct">
       <span className="rpill-dot" aria-hidden="true" />
-      Readiness {Math.round(Number(readiness.score))} · {bandLabel(readiness)}<span className="rpill-src"> · from Conncct</span>
+      Readiness {Math.round(Number(readiness.score))} · {bandLabel(readiness)}<span className="rpill-src"> · {source?.engine === 'embedded' ? 'Conncct engine' : 'Conncct'}</span>
     </Link>
   );
 }

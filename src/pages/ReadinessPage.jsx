@@ -2,74 +2,94 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Alert, Badge, Button, Card, EmptyState, PageHeader, Skeleton } from '../design/ui';
 import SubNav from '../components/SubNav';
+import ExpertBridgeLink from '../components/ExpertBridgeLink';
 import { useCompany } from '../components/company-context';
 import { ReadinessSnapshot, FactorBars } from '../components/capital/Readiness';
-import ReadinessQuestionnaire from '../components/capital/ReadinessQuestionnaire';
-import { conncctLink } from '../lib/companies';
-import { expertiseForFactor } from '../lib/actions';
 import { LoadError } from '../components/capital/bits';
+import { conncctLink } from '../lib/companies';
+import { readinessSource } from '../lib/readiness';
+import { fmtDate } from '../lib/format';
 
+const WHO = { founder: 'you', expert: 'an expert', conncct_service: 'Conncct' };
+
+/** 15 · Capital readiness: the winning snapshot, gaps, all factors, history. */
 export default function ReadinessPage() {
-  const { company, companyId, readiness, readinessLoading, readinessError, reloadCompanies } = useCompany();
-  const [retake, setRetake] = useState(false);
-  const [fresh, setFresh] = useState(null);
-  const r = fresh || readiness?.readiness;
+  const { company, readiness, readinessLoading, readinessError } = useCompany();
+  const [showAll, setShowAll] = useState(false);
+  const r = readiness?.readiness;
+  const src = readinessSource(readiness);
+  const bridge = r && src.key === 'conncct';
   const href = conncctLink(company, 'readiness');
+  const gaps = (r?.improvements || []).filter((i) => !['debt', 'debt_type'].includes(i.factor)).slice().sort((a, b) => (a.rank ?? 99) - (b.rank ?? 99));
+  const shownGaps = showAll ? gaps : gaps.slice(0, 3);
+  const dilution = (r?.blockers || []).find((b) => b.code === 'dilution_over_100');
+
+  const head = (
+    <>
+      <SubNav section="capital" />
+      <PageHeader title="Capital readiness" subtitle={company.name}
+        meta={r && <Badge tone="outline" title={src.key === 'embedded' ? "Scored with Conncct's own 14-question readiness method, running inside this app. When Conncct sends your score directly, that one is used instead." : 'Sent to us by Conncct.'}>{src.label}</Badge>}
+        actions={bridge
+          ? <Button as="a" href={href} target="_blank" rel="noreferrer" variant="secondary" size="sm">{r.provisional ? 'Finish your readiness in Conncct ↗' : 'Update in Conncct ↗'}</Button>
+          : r ? <Button as={Link} to="/capital/readiness/assess" variant="secondary" size="sm">{r.provisional ? 'Finish the questions' : 'Update my answers'}</Button> : null} />
+    </>
+  );
+
+  if (readinessLoading) return <div>{head}<Skeleton h="300px" /></div>;
+  if (readinessError) return <div>{head}<LoadError error={readinessError} what="your readiness" /></div>;
+  if (!r) {
+    return (
+      <div>{head}
+        <EmptyState icon="gauge" title={`How ready is ${company.name} to raise?`}
+          body="Answer 14 short questions about your runway, raise, revenue and team. It takes about 5 minutes. You'll get Conncct's Capital Readiness Score and the three gaps worth closing first."
+          action={(
+            <div className="ui-stack ui-stack-sm" style={{ justifyItems: 'center' }}>
+              <Button as={Link} to="/capital/readiness/assess" variant="accent">Get your score</Button>
+              <a href={href} target="_blank" rel="noreferrer">Already scored in Conncct? Open Conncct ↗</a>
+            </div>
+          )} />
+        <p className="ui-faint" style={{ textAlign: 'center' }}>Your readiness score doesn't change your matches. It tells you how investors are likely to read your company.</p>
+      </div>
+    );
+  }
 
   return (
-    <div>
-      <SubNav section="capital" />
-      <PageHeader
-        title="Capital readiness"
-        subtitle="Conncct's 14-factor view of how ready your company is to raise. It's about your company, not any one investor."
-        actions={<Button as="a" href={href} target="_blank" rel="noreferrer" variant="secondary" size="sm">Open in Conncct ↗</Button>}
-      />
-      {readinessLoading ? <Skeleton h="280px" /> : readinessError ? <LoadError error={readinessError} what="your readiness" /> : (
-        <div className="ready-grid">
-          <Card id="readiness" className="ready-main" title="Readiness · from Conncct">
-            {r ? (
-              <>
-                <ReadinessSnapshot readiness={r} variant="full" conncctHref={href} />
-                <FactorBars readiness={r} />
-              </>
-            ) : (
-              <EmptyState compact icon="gauge" title="Not yet scored in Conncct." body="Answer Conncct's 14 questions to get your readiness score." action={<Button variant="accent" onClick={() => setRetake(true)}>Start the questions</Button>} />
-            )}
-          </Card>
-          <div className="ui-stack">
-            {r?.blockers?.length > 0 && (
-              <Card title="Holding the score back">
-                <ul className="plain-list">{r.blockers.map((b) => <li key={b.code}><Badge tone="warn" size="sm">Conncct</Badge> {b.message}</li>)}</ul>
-              </Card>
-            )}
-            <Card title="Conncct suggests">
-              {r?.improvements?.length ? (
-                <ul className="improve-list">
-                  {r.improvements.slice(0, 5).map((imp, i) => {
-                    const skill = expertiseForFactor(imp.factor);
-                    return (
-                      <li key={`${imp.factor}-${i}`}>
-                        <p className="improve-action">{imp.action}</p>
-                        <p className="ui-muted">
-                          {imp.label || imp.factor}{imp.impact_points ? ` · Conncct estimate +${imp.impact_points}` : ''}{imp.effort ? ` · effort ${imp.effort}` : ''}
-                        </p>
-                        {skill && <Link className="nba-expert" to={`/experts?skill=${encodeURIComponent(skill)}&factor=${imp.factor}`}>Need help? Find a matched {skill.toLowerCase()} expert →</Link>}
-                      </li>
-                    );
-                  })}
-                </ul>
-              ) : <p className="ui-muted">No suggestions from Conncct yet.</p>}
-            </Card>
-            <Card title="Retake the questions" subtitle="Your answers go to the Conncct engine. Only Conncct scores readiness.">
-              {retake ? (
-                <ReadinessQuestionnaire companyId={companyId} onCancel={() => setRetake(false)}
-                  onScored={(out) => { setFresh(out.readiness || null); setRetake(false); reloadCompanies(); }} />
-              ) : <Button variant="secondary" onClick={() => setRetake(true)}>Update my answers</Button>}
-            </Card>
-          </div>
-        </div>
-      )}
-      {fresh && <Alert tone="ok">Your new readiness score is in. It replaces the earlier snapshot.</Alert>}
+    <div className="readiness">
+      {head}
+      <Card className="ready-top">
+        <ReadinessSnapshot readiness={r} variant="full" conncctHref={bridge ? href : null} source={readiness} />
+      </Card>
+      {dilution && <Alert tone="bad">Your raise is larger than your valuation. Investors will flag this.</Alert>}
+      <Card id="gaps" title="Your gaps" subtitle="Conncct's suggestions, in the order Conncct ranks them.">
+        {gaps.length ? (
+          <ol className="gaps">
+            {shownGaps.map((g, i) => {
+              const f = r.factors?.find((x) => x.key === g.factor);
+              const ratio = f?.max ? Number(f.points) / Number(f.max) : null;
+              const showBridge = g.who !== 'founder' || (ratio !== null && ratio < 0.4);
+              return (
+                <li key={`${g.factor}-${i}`} className="gap">
+                  <div className="gap-head">
+                    <strong>{f?.label || g.label || g.factor}</strong>
+                    {f && <span className="gap-pts">{f.status === 'unknown' ? (r.provisional ? 'Not answered yet' : 'unknown') : `${f.points} of ${f.max}`}</span>}
+                  </div>
+                  <p>Conncct suggests: “{g.action}”</p>
+                  <p className="ui-muted">{g.impact_points ? `Could add up to ${g.impact_points} points` : ''}{g.who ? `${g.impact_points ? ' · ' : ''}Who: ${WHO[g.who] || g.who}` : ''}</p>
+                  {showBridge && <ExpertBridgeLink kind="readiness_factor" gapKey={g.factor} from="readiness" />}
+                </li>
+              );
+            })}
+          </ol>
+        ) : <p className="ui-muted">No gaps flagged by Conncct.</p>}
+        {gaps.length > 3 && <Button variant="link" size="sm" onClick={() => setShowAll((v) => !v)}>{showAll ? 'Show fewer' : `Show all ${gaps.length}`}</Button>}
+      </Card>
+      <Card title="All factors">
+        <FactorBars readiness={r} />
+        {(readiness.history || []).length > 1 && (
+          <p className="ui-muted ready-history">History: {readiness.history.slice().reverse().map((h) => `${fmtDate(h.computed_at)} ${h.score}`).join(' · ')}</p>
+        )}
+      </Card>
+      <p className="ui-faint">Your readiness score doesn't change your matches. It tells you how investors are likely to read your company.</p>
     </div>
   );
 }

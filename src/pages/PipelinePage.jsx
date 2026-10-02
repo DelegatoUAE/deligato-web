@@ -204,8 +204,12 @@ export default function PipelinePage() {
   }
   if (q.error) return <div><SubNav section="capital" /><PageHeader title="Pipeline" /><LoadError error={q.error} onRetry={q.reload} what="your pipeline" /></div>;
 
+  const tracked = items.filter((p) => p.stage !== 'shortlisted');
   const conv = items.filter((p) => ['in_conversation', 'diligence', 'term_sheet'].includes(p.stage)).length;
-  const columns = showClosed ? PIPELINE_STAGES : PIPELINE_STAGES.filter((s) => ACTIVE_STAGES.includes(s.key));
+  // Saved (shortlisted) lives on its own screen (18); the board starts at Researching.
+  const boardStages = PIPELINE_STAGES.filter((s) => s.key !== 'shortlisted');
+  const columns = showClosed ? boardStages : boardStages.filter((s) => ACTIVE_STAGES.includes(s.key));
+  const savedN = items.filter((p) => p.stage === 'shortlisted').length;
   const openItem = items.find((x) => x.id === openId);
 
   const card = (p) => {
@@ -232,10 +236,11 @@ export default function PipelinePage() {
   return (
     <div className="pipeline">
       <SubNav section="capital" />
-      <PageHeader title="Pipeline" subtitle={`${items.length} investors · ${conv} in conversation`}
+      <PageHeader title="Pipeline" subtitle={`${tracked.length} providers · ${conv} in conversation`}
+        meta={savedN > 0 && <Link to="/capital/saved">{savedN} saved, not in your pipeline yet</Link>}
         actions={<Tabs variant="pill" label="View" value={view} onChange={setView} items={[{ id: 'board', label: 'Board' }, { id: 'list', label: 'List' }]} />} />
-      {q.data === undefined ? <Skeleton h="300px" /> : items.length === 0 ? (
-        <EmptyState icon="kanban" title="Nothing tracked yet." body="Save investors from your matches to start." action={<Button as={Link} to="/capital/matches" variant="primary">Open matches</Button>} />
+      {q.data === undefined ? <Skeleton h="300px" /> : tracked.length === 0 ? (
+        <EmptyState icon="kanban" title="Nothing tracked yet." body={savedN ? "Move a saved provider into your pipeline when you start working on it." : "Shortlist investors from your matches to start."} action={<Button as={Link} to={savedN ? "/capital/saved" : "/capital/matches"} variant="primary">{savedN ? "Open saved" : "Open matches"}</Button>} />
       ) : view === 'board' ? (
         <>
           <KanbanBoard label="Fundraising pipeline">
@@ -254,7 +259,7 @@ export default function PipelinePage() {
         </>
       ) : (
         <div className="plist">
-          {PIPELINE_STAGES.map((s) => {
+          {boardStages.map((s) => {
             const list = items.filter((p) => p.stage === s.key);
             if (!list.length) return null;
             return (

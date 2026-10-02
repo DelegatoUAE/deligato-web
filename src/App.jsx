@@ -8,6 +8,7 @@ import WelcomePage from './pages/WelcomePage';
 import DevImportPage from './pages/DevImportPage';
 import CapitalOverviewPage from './pages/CapitalOverviewPage';
 import ReadinessPage from './pages/ReadinessPage';
+import ReadinessAssessPage from './pages/ReadinessAssessPage';
 import FindCapitalPage from './pages/FindCapitalPage';
 import CapitalNeedPage from './pages/CapitalNeedPage';
 import MatchesPage from './pages/MatchesPage';
@@ -22,6 +23,8 @@ import PackagesPage from './pages/PackagesPage';
 import ExpertsPage from './pages/ExpertsPage';
 import MyExpertsPage from './pages/MyExpertsPage';
 import ExpertDetailPage from './pages/ExpertDetailPage';
+import ExpertShortlistPage from './pages/ExpertShortlistPage';
+import ExpertProjectsPage from './pages/ExpertProjectsPage';
 import ProjectsPage from './pages/ProjectsPage';
 import CompanyPage from './pages/CompanyPage';
 import BusinessInfoPage from './pages/BusinessInfoPage';
@@ -79,7 +82,8 @@ export default function App() {
       <Route path="/capital/find" element={<Protected><FindCapitalPage /></Protected>} />
       <Route path="/capital/need" element={<Protected><CapitalNeedPage /></Protected>} />
       <Route path="/capital/matches" element={<Protected gate="confirmed"><MatchesPage /></Protected>} />
-      <Route path="/capital/investors/:recordId" element={<Protected><InvestorProfilePage /></Protected>} />
+      <Route path="/capital/matches/:recordId" element={<Protected><InvestorProfilePage /></Protected>} />
+      <Route path="/capital/readiness/assess" element={<Protected><ReadinessAssessPage /></Protected>} />
       <Route path="/capital/saved" element={<Protected><SavedPage /></Protected>} />
       <Route path="/capital/pipeline" element={<Protected><PipelinePage /></Protected>} />
       <Route path="/capital/data-room" element={<Protected><DataRoomPage /></Protected>} />
@@ -92,7 +96,8 @@ export default function App() {
       {/* Expert Access (secondary) */}
       <Route path="/experts" element={<Protected gate="open"><ExpertsPage /></Protected>} />
       <Route path="/experts/mine" element={<Protected gate="open"><MyExpertsPage /></Protected>} />
-      <Route path="/experts/projects" element={<Protected gate="open"><ProjectsPage /></Protected>} />
+      <Route path="/experts/projects" element={<Protected gate="open"><ExpertProjectsPage /></Protected>} />
+      <Route path="/experts/results/:briefId" element={<Protected gate="open"><ExpertShortlistPage /></Protected>} />
       <Route path="/experts/:id" element={<Protected gate="open"><ExpertDetailPage /></Protected>} />
 
       {/* Company (from Conncct) */}
@@ -103,13 +108,16 @@ export default function App() {
       <Route path="/settings" element={<Protected gate="open"><SettingsPage /></Protected>} />
 
       {/* Staff workspace (legacy consultant tools) */}
+      <Route path="/workspace/experts" element={<Protected gate="open" staffOnly><ConsultantsPage /></Protected>} />
       <Route path="/workspace/consultants" element={<Protected gate="open" staffOnly><ConsultantsPage /></Protected>} />
       <Route path="/workspace/match" element={<Protected gate="open" staffOnly><MatchPage /></Protected>} />
-      <Route path="/workspace/projects" element={<Navigate to="/experts/projects" replace />} />
+      <Route path="/workspace/projects" element={<Protected gate="open" staffOnly><ProjectsPage /></Protected>} />
 
       {/* Legacy and spec-v1 links keep working */}
       <Route path="/matches" element={<Navigate to="/capital/matches" replace />} />
-      <Route path="/matches/:recordId" element={<RedirectParam to="/capital/investors/:recordId" />} />
+      <Route path="/matches/:recordId" element={<RedirectParam to="/capital/matches/:recordId" />} />
+      <Route path="/capital/investors/:recordId" element={<RedirectParam to="/capital/matches/:recordId" />} />
+      <Route path="/capital/profile" element={<Navigate to="/company/business" replace />} />
       <Route path="/capital/pipeline/*" element={<Navigate to="/capital/pipeline" replace />} />
       <Route path="/pipeline" element={<Navigate to="/capital/pipeline" replace />} />
       <Route path="/data-room" element={<Navigate to="/capital/data-room" replace />} />

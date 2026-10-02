@@ -11,22 +11,13 @@ import {
   completeness, TIERS, BUCKETS, filterLabel,
 } from '../lib/capital';
 import { sendFeedback, listFeedback } from '../lib/learning';
-import { normaliseRoute } from '../lib/routing';
+import { getRouting, normaliseRoute } from '../lib/routing';
 import { fmtUsd, fmtDateTime, fmtInt } from '../lib/format';
 import { logEvent } from '../lib/events';
 
-function readRoutes(keys) {
-  if (!keys.length) return [];
-  try {
-    const all = JSON.parse(sessionStorage.getItem('conncct.routes') || '[]').map(normaliseRoute);
-    return all.filter((r) => keys.includes(r.key));
-  } catch {
-    return keys.map((k) => ({ key: k, label: k, investor_types: [] }));
-  }
-}
-
 function inRoutes(r, routes) {
   if (!routes.length) return true;
+  if (Array.isArray(r.route_keys) && r.route_keys.length) return routes.some((rt) => r.route_keys.includes(rt.key));
   const types = new Set([r.type, ...(r.investor_types || [])].filter(Boolean).map((t) => t.toLowerCase()));
   return routes.some((rt) => !rt.investor_types.length || rt.investor_types.some((t) => types.has(String(t).toLowerCase())));
 }
@@ -104,8 +95,16 @@ export default function MatchesPage() {
   const navigate = useNavigate();
   const toast = useToast();
   const runId = params.get('run');
-  const routeParam = params.get('routes') || '';
-  const routes = useMemo(() => readRoutes(routeParam.split(',').filter(Boolean)), [routeParam]);
+  const routeParam = params.get('route') || params.get('routes') || '';
+  const routingQ = useApi(() => (routeParam ? getRouting(companyId) : null), [routeParam, companyId]);
+  const routes = useMemo(() => {
+    const all = (routingQ.data?.routes || []).map(normaliseRoute);
+    if (!routeParam) return [];
+    if (routeParam === 'fits') return all.filter((r) => r.fit !== 'unlikely');
+    const keys = routeParam.split(',');
+    return all.filter((r) => keys.includes(r.key));
+  }, [routingQ.data, routeParam]);
+  const tierParam = params.get('tier');
 
   const runQ = useApi(() => (runId ? getRunNormalised(runId) : getLatestRun(companyId)), [runId, companyId]);
   const unlocksQ = useApi(() => getUnlocks(companyId), [companyId, runQ.data?.run_id]);
@@ -212,6 +211,7 @@ export default function MatchesPage() {
     && (!filters.type || r.type === filters.type)
     && (!filters.confidence || String(r.data_confidence).toLowerCase() === filters.confidence)
     && (!filters.tier || r.fit_tier === filters.tier)
+    && (!tierParam || r.fit_tier === tierParam)
     && (!filters.open || r.application_open === true));
   const byBucket = Object.fromEntries(BUCKETS.map((b) => [b.key, shown.filter((r) => r.bucket === b.key)]));
   const bucketCount = (k) => run.counts?.[`${k}_bucket`] ?? run.results.filter((r) => r.bucket === k).length;
@@ -232,9 +232,12 @@ export default function MatchesPage() {
 
       {routes.length > 0 && (
         <div className="route-filter">
-          <span>Showing routes:</span>
+          <span>Showing {routeParam === 'fits' ? 'every route that fits' : 'route'}:</span>
           {routes.map((r) => <Badge key={r.key} tone="brand">{r.label}</Badge>)}
-          <Button variant="link" size="sm" onClick={() => setParams((p) => { const q = new URLSearchParams(p); q.delete('routes'); return q; })}>Show every route</Button>
+          {routes.length === 1 && routes[0].coverage && (routes[0].coverage.level === 'thin' || (routes[0].coverage.provider_count ?? 99) < 10) && (
+            <span className="rcard-thin">Thin coverage: only {routes[0].coverage.provider_count} providers on record for this route. Treat these as a starting point, not the whole market.</span>
+          )}
+          <Button variant="link" size="sm" onClick={() => setParams((p) => { const q = new URLSearchParams(p); q.delete('routes'); q.delete('route'); return q; })}>Show every route</Button>
         </div>
       )}
 

@@ -108,7 +108,7 @@ export function getSource(recordId, companyId) {
 
 /** The one link every screen uses to open an investor profile. */
 export function investorHref(recordId, runId) {
-  return `/matches/${encodeURIComponent(recordId)}${runId ? `?run=${runId}` : ''}`;
+  return `/capital/matches/${encodeURIComponent(recordId)}${runId ? `?run=${runId}` : ''}`;
 }
 
 // ---- pipeline ---------------------------------------------------
@@ -221,7 +221,9 @@ export function normaliseResult(r) {
     locked: Boolean(r.locked),
     bucket: r.bucket || null,
     likely_outside_reasons: r.likely_outside_reasons || [],
-    fit_provenance: r.fit_provenance || null,
+    fit_provenance: r.fit_provenance || r.provenance || null,
+    route_keys: r.route_keys || null,
+    headline: r.headline || null,
   };
   out.fit_tier = r.fit_tier || fitTier(out);
   out.bucket = out.bucket || bucketOf(out);

@@ -1,7 +1,8 @@
 import { useCallback, useMemo, useState } from 'react';
 import useApi from '../lib/useApi';
 import { listCompanies, getReadinessOrNull } from '../lib/companies';
-import { fetchCapitalMeta, getLatestRun } from '../lib/capital';
+import { fetchCapitalMeta, getLatestRun, listPipeline } from '../lib/capital';
+import { getDataRoom } from '../lib/fundraising';
 import { getEntitlements, FREE_ENTITLEMENTS } from '../lib/packages';
 import { isStaff } from '../lib/auth';
 import { CompanyContext } from './company-context';
@@ -28,6 +29,9 @@ export default function CompanyProvider({ me, children }) {
   const readinessQ = useApi(() => (companyId ? getReadinessOrNull(companyId) : null), [companyId]);
   const entQ = useApi(() => (companyId ? getEntitlements(companyId) : null), [companyId]);
   const runQ = useApi(() => (companyId ? getLatestRun(companyId) : null), [companyId]);
+  // Nav counts and Home tiles; each may fail on its own (402 on trial plans).
+  const pipeQ = useApi(() => (companyId ? listPipeline(companyId).then((x) => x.pipeline || []) : null), [companyId]);
+  const drQ = useApi(() => (companyId ? getDataRoom(companyId) : null), [companyId]);
 
   const setCompanyId = useCallback((id) => {
     try { localStorage.setItem(ACTIVE_KEY, id); } catch { /* per-tab only */ }
@@ -38,6 +42,9 @@ export default function CompanyProvider({ me, children }) {
   const { reload: reloadRun } = runQ;
   const { reload: reloadEnt } = entQ;
   const { reload: reloadMeta } = metaQ;
+  const { reload: reloadReadiness } = readinessQ;
+  const { reload: reloadPipeline } = pipeQ;
+  const { reload: reloadDataRoom } = drQ;
 
   const value = useMemo(() => {
     const ent = entQ.data?.entitlements || null;
@@ -66,11 +73,17 @@ export default function CompanyProvider({ me, children }) {
       hasRun,
       capitalNeedConfirmed: Boolean(company?.capital_need_confirmed_at) || hasRun,
       reloadCompanies,
+      reloadReadiness,
+      pipeline: pipeQ.data ?? null,
+      pipelineError: pipeQ.error,
+      reloadPipeline,
+      dataRoom: drQ.data ?? null,
+      reloadDataRoom,
       reloadRun,
       reloadEntitlements: () => { reloadEnt(); reloadMeta(); },
     };
   }, [me, companies, companiesQ.loading, companiesQ.error, company, companyId, setCompanyId, readinessQ.data, readinessQ.loading, readinessQ.error,
-    metaQ.data, entQ.data, runQ.data, runQ.loading, reloadCompanies, reloadRun, reloadEnt, reloadMeta]);
+    metaQ.data, entQ.data, runQ.data, runQ.loading, reloadCompanies, reloadRun, reloadEnt, reloadMeta, reloadReadiness, pipeQ.data, pipeQ.error, reloadPipeline, drQ.data, reloadDataRoom]);
 
   return <CompanyContext.Provider value={value}>{children}</CompanyContext.Provider>;
 }

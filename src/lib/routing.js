@@ -21,6 +21,8 @@ export function normaliseRoute(r) {
     cautions: (r.cautions || []).map((x) => (typeof x === 'string' ? { text: x } : x)),
     unknowns: r.unknowns || [],
     description: r.description || null,
+    typical_use: r.typical_use || null,
+    coverage: r.coverage || null,
     investor_types: r.investor_types || [],
     instruments: r.instruments || [],
     dilution: r.dilution_profile?.plain || null,

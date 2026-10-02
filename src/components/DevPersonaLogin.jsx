@@ -8,21 +8,21 @@ import useApi from '../lib/useApi';
 import { apiFetch, setToken } from '../lib/auth';
 
 const PERSONAS = [
-  { id: '00000000-0000-4000-a000-000000000001', email: 'founder.uae@test.local', label: 'Ledgerline · UAE fintech · Seed' },
-  { id: '00000000-0000-4000-a000-000000000002', email: 'founder.us@test.local', label: 'Stackhound · US devtools · Pre-seed' },
-  { id: '00000000-0000-4000-a000-000000000003', email: 'founder.ksa@test.local', label: 'Bayt Grid · KSA proptech · Series A' },
-  { id: '00000000-0000-4000-a000-000000000004', email: 'founder.uk@test.local', label: 'Thermadyne Loop · UK climate hardware · Seed' },
-  { id: '00000000-0000-4000-a000-000000000005', email: 'founder.eg@test.local', label: 'Fasla · Egypt edtech · Pre-seed' },
-  { id: '00000000-0000-4000-a000-000000000006', email: 'founder.in@test.local', label: 'PulseCare · India healthtech · Series A' },
+  { key: 'uae-fintech-seed', id: '00000000-0000-4000-a000-000000000001', email: 'founder.uae@test.local', label: 'Ledgerline · UAE fintech · Seed' },
+  { key: 'us-ai-devtools-preseed', id: '00000000-0000-4000-a000-000000000002', email: 'founder.us@test.local', label: 'Stackhound · US devtools · Pre-seed' },
+  { key: 'saudi-proptech-series-a', id: '00000000-0000-4000-a000-000000000003', email: 'founder.ksa@test.local', label: 'Bayt Grid · KSA proptech · Series A' },
+  { key: 'uk-climate-hardware-seed-lowready', id: '00000000-0000-4000-a000-000000000004', email: 'founder.uk@test.local', label: 'Thermadyne Loop · UK climate hardware · Seed' },
+  { key: 'egypt-edtech-preseed-revenue', id: '00000000-0000-4000-a000-000000000005', email: 'founder.eg@test.local', label: 'Fasla · Egypt edtech · Pre-seed' },
+  { key: 'india-healthtech-series-a-strong', id: '00000000-0000-4000-a000-000000000006', email: 'founder.in@test.local', label: 'PulseCare · India healthtech · Series A' },
 ];
 
 async function probe() {
   try {
-    const out = await apiFetch('/auth/dev-login');
-    return { available: true, personas: out?.personas || null };
-  } catch (e) {
-    // 405/400 means the route exists but wants a POST; 404 means it isn't there.
-    return { available: [400, 405, 422].includes(e.status), personas: null };
+    const out = await apiFetch('/auth/dev-login/personas');
+    const list = Array.isArray(out) ? out : out?.personas || [];
+    return { available: true, personas: list.length ? list : null };
+  } catch {
+    return { available: false, personas: null };
   }
 }
 
@@ -31,12 +31,15 @@ export default function DevPersonaLogin({ onSignedIn }) {
   const [busy, setBusy] = useState(null);
   const [error, setError] = useState(null);
   if (!q.data?.available) return null;
-  const list = (q.data.personas || PERSONAS).map((p) => ({ ...p, id: p.id || p.user_id, label: p.label || p.company_name || p.email }));
+  const list = (q.data.personas || PERSONAS).map((p) => {
+    const fixed = PERSONAS.find((x) => x.key === (p.key || p.persona_key) || x.id === (p.user_id || p.id));
+    return { ...fixed, ...p, key: p.key || p.persona_key || fixed?.key, id: p.user_id || p.id || fixed?.id, label: fixed?.label || p.company_name || p.key };
+  });
 
   async function signIn(p) {
-    setBusy(p.id); setError(null);
+    setBusy(p.key || p.id); setError(null);
     try {
-      const out = await apiFetch('/auth/dev-login', { method: 'POST', body: JSON.stringify({ user_id: p.id, email: p.email }) });
+      const out = await apiFetch('/auth/dev-login', { method: 'POST', body: JSON.stringify(p.key ? { persona_key: p.key } : { user_id: p.id }) });
       const token = out?.session?.access_token || out?.access_token;
       if (!token) throw new Error('The dev-login response had no token.');
       setToken(token);
@@ -49,7 +52,7 @@ export default function DevPersonaLogin({ onSignedIn }) {
       <p className="devlogin-h">Sign in as test persona <span>(development only)</span></p>
       <div className="devlogin-list">
         {list.map((p) => (
-          <Button key={p.id} variant="secondary" size="sm" block loading={busy === p.id} disabled={Boolean(busy)} onClick={() => signIn(p)}>{p.label}</Button>
+          <Button key={p.key || p.id} variant="secondary" size="sm" block loading={busy === (p.key || p.id)} disabled={Boolean(busy)} onClick={() => signIn(p)}>{p.label}</Button>
         ))}
       </div>
       {error && <Alert tone="bad">{error}</Alert>}

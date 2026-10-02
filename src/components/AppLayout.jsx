@@ -13,7 +13,7 @@ const TITLES = [
   [/^\/capital\/find/, 'Find capital'],
   [/^\/capital\/readiness/, 'Readiness'],
   [/^\/capital\/matches/, 'My matches'],
-  [/^\/capital\/investors/, 'Investor'],
+  [/^\/capital\/matches\/./, 'Capital provider'],
   [/^\/capital\/saved/, 'Saved'],
   [/^\/capital\/pipeline/, 'Pipeline'],
   [/^\/capital\/data-room/, 'Data room'],
@@ -38,14 +38,13 @@ const titleFor = (path) => TITLES.find(([re]) => re.test(path))?.[1] || 'Capital
 
 const TABS = [
   { to: '/', label: 'Home', icon: 'home', end: true },
-  { to: '/capital/find', label: 'Find', icon: 'search' },
-  { to: '/capital/matches', label: 'Matches', icon: 'layers' },
-  { to: '/capital/pipeline', label: 'Pipeline', icon: 'kanban' },
+  { to: '/capital', label: 'Capital', icon: 'gauge' },
   { to: '/experts', label: 'Experts', icon: 'users' },
+  { to: '/company', label: 'Company', icon: 'building' },
 ];
 
 export default function AppLayout({ children }) {
-  const { me, staff, companies, company, setCompanyId, readiness, plan, run } = useCompany();
+  const { me, staff, companies, company, setCompanyId, readiness, plan, run, pipeline, dataRoom } = useCompany();
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const [assistantOpen, setAssistantOpen] = useState(false);
@@ -56,7 +55,16 @@ export default function AppLayout({ children }) {
   const strong = run ? run.results.filter((r) => r.fit_tier === 'strong').length : null;
   const nav = [
     { items: [{ id: 'home', label: 'Home', icon: 'home', href: '/', end: true }] },
-    { title: 'Capital', items: CAPITAL_NAV.map((i) => (i.id === 'cap-matches' && strong ? { ...i, badge: strong } : i)) },
+    { title: 'Capital', items: CAPITAL_NAV.map((i) => {
+      const badge = {
+        'cap-readiness': readiness?.readiness ? Math.round(Number(readiness.readiness.score)) : null,
+        'cap-matches': strong || null,
+        'cap-saved': pipeline ? pipeline.filter((p) => p.stage === 'shortlisted').length || null : null,
+        'cap-pipeline': pipeline ? pipeline.filter((p) => ['researching', 'intro_requested', 'contacted', 'in_conversation', 'diligence', 'term_sheet'].includes(p.stage)).length || null : null,
+        'cap-dataroom': dataRoom ? `${dataRoom.completeness_pct}%` : null,
+      }[i.id];
+      return badge != null ? { ...i, badge } : i;
+    }) },
     { title: 'Experts', items: EXPERT_NAV },
     { title: 'Company', items: COMPANY_NAV },
   ];
@@ -64,13 +72,17 @@ export default function AppLayout({ children }) {
     nav.push({
       title: 'Workspace',
       items: [
-        { id: 'ws-consultants', label: 'Consultants admin', icon: 'users', href: '/workspace/consultants' },
+        { id: 'ws-experts', label: 'Expert admin', icon: 'users', href: '/workspace/experts' },
+        { id: 'ws-projects', label: 'All projects', icon: 'file', href: '/experts/projects' },
         { id: 'ws-match', label: 'AI Match', icon: 'spark', href: '/workspace/match' },
         ...(import.meta.env.VITE_DEV_IMPORT === 'true' ? [{ id: 'ws-import', label: 'Import (dev)', icon: 'download', href: '/dev/import' }] : []),
       ],
     });
   }
-  nav.push({ items: [{ id: 'settings', label: 'Settings', icon: 'settings', href: '/settings' }] });
+  nav.push({ items: [
+    { id: 'ask-ai', label: 'Ask Conncct AI', icon: 'spark', onClick: () => setAssistantOpen(true) },
+    { id: 'settings', label: 'Settings', icon: 'settings', href: '/settings' },
+  ] });
 
   const profile = me?.profile || {};
   const name = profile.full_name || me?.user?.email || 'You';
@@ -107,7 +119,7 @@ export default function AppLayout({ children }) {
         footer={<Button variant="ghost" size="sm" iconLeft="logout" onClick={onLogout} className="signout">Sign out</Button>}
         topActions={(
           <>
-            <ReadinessPill readiness={readiness} />
+            <ReadinessPill readiness={readiness?.readiness} source={readiness} />
             {plan && <Link to="/settings?tab=plan" className="planlink"><Badge tone="neutral">{plan.label}</Badge></Link>}
             <Button variant="secondary" size="sm" iconLeft="spark" onClick={() => setAssistantOpen(true)} aria-haspopup="dialog">Ask AI</Button>
           </>
@@ -122,6 +134,10 @@ export default function AppLayout({ children }) {
             <span>{t.label}</span>
           </NavLink>
         ))}
+        <button type="button" className="tabbar-item" onClick={() => setAssistantOpen(true)} aria-haspopup="dialog">
+          <Icon name="spark" />
+          <span>AI</span>
+        </button>
       </nav>
       <AssistantPanel open={assistantOpen} onClose={() => setAssistantOpen(false)} />
     </div>

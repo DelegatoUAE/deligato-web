@@ -52,3 +52,32 @@ export const AVAILABILITY = {
   leave: { label: 'On leave', tone: 'neutral' },
 };
 export const EXPERT_CHIP_LABEL = { expertise: 'Expertise', sector: 'Sector', stage: 'Stage', region: 'Region', availability: 'Availability' };
+
+// Briefs: the experts API keys a brief by its request id. The latest
+// requirement and results per brief are kept in session so the results and
+// profile pages can show fit context without re-running the matcher.
+const BRIEF_KEY = (id) => `conncct.brief.${id}`;
+export function saveBrief(id, data) { try { sessionStorage.setItem(BRIEF_KEY(id), JSON.stringify(data)); } catch { /* optional */ } }
+export function readBrief(id) { try { return JSON.parse(sessionStorage.getItem(BRIEF_KEY(id)) || 'null'); } catch { return null; } }
+
+export const ENGAGEMENT = { advisory: 'Advice sessions', project: 'A defined project', fractional: 'Fractional (part-time)', interim: 'Interim (full-time cover)' };
+export const URGENCY = { urgent: 'This week', soon: 'Soon', flexible: 'Flexible' };
+
+/** Founder-facing project status (20 §6). */
+export function projectStatus(project, allocation) {
+  const s = project?.status || allocation?.status;
+  if (s === 'draft' || s === 'proposed') return 'Requested · waiting for the expert to confirm';
+  if (s === 'active' || s === 'confirmed') return 'In progress';
+  if (s === 'on_hold') return 'Paused';
+  if (s === 'completed') return 'Completed';
+  if (s === 'cancelled') return 'Cancelled';
+  return 'Requested · waiting for the expert to confirm';
+}
+
+/** Requests with their shortlist, matched experts and project, in one call per request. */
+export async function loadExpertActivity(companyId) {
+  const { requests = [] } = await listExpertRequests(companyId);
+  const details = await Promise.all(requests.map((r) => getExpertRequest(companyId, r.id).catch(() => ({ request: r }))));
+  return details.map((d, i) => ({ ...requests[i], ...d.request, shortlisted: d.shortlisted || [], matched: d.matched || [], project: d.project || null }));
+}
+

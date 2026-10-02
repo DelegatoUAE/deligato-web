@@ -26,7 +26,7 @@ export default function WelcomePage() {
           <a href={conncctLink(company)} target="_blank" rel="noreferrer">Something wrong? Update it in Conncct ↗</a>
         </Card>
         <Card title="Readiness">
-          {r ? <ReadinessSnapshot readiness={r} showLink={false} /> : (
+          {r ? <ReadinessSnapshot readiness={r} showLink={false} source={readiness} /> : (
             <Alert tone="info" action={<Button as="a" href={conncctLink(company, 'readiness')} target="_blank" rel="noreferrer" size="sm" variant="secondary">Open Conncct ↗</Button>}>
               Not yet scored in Conncct. Get your free score there to see package advice.
             </Alert>

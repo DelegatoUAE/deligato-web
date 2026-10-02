@@ -8,7 +8,7 @@ import useApi from '../lib/useApi';
 import { getUnlocks, runMatch, investorHref, filterLabel } from '../lib/capital';
 import { getAdvice } from '../lib/advice';
 import { saveCapitalNeed, conncctLink } from '../lib/companies';
-import { expertiseForFactor } from '../lib/actions';
+import ExpertBridgeLink from '../components/ExpertBridgeLink';
 import { fmtInt, fmtUsd } from '../lib/format';
 import { logEvent } from '../lib/events';
 
@@ -86,6 +86,7 @@ export default function AdvicePage() {
                     <div className="lever-head"><strong>{u.label}</strong><GainLoss u={u} /></div>
                     {u.actionable && <p className="ui-muted">{u.actionable}</p>}
                     {u.caveat && <p className="lever-caveat">{u.caveat}</p>}
+                    <ExpertBridgeLink kind="match_blocker" gapKey={u.kind || u.field} from="improve" />
                     {u.net < 0 && <p className="lever-neg">Net loss: you'd lose {fmtInt(u.loses)} sources you qualify for today to gain {fmtInt(u.unlocks)}.</p>}
                     {u.examples?.length > 0 && (
                       <p className="ui-muted">e.g. {u.examples.map((x, i) => <span key={x.record_id}>{i ? ' · ' : ''}<Link to={investorHref(x.record_id)}>{x.name}</Link></span>)}</p>
@@ -136,15 +137,14 @@ export default function AdvicePage() {
         ) : improvements.length ? (
           <ul className="levers">{improvements.map((imp, i) => {
             const f = r.factors?.find((x) => x.key === imp.factor);
-            const skill = expertiseForFactor(imp.factor);
             return (
               <li key={i} className="lever">
                 <p><strong>{f?.label || imp.label || imp.factor}</strong>{f ? ` · Conncct factor ${f.points} / ${f.max}` : ''}</p>
                 <p className="ui-muted">Conncct suggests: {imp.action}{imp.impact_points ? ` (Conncct estimate +${imp.impact_points})` : ''}</p>
                 <div className="ui-row">
                   <Button as="a" href={conncctLink(company, 'readiness')} target="_blank" rel="noreferrer" size="sm" variant="secondary">Improve in Conncct ↗</Button>
-                  {skill && <Button as={Link} to={`/experts?skill=${encodeURIComponent(skill)}&factor=${imp.factor}`} size="sm" variant="ghost">Get expert help: {skill}</Button>}
                 </div>
+                <ExpertBridgeLink kind="readiness_factor" gapKey={imp.factor} from="improve" />
               </li>
             );
           })}</ul>
@@ -159,7 +159,7 @@ export default function AdvicePage() {
       {!uq.data?.unlocks?.length && !resolvable.length && !dom && uq.data && (
         <EmptyState icon="check" title="Nothing to change right now." body="No option opens meaningfully more investors, and your profile has no blanks." />
       )}
-      <p className="ui-muted">Not sure where to start? <Link to="/experts?kind=capital_assessment">Request a Capital Assessment</Link>: $99, a 40-minute advisor session, credited against any package.</p>
+      <p className="ui-muted">Not sure where to start? <Link to="/experts#assessment">Request a Capital Assessment</Link>: $99, a 40-minute advisor session, credited against any package.</p>
 
       <Modal open={Boolean(preview)} onClose={() => setPreview(null)} title={preview?.label} description="What changes if you apply this to your capital need and re-run."
         footer={<><Button variant="ghost" onClick={() => setPreview(null)}>Cancel</Button><Button variant="primary" loading={applying} onClick={() => apply(preview)}>Apply to my capital need and re-run</Button></>}>

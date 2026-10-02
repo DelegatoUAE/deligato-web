@@ -84,7 +84,7 @@ export default function CompanyPage() {
           )}
         </Card>
         <Card title="Capital readiness · from Conncct" action={<Link to="/capital/readiness">Full breakdown</Link>}>
-          {r ? <ReadinessSnapshot readiness={r} showLink={false} /> : <Alert tone="info">Not yet scored in Conncct. <a href={conncctLink(company, 'readiness')} target="_blank" rel="noreferrer">Get your free score in Conncct ↗</a></Alert>}
+          {r ? <ReadinessSnapshot readiness={r} showLink={false} source={readiness} /> : <Alert tone="info">Not yet scored in Conncct. <a href={conncctLink(company, 'readiness')} target="_blank" rel="noreferrer">Get your free score in Conncct ↗</a></Alert>}
         </Card>
         <Card title="The raise" action={<Badge tone="brand" size="sm">Managed here</Badge>}>
           <p>{[fmtUsd(company.raise_usd) || 'Amount not set', company.instrument || 'instrument not set', timingLabel(company.raise_timing), (company.investor_types_sought || []).join(', ') || 'any investor type', (company.target_markets || []).join(', ')].filter(Boolean).join(' · ')}</p>

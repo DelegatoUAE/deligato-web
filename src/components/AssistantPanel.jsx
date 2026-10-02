@@ -9,7 +9,7 @@ import { isMissingEndpoint } from '../lib/auth';
 
 /** Suggestions depend on where the founder is (contextual assistant, D19). */
 function suggestionsFor(pathname) {
-  const inv = matchPath('/capital/investors/:recordId', pathname);
+  const inv = matchPath('/capital/matches/:recordId', pathname);
   const list = [];
   if (inv) {
     list.push({ id: 'meeting', label: 'Prepare a meeting brief for this investor', task: 'investor_brief', recordId: inv.params.recordId });
