@@ -27,6 +27,10 @@ export default function Layout({ me, children }) {
             <NavLink to="/projects">Projects</NavLink>
             <NavLink to="/consultants">Consultants</NavLink>
             <NavLink to="/match">AI Match</NavLink>
+            <span className="nav-divider" aria-hidden="true" />
+            <NavLink to="/capital" end>Capital Access</NavLink>
+            <NavLink to="/capital/matches">Matches</NavLink>
+            <NavLink to="/capital/pipeline">Pipeline</NavLink>
           </nav>
         </div>
         <div className="user-chip">

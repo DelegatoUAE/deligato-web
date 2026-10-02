@@ -8,6 +8,9 @@ import ProjectsPage from './pages/ProjectsPage';
 import ConsultantsPage from './pages/ConsultantsPage';
 import MatchPage from './pages/MatchPage';
 import ConsultantDetailPage from './pages/ConsultantDetailPage';
+import CapitalProfilePage from './pages/CapitalProfilePage';
+import CapitalMatchesPage from './pages/CapitalMatchesPage';
+import CapitalPipelinePage from './pages/CapitalPipelinePage';
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
 import './App.css';
@@ -32,6 +35,10 @@ export default function App() {
       <Route path="/consultants" element={<Protected>{() => <ConsultantsPage />}</Protected>} />
       <Route path="/consultants/:id" element={<Protected>{() => <ConsultantDetailPage />}</Protected>} />
       <Route path="/match" element={<Protected>{() => <MatchPage />}</Protected>} />
+      {/* Capital Access (Conncct) — proved here, built to be lifted out */}
+      <Route path="/capital" element={<Protected>{() => <CapitalProfilePage />}</Protected>} />
+      <Route path="/capital/matches" element={<Protected>{() => <CapitalMatchesPage />}</Protected>} />
+      <Route path="/capital/pipeline" element={<Protected>{() => <CapitalPipelinePage />}</Protected>} />
     </Routes>
   );
 }
