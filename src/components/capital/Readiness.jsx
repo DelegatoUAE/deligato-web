@@ -102,7 +102,7 @@ export function ReadinessPill({ readiness, source }) {
   return (
     <Link to="/capital/readiness" className={`rpill rpill-${tone || 'none'}`} title="Your Capital Readiness Score, from Conncct">
       <span className="rpill-dot" aria-hidden="true" />
-      Readiness {Math.round(Number(readiness.score))} · {bandLabel(readiness)}<span className="rpill-src"> · {source?.engine === 'embedded' ? 'Conncct engine' : 'Conncct'}</span>
+      Readiness {Math.round(Number(readiness.score))} · {bandLabel(readiness)}<span className="rpill-src"> · {readinessSource(source).key === 'embedded' ? 'assessed here' : 'Conncct'}</span>
     </Link>
   );
 }

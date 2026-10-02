@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { Alert, Avatar, Badge, Button, Card, EmptyState, FormField, PageHeader, Select, SkeletonCards, useToast } from '../design/ui';
 import { apiFetch } from '../lib/auth';
 import useApi from '../lib/useApi';
-import { useToast } from '../design/ui';
+import { AVAILABILITY, SENIORITY } from '../lib/experts';
 
+/** Staff · AI Match: rank the expert network against one project brief, then propose an allocation. */
 export default function MatchPage() {
   const [params, setParams] = useSearchParams();
   const toast = useToast();
@@ -19,26 +21,12 @@ export default function MatchPage() {
   const error = (projectsQ.error || matchQ.error)?.message || null;
   const allocated = allocatedFor.id === selectedId ? allocatedFor.map : {};
 
-  function onSelect(e) {
-    const next = new URLSearchParams(params);
-    if (e.target.value) next.set('project_id', e.target.value);
-    else next.delete('project_id');
-    setParams(next);
-  }
-
   async function onAllocate(consultantId, score) {
     setAllocating((s) => ({ ...s, [consultantId]: true }));
     try {
-      await apiFetch('/allocations', {
-        method: 'POST',
-        body: JSON.stringify({
-          project_id: selectedId,
-          consultant_id: consultantId,
-          match_score: score,
-          status: 'proposed',
-        }),
-      });
+      await apiFetch('/allocations', { method: 'POST', body: JSON.stringify({ project_id: selectedId, consultant_id: consultantId, match_score: score, status: 'proposed' }) });
       setAllocated((s) => ({ id: selectedId, map: { ...(s.id === selectedId ? s.map : {}), [consultantId]: true } }));
+      toast.success('Allocation proposed.');
     } catch (e) {
       toast.error(`Could not allocate: ${e.message}`);
     } finally {
@@ -47,102 +35,48 @@ export default function MatchPage() {
   }
 
   return (
-    <section>
-      <div className="page-header">
-        <h1>AI Match</h1>
-        <p className="muted">Pick a project — see consultants ranked by fit.</p>
-      </div>
-
-      <div className="filter-bar">
-        <select value={selectedId} onChange={onSelect}>
-          <option value="">— choose a project —</option>
-          {projects.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.name} · {p.client_name}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      {error && <div className="error">{error}</div>}
-
+    <div>
+      <PageHeader eyebrow="Workspace" title="AI Match" subtitle="Pick a project to see experts ranked by fit, then propose an allocation." />
+      <FormField label="Project">
+        <Select value={selectedId} placeholder="Choose a project" onChange={(e) => { const n = new URLSearchParams(params); if (e.target.value) n.set('project_id', e.target.value); else n.delete('project_id'); setParams(n); }}
+          options={projects.map((p) => ({ value: p.id, label: `${p.name} · ${p.client_name}` }))} />
+      </FormField>
+      {error && <Alert tone="bad">{error}</Alert>}
       {!selectedId ? (
-        <div className="empty">Pick a project above to see AI-ranked matches.</div>
-      ) : !matches ? (
-        <div className="empty">Computing matches…</div>
-      ) : (
-        <>
+        <EmptyState icon="spark" title="Pick a project to see ranked experts." body="Ranking uses the project's skills and seniority." />
+      ) : !matches ? <SkeletonCards count={3} height={110} /> : (
+        <div className="ui-stack">
           {project && (
-            <div className="project-summary">
-              <div>
-                <div className="muted">Brief</div>
-                <h2>{project.name}</h2>
-                <div className="muted">{project.client_name} · {project.required_seniority || '—'}</div>
-              </div>
-              <div className="tag-row">
-                {(project.required_skills || []).map((s) => (
-                  <span key={s} className="tag tag-strong">{s}</span>
-                ))}
-              </div>
-              {provider && (
-                <div className={`provider-badge provider-${provider}`}>
-                  {provider === 'openai'
-                    ? '🧠 Ranked by OpenAI'
-                    : '⚙️ Heuristic ranking (add OPENAI_API_KEY for AI)'}
-                </div>
-              )}
-            </div>
+            <Card title={project.name} subtitle={`${project.client_name} · ${SENIORITY[project.required_seniority] || 'any seniority'}`}
+              action={<Badge tone={provider === 'openai' ? 'gold' : 'outline'}>{provider === 'openai' ? 'AI-refined' : 'Rules-based'}</Badge>}>
+              <div className="ui-tags">{(project.required_skills || []).map((s) => <span key={s} className="ui-tag">{s}</span>)}</div>
+            </Card>
           )}
-
-          <div className="match-list">
-            {matches.map((m) => {
-              const c = m.consultant;
-              const isHigh = m.match_score >= 70;
-              const isMid = m.match_score >= 40 && m.match_score < 70;
-              return (
-                <div key={c.id} className={`match-row ${isHigh ? 'is-high' : isMid ? 'is-mid' : 'is-low'}`}>
-                  <div className="match-score-block">
-                    <div className="match-score-num">{m.match_score.toFixed(0)}<span>%</span></div>
-                    <div className="muted">match</div>
+          {matches.map((m) => {
+            const c = m.consultant;
+            const av = AVAILABILITY[c.availability];
+            return (
+              <article key={c.id} className="xcard staff-match">
+                <div className="xcard-top">
+                  <Avatar name={c.full_name} size={44} />
+                  <div className="xcard-id">
+                    <h3>{c.full_name}</h3>
+                    <p className="ui-muted">{[SENIORITY[c.seniority], c.location, c.daily_rate_gbp && `£${c.daily_rate_gbp}/day`].filter(Boolean).join(' · ')}</p>
                   </div>
-                  <div className="match-main">
-                    <div className="match-row-head">
-                      <strong>{c.full_name}</strong>
-                      <span className="muted"> · {c.seniority} · {c.location || '—'}</span>
-                      <span className={`avail-pill avail-${c.availability}`}>{c.availability}</span>
-                    </div>
-                    <div className="tag-row">
-                      {(c.skills || []).map((s) => (
-                        <span
-                          key={s}
-                          className={`tag ${m.matched_skills.includes(s.toLowerCase()) ? 'tag-matched' : ''}`}
-                        >
-                          {s}
-                        </span>
-                      ))}
-                    </div>
-                    {c.daily_rate_gbp && <div className="muted">£{c.daily_rate_gbp}/day</div>}
-                    {m.reasoning && <div className="match-reasoning">{m.reasoning}</div>}
-                  </div>
-                  <div className="match-cta">
-                    {allocated[c.id] ? (
-                      <span className="ok">✓ Allocated</span>
-                    ) : (
-                      <button
-                        onClick={() => onAllocate(c.id, m.match_score)}
-                        disabled={allocating[c.id]}
-                        className="btn-primary"
-                      >
-                        {allocating[c.id] ? 'Allocating…' : 'Allocate'}
-                      </button>
-                    )}
-                  </div>
+                  <span className="xscore"><strong>{Math.round(m.match_score)}</strong><span>Expert fit</span></span>
                 </div>
-              );
-            })}
-          </div>
-        </>
+                <div className="ui-tags">{(c.skills || []).map((s) => <span key={s} className={`ui-tag${m.matched_skills?.includes(s.toLowerCase()) ? ' is-selected' : ''}`}>{s}</span>)}</div>
+                {m.reasoning && <p className="xcard-why">{m.reasoning}</p>}
+                <div className="xcard-foot">
+                  {av && <Badge tone={av.tone} dot size="sm">{av.label}</Badge>}
+                  {allocated[c.id] ? <Badge tone="ok">Allocation proposed</Badge>
+                    : <Button size="sm" variant="primary" loading={allocating[c.id]} onClick={() => onAllocate(c.id, m.match_score)}>Propose allocation</Button>}
+                </div>
+              </article>
+            );
+          })}
+        </div>
       )}
-    </section>
+    </div>
   );
 }

@@ -1,89 +1,48 @@
 import { useState } from 'react';
-import useApi from '../lib/useApi';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
+import { Alert, Avatar, Badge, Card, EmptyState, FormField, Input, PageHeader, Select, SkeletonCards } from '../design/ui';
 import { apiFetch } from '../lib/auth';
+import useApi from '../lib/useApi';
+import { AVAILABILITY, SENIORITY } from '../lib/experts';
 
-const SENIORITIES = ['all', 'junior', 'mid', 'senior', 'principal'];
-const AVAILABILITIES = ['all', 'available', 'partial', 'booked', 'leave'];
-
+/** Staff · Expert admin: the full expert network, rates included (never shown to founders). */
 export default function ConsultantsPage() {
-  const navigate = useNavigate();
-  const [seniority, setSeniority] = useState('all');
-  const [availability, setAvailability] = useState('all');
+  const [seniority, setSeniority] = useState('');
+  const [availability, setAvailability] = useState('');
   const [skill, setSkill] = useState('');
   const q = useApi(() => {
-    const params = new URLSearchParams();
-    if (seniority !== 'all') params.set('seniority', seniority);
-    if (availability !== 'all') params.set('availability', availability);
-    if (skill.trim()) params.set('skill', skill.trim());
-    const qs = params.toString();
-    return apiFetch(`/consultants${qs ? '?' + qs : ''}`).then((d) => d.consultants);
+    const p = new URLSearchParams();
+    if (seniority) p.set('seniority', seniority);
+    if (availability) p.set('availability', availability);
+    if (skill.trim()) p.set('skill', skill.trim());
+    return apiFetch(`/consultants${p.toString() ? `?${p}` : ''}`).then((d) => d.consultants || []);
   }, [seniority, availability, skill]);
-  const consultants = q.data ?? null;
-  const error = q.error?.message || null;
 
   return (
-    <section>
-      <div className="page-header">
-        <h1>Consultants</h1>
+    <div>
+      <PageHeader eyebrow="Workspace" title="Expert admin" subtitle="Everyone in the expert network. Rates are visible to staff only." />
+      <div className="ui-form ui-form-2 staff-filters">
+        <FormField label="Skill"><Input type="search" value={skill} onChange={(e) => setSkill(e.target.value)} placeholder="e.g. Financial model" /></FormField>
+        <FormField label="Seniority"><Select value={seniority} onChange={(e) => setSeniority(e.target.value)} placeholder="Any" options={Object.entries(SENIORITY).map(([value, label]) => ({ value, label }))} /></FormField>
+        <FormField label="Availability"><Select value={availability} onChange={(e) => setAvailability(e.target.value)} placeholder="Any" options={Object.entries(AVAILABILITY).map(([value, v]) => ({ value, label: v.label }))} /></FormField>
       </div>
-
-      <div className="filter-bar">
-        <input
-          type="search"
-          placeholder="Search by skill (e.g. React, OpenAI)"
-          value={skill}
-          onChange={(e) => setSkill(e.target.value)}
-        />
-        <select value={seniority} onChange={(e) => setSeniority(e.target.value)}>
-          {SENIORITIES.map((s) => (
-            <option key={s} value={s}>
-              {s === 'all' ? 'Any seniority' : s[0].toUpperCase() + s.slice(1)}
-            </option>
-          ))}
-        </select>
-        <select value={availability} onChange={(e) => setAvailability(e.target.value)}>
-          {AVAILABILITIES.map((a) => (
-            <option key={a} value={a}>
-              {a === 'all' ? 'Any availability' : a[0].toUpperCase() + a.slice(1)}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      {error && <div className="error">{error}</div>}
-
-      {!consultants ? (
-        <div className="empty">Loading consultants…</div>
-      ) : consultants.length === 0 ? (
-        <div className="empty">No consultants match these filters.</div>
+      {q.error && <Alert tone="bad">{q.error.message}</Alert>}
+      {!q.data ? <SkeletonCards count={3} height={110} /> : q.data.length === 0 ? (
+        <EmptyState icon="users" title="No experts match these filters." body="Clear a filter to see more." />
       ) : (
-        <div className="consultant-grid">
-          {consultants.map((c) => (
-            <div key={c.id} className="consultant-card" onClick={() => navigate(`/consultants/${c.id}`)}>
-              <div className="consultant-head">
-                <div className="avatar">{c.full_name.split(' ').map((p) => p[0]).slice(0, 2).join('')}</div>
-                <div>
-                  <div className="consultant-name">{c.full_name}</div>
-                  <div className="muted">{c.location || '—'}</div>
-                </div>
-                <span className={`avail-pill avail-${c.availability}`}>
-                  {c.availability}
-                </span>
-              </div>
-              <div className="tag-row">
-                {(c.skills || []).map((s) => (
-                  <span key={s} className="tag">{s}</span>
-                ))}
-              </div>
-              <div className="consultant-meta">
-                <span><strong>{c.seniority || '—'}</strong> · {c.daily_rate_gbp ? '£' + c.daily_rate_gbp + '/day' : 'rate t.b.c.'}</span>
-              </div>
-              {c.bio && <p className="bio">{c.bio}</p>}
-            </div>
-          ))}
+        <div className="ui-grid ui-grid-3">
+          {q.data.map((c) => {
+            const av = AVAILABILITY[c.availability];
+            return (
+              <Card key={c.id} interactive as={Link} to={`/workspace/experts/${c.id}`} className="staff-card">
+                <div className="ui-who"><Avatar name={c.full_name} size={40} /><div className="ui-who-text"><span className="ui-who-name">{c.full_name}</span><span className="ui-who-sub">{[SENIORITY[c.seniority], c.location].filter(Boolean).join(' · ')}</span></div></div>
+                <div className="ui-tags">{(c.skills || []).slice(0, 5).map((s) => <span key={s} className="ui-tag">{s}</span>)}</div>
+                <div className="ui-row">{av && <Badge tone={av.tone} dot size="sm">{av.label}</Badge>}<span className="ui-muted">{c.daily_rate_gbp ? `£${c.daily_rate_gbp}/day` : 'Rate not set'}</span></div>
+              </Card>
+            );
+          })}
         </div>
       )}
-    </section>
+    </div>
   );
 }

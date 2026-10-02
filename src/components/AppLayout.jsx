@@ -32,6 +32,7 @@ const TITLES = [
   [/^\/packages/, 'Packages'],
   [/^\/settings/, 'Settings'],
   [/^\/welcome/, 'Welcome'],
+  [/^\/onboarding/, 'Set up your company'],
   [/^\/dev/, 'Import a company (dev)'],
   [/^\/workspace/, 'Workspace'],
 ];

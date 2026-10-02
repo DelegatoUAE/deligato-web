@@ -29,9 +29,9 @@ export function bandLabel(r) {
 
 /** D14 source label: the bridge snapshot is "From Conncct"; the embedded engine says so. */
 export function readinessSource(out) {
-  const embedded = out?.engine === 'embedded' || out?.source === 'conncct_embedded';
+  const embedded = out?.engine === 'embedded' || ['conncct_embedded', 'deligato_reference'].includes(out?.source);
   return embedded
-    ? { key: 'embedded', label: 'Conncct engine (embedded)', foot: 'Scored with the Conncct engine on' }
+    ? { key: 'embedded', label: 'Conncct method, assessed here', foot: 'Assessed here with the Conncct method on' }
     : { key: 'conncct', label: 'From Conncct', foot: 'Scored in Conncct on' };
 }
 

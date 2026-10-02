@@ -55,7 +55,7 @@ export default function PackagesPage() {
   const full = pkgs.filter((p) => p.kind === 'package');
   const plans = pkgs.filter((p) => p.kind === 'plan');
   const addOns = (catQ.data.add_ons || []).filter((a) => (rec?.add_ons || []).some((x) => x.id === a.id));
-  const isRequested = (p) => requested[p.id] || pendingIds.has(p.id);
+  const isRequested = (p) => requested[p.id] || pendingIds.has(p.id) || activeIds.has(p.id);
 
   const card = (p) => (
     <Card key={p.id} className={`pkg${p.id === star ? ' is-star' : ''}${p.id === highlight ? ' is-hl' : ''}`} selected={p.id === star}>
@@ -84,7 +84,7 @@ export default function PackagesPage() {
           {(rec.also_consider || []).length > 0 && (
             <p className="ui-muted">Also consider: {rec.also_consider.map((id) => pkgs.find((p) => p.id === id)?.name || id).join(', ')} (price to be confirmed).</p>
           )}
-          <Button variant="accent" onClick={() => setChoosing(starPkg)} disabled={isRequested(starPkg)}>{isRequested(starPkg) ? `Requested${requested[starPkg.id] ? ` on ${fmtDate(requested[starPkg.id])}` : ''}` : `Choose ${starPkg.name}`}</Button>
+          <Button variant="accent" onClick={() => setChoosing(starPkg)} disabled={isRequested(starPkg)}>{activeIds.has(starPkg.id) ? 'Active (POC, no payment taken)' : isRequested(starPkg) ? `Requested${requested[starPkg.id] ? ` on ${fmtDate(requested[starPkg.id])}` : ''}` : `Choose ${starPkg.name}`}</Button>
         </Card>
       ) : <Alert tone="info">{rec.reason_lines?.[0] || 'Get your free readiness score in Conncct for a tailored recommendation.'}</Alert>}
 

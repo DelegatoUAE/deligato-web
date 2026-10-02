@@ -46,11 +46,12 @@ function Waiting({ staff, name }) {
       <h1 className="home-greet">{name ? `Good ${partOfDay()}, ${name}.` : `Good ${partOfDay()}.`}</h1>
       <p className="home-positioning">{POSITIONING}</p>
       <EmptyState icon="building" title="Let's start with your company."
-        body="Once your company profile is in, we'll score your readiness, show which kinds of capital fit, and match you with providers."
+        body="Three minutes of facts about your company. Then we score your readiness, show which kinds of capital fit, and match you with providers."
         action={(
           <div className="ui-stack ui-stack-sm" style={{ justifyItems: 'center' }}>
             <div className="ui-row">
-              <Button as="a" href={conncctLink(null)} target="_blank" rel="noreferrer" variant="primary">Open Conncct ↗</Button>
+              <Button as={Link} to="/onboarding" variant="accent">Set up your company</Button>
+              <Button as="a" href={conncctLink(null)} target="_blank" rel="noreferrer" variant="secondary">Bring it from Conncct ↗</Button>
               {staff && import.meta.env.VITE_DEV_IMPORT === 'true' && <Button as={Link} to="/dev/import" variant="secondary">Import a test company</Button>}
             </div>
             <Link to="/experts">Looking for an expert instead? Find an Expert →</Link>

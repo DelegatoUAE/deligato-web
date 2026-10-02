@@ -5,6 +5,7 @@ import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import DashboardPage from './pages/DashboardPage';
 import WelcomePage from './pages/WelcomePage';
+import OnboardingPage from './pages/OnboardingPage';
 import DevImportPage from './pages/DevImportPage';
 import CapitalOverviewPage from './pages/CapitalOverviewPage';
 import ReadinessPage from './pages/ReadinessPage';
@@ -31,6 +32,7 @@ import BusinessInfoPage from './pages/BusinessInfoPage';
 import SettingsPage from './pages/SettingsPage';
 import NotFoundPage from './pages/NotFoundPage';
 import ConsultantsPage from './pages/ConsultantsPage';
+import ConsultantDetailPage from './pages/ConsultantDetailPage';
 import MatchPage from './pages/MatchPage';
 import Showcase from './design/Showcase';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -74,6 +76,7 @@ export default function App() {
 
       <Route path="/" element={<Protected gate="open"><DashboardPage /></Protected>} />
       <Route path="/welcome" element={<Protected gate="welcome"><WelcomePage /></Protected>} />
+      <Route path="/onboarding" element={<Protected gate="open"><OnboardingPage /></Protected>} />
       {devImportOn && <Route path="/dev/import" element={<Protected gate="open" staffOnly><DevImportPage /></Protected>} />}
 
       {/* Capital Access (primary) */}
@@ -109,6 +112,7 @@ export default function App() {
 
       {/* Staff workspace (legacy consultant tools) */}
       <Route path="/workspace/experts" element={<Protected gate="open" staffOnly><ConsultantsPage /></Protected>} />
+      <Route path="/workspace/experts/:id" element={<Protected gate="open" staffOnly><ConsultantDetailPage /></Protected>} />
       <Route path="/workspace/consultants" element={<Protected gate="open" staffOnly><ConsultantsPage /></Protected>} />
       <Route path="/workspace/match" element={<Protected gate="open" staffOnly><MatchPage /></Protected>} />
       <Route path="/workspace/projects" element={<Protected gate="open" staffOnly><ProjectsPage /></Protected>} />

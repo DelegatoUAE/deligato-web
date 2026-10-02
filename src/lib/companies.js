@@ -51,8 +51,15 @@ export async function saveCapitalNeed(id, need) {
   return { company: normaliseCompany(profile), confirmed_at: null, timingSaved: false, via: 'capital' };
 }
 
+/** Removes the company and its Deligato data (runs, pipeline, drafts, documents). Conncct is untouched. */
 export function deleteCompany(id) {
-  return apiFetch(`/api/v1/companies/${id}`, { method: 'DELETE' });
+  return apiFetch(`/capital/profiles/${id}`, { method: 'DELETE' });
+}
+
+/** Company onboarding for a founder who doesn't arrive from Conncct: creates the companies row. */
+export async function createCompany(fields) {
+  const { profile } = await apiFetch('/capital/profiles', { method: 'POST', body: JSON.stringify(fields) });
+  return normaliseCompany(profile);
 }
 
 // ---- readiness, exactly as Conncct sent it (never computed here) ----

@@ -1,37 +1,26 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { signup } from '../lib/auth';
+import { Alert, Button, ChipToggle, FormField, Input } from '../design/ui';
+import AuthLayout from '../components/AuthLayout';
+import { apiFetch, setToken } from '../lib/auth';
 
-const ROLES = [
-  { value: 'project_manager', label: 'Project Manager' },
-  { value: 'employee', label: 'Employee / Consultant' },
-  { value: 'finance', label: 'Finance' },
-  { value: 'executive_hr', label: 'Executive / HR' },
-];
-
+/** Register: every self-registered account is a founder (or SME); staff roles are assigned by an admin. */
 export default function SignupPage() {
   const navigate = useNavigate();
-  const [form, setForm] = useState({
-    email: '',
-    password: '',
-    full_name: '',
-    role: 'project_manager',
-    organization: '',
-  });
+  const [form, setForm] = useState({ full_name: '', email: '', password: '', organization: '', account_type: 'founder' });
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
-
-  function set(field, value) {
-    setForm((f) => ({ ...f, [field]: value }));
-  }
+  const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });
 
   async function onSubmit(e) {
     e.preventDefault();
+    if (form.password.length < 8) { setError('Use at least 8 characters for your password.'); return; }
     setError(null);
     setBusy(true);
     try {
-      await signup(form);
-      navigate('/');
+      const data = await apiFetch('/auth/signup', { method: 'POST', body: JSON.stringify(form) });
+      setToken(data.session.access_token);
+      navigate('/onboarding');
     } catch (err) {
       setError(err.message);
     } finally {
@@ -40,71 +29,21 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="auth-shell">
-      <div className="auth-card">
-        <h1 className="brand">Deligato</h1>
-        <p className="tagline">Get started in 30 seconds</p>
-
-        <h2>Create your account</h2>
-        <form onSubmit={onSubmit}>
-          <label>
-            Full name
-            <input
-              type="text"
-              value={form.full_name}
-              onChange={(e) => set('full_name', e.target.value)}
-              required
-            />
-          </label>
-          <label>
-            Email
-            <input
-              type="email"
-              autoComplete="email"
-              value={form.email}
-              onChange={(e) => set('email', e.target.value)}
-              required
-            />
-          </label>
-          <label>
-            Password
-            <input
-              type="password"
-              autoComplete="new-password"
-              value={form.password}
-              onChange={(e) => set('password', e.target.value)}
-              minLength={8}
-              required
-            />
-            <small>at least 8 characters</small>
-          </label>
-          <label>
-            Your role
-            <select value={form.role} onChange={(e) => set('role', e.target.value)}>
-              {ROLES.map((r) => (
-                <option key={r.value} value={r.value}>{r.label}</option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Consultancy / company (optional)
-            <input
-              type="text"
-              value={form.organization}
-              onChange={(e) => set('organization', e.target.value)}
-              placeholder="e.g. Acme Consulting"
-            />
-          </label>
-          {error && <div className="error">{error}</div>}
-          <button type="submit" disabled={busy}>
-            {busy ? 'Creating account…' : 'Create account'}
-          </button>
-        </form>
-
-        <p className="alt">
-          Already have an account? <Link to="/login">Sign in</Link>
-        </p>
-      </div>
-    </div>
+    <AuthLayout title="Create your account" subtitle="Then tell us about your company. It takes about three minutes.">
+      <form className="ui-stack" onSubmit={onSubmit}>
+        <FormField label="Your name" required><Input autoComplete="name" value={form.full_name} onChange={set('full_name')} required /></FormField>
+        <FormField label="Work email" required><Input type="email" autoComplete="email" value={form.email} onChange={set('email')} required /></FormField>
+        <FormField label="Password" required hint="At least 8 characters."><Input type="password" autoComplete="new-password" value={form.password} onChange={set('password')} required /></FormField>
+        <FormField label="Company name" optional><Input autoComplete="organization" value={form.organization} onChange={set('organization')} /></FormField>
+        <FormField label="Which describes you?">
+          {() => <ChipToggle single label="Account type" value={[form.account_type]} onChange={(v) => setForm({ ...form, account_type: v[0] || 'founder' })}
+            options={[{ key: 'founder', label: 'A startup raising capital' }, { key: 'sme', label: 'An established business looking for growth or working capital' }]} />}
+        </FormField>
+        {error && <Alert tone="bad">{error}</Alert>}
+        <Button type="submit" variant="accent" block loading={busy}>Create account</Button>
+        <p className="login-alt">Already have an account? <Link to="/login">Sign in</Link></p>
+        <p className="ui-faint">By creating an account you agree to how we handle your data: company facts only go to AI with your consent, and you can export or delete everything at any time.</p>
+      </form>
+    </AuthLayout>
   );
 }

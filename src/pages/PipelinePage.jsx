@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Alert, Badge, Button, ConfirmDialog, Drawer, EmptyState, FormField, Input, KanbanBoard, KanbanCard, KanbanColumn, Modal,
@@ -132,7 +132,7 @@ export default function PipelinePage() {
   const toast = useToast();
   const q = useApi(() => listPipeline(companyId).then((x) => x.pipeline || []), [companyId]);
   const [view, setView] = useState(() => (typeof window !== 'undefined' && window.innerWidth < 768 ? 'list' : 'board'));
-  const [showClosed, setShowClosed] = useState(false);
+  const [showClosed, setShowClosed] = useState(true);
   const [dragId, setDragId] = useState(null);
   const [overStage, setOverStage] = useState(null);
   const [outcome, setOutcome] = useState(null);
@@ -141,6 +141,13 @@ export default function PipelinePage() {
   const [removing, setRemoving] = useState(null);
 
   const items = q.data || [];
+  const boardRef = useRef(null);
+  const firstStage = items.find((p) => p.stage !== 'shortlisted')?.stage;
+  // Bring the first column with cards into view (later stages sit off to the right).
+  useEffect(() => {
+    const col = boardRef.current?.querySelector('.ui-kcol .ui-kcard')?.closest('.ui-kcol');
+    col?.scrollIntoView?.({ block: 'nearest', inline: 'start' });
+  }, [firstStage, view, showClosed]);
   const replace = (next) => q.setData((l) => (l || []).map((x) => (x.id === next.id ? { ...x, ...next } : x)));
 
   async function applyMove(item, to, extra) {
@@ -245,7 +252,7 @@ export default function PipelinePage() {
         <EmptyState icon="kanban" title="Nothing tracked yet." body={savedN ? "Move a saved provider into your pipeline when you start working on it." : "Shortlist investors from your matches to start."} action={<Button as={Link} to={savedN ? "/capital/saved" : "/capital/matches"} variant="primary">{savedN ? "Open saved" : "Open matches"}</Button>} />
       ) : view === 'board' ? (
         <>
-          <KanbanBoard label="Fundraising pipeline">
+          <div ref={boardRef}><KanbanBoard label="Fundraising pipeline">
             {columns.map((s) => {
               const list = items.filter((p) => p.stage === s.key);
               return (
@@ -256,7 +263,7 @@ export default function PipelinePage() {
                 </KanbanColumn>
               );
             })}
-          </KanbanBoard>
+          </KanbanBoard></div>
           <Button variant="link" size="sm" onClick={() => setShowClosed((v) => !v)}>{showClosed ? 'Hide closed, passed and not now' : 'Show closed, passed and not now'}</Button>
         </>
       ) : (
