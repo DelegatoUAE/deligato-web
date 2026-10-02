@@ -121,7 +121,7 @@ export default function AppLayout({ children }) {
         footer={<Button variant="ghost" size="sm" iconLeft="logout" onClick={onLogout} className="signout">Sign out</Button>}
         topActions={(
           <>
-            {!readinessLoading && <ReadinessPill readiness={readiness?.readiness} source={readiness} />}
+            {company && !readinessLoading && <ReadinessPill readiness={readiness?.readiness} source={readiness} />}
             {plan && <Link to="/settings?tab=plan" className="planlink"><Badge tone="neutral">{plan.label}</Badge></Link>}
             <Button variant="secondary" size="sm" iconLeft="spark" onClick={() => setAssistantOpen(true)} aria-haspopup="dialog">Ask AI</Button>
           </>

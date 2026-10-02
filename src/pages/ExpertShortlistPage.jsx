@@ -86,7 +86,7 @@ export default function ExpertShortlistPage() {
       ) : (
         <div className="xresults">
           {results.map((r) => (
-            <ExpertCard key={r.expert.id} result={r} requestId={briefId} onShortlist={realBrief ? onShortlist : null} shortlisted={shortlisted[r.expert.id]} busy={busy === r.expert.id} />
+            <ExpertCard key={r.expert.id} result={r} requestId={briefId} explainProvider={d.explanation_provider} onShortlist={realBrief ? onShortlist : null} shortlisted={shortlisted[r.expert.id]} busy={busy === r.expert.id} />
           ))}
         </div>
       )}

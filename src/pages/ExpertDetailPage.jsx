@@ -7,9 +7,11 @@ import { ExpertScore } from '../components/ExpertCard';
 import { useCompany } from '../components/company-context';
 import { LoadError } from '../components/capital/bits';
 import useApi from '../lib/useApi';
-import { getExpert, readBrief, requestExpertHelp, shortlistExpert, startExpertProject, listExpertRequests, AVAILABILITY, SENIORITY } from '../lib/experts';
+import { getExpert, getExpertProfile, readBrief, requestExpertHelp, shortlistDirect, startExpertProject, listExpertRequests, listShortlist, AVAILABILITY, SENIORITY } from '../lib/experts';
 import { isMissingEndpoint } from '../lib/auth';
 import { firstName } from '../lib/format';
+
+const provLabel = (p) => { const k = typeof p === 'object' && p ? (p.label || p.key || p.basis) : p; return k === 'derived' || k === 'profile_text' ? 'Inferred from their bio' : k === 'unknown' ? 'Not on record' : 'Expert stated'; };
 
 /** 22 · Expert profile. Fit is shown only with a brief in context (a score belongs to one need). */
 export default function ExpertDetailPage() {
@@ -19,27 +21,34 @@ export default function ExpertDetailPage() {
   const { company, companyId } = useCompany();
   const navigate = useNavigate();
   const toast = useToast();
-  const q = useApi(() => getExpert(id, { companyId, requestId: briefId }).then((x) => x.expert), [id, briefId]);
+  const realBrief = briefId && !String(briefId).startsWith('local-') ? briefId : null;
+  // The profile endpoint records 'viewed' and returns fit for the brief (null without one) and per-field provenance.
+  const q = useApi(() => (companyId
+    ? getExpertProfile(id, companyId, realBrief).catch((e) => (e.status === 404 && !e.code ? getExpert(id) : Promise.reject(e)))
+    : getExpert(id)), [id, realBrief, companyId]);
   const reqQ = useApi(() => (companyId ? listExpertRequests(companyId).then((x) => x.requests || []).catch(() => []) : []), [companyId]);
   const [dialog, setDialog] = useState(null);
   const [form, setForm] = useState(null);
   const [proj, setProj] = useState({ title: '', scope: '', start_date: '', end_date: '' });
   const [busy, setBusy] = useState(false);
-  const [shortlisted, setShortlisted] = useState(false);
+  const [shortlistedNow, setShortlisted] = useState(false);
+  const slQ = useApi(() => (companyId ? listShortlist(companyId).then((x) => x.items || []).catch(() => []) : []), [companyId]);
 
   if (q.error) {
     if (q.error.status === 404 && !isMissingEndpoint(q.error)) return <EmptyState icon="users" title="We couldn't find this expert." action={<Button as={Link} to="/experts" variant="primary">Find an expert</Button>} />;
     return <div><SubNav section="experts" />{isMissingEndpoint(q.error) ? <EmptyState icon="users" title="The expert directory isn't connected in this environment yet." /> : <LoadError error={q.error} onRetry={q.reload} what="this expert" />}</div>;
   }
-  const e = q.data;
+  const e = q.data?.expert;
   if (!e) return <Skeleton h="320px" />;
+  const prov = q.data?.provenance || {};
 
   const brief = briefId ? readBrief(briefId) : null;
-  const fit = brief?.results?.find((r) => r.expert.id === e.id) || null;
+  const fit = q.data?.fit || brief?.results?.find((r) => r.expert.id === e.id) || null;
   const req = brief?.requirement;
   const av = AVAILABILITY[e.availability];
   const onLeave = e.availability === 'leave';
   const fname = firstName(e.full_name) || 'the expert';
+  const shortlisted = shortlistedNow || (slQ.data || []).some((it) => it.expert?.id === e.id);
   const myRequests = (reqQ.data || []).filter((r) => r.consultant_id === e.id);
   const conversation = myRequests.find((r) => r.status !== 'cancelled');
   const projectReq = conversation || (briefId && !String(briefId).startsWith('local-') ? { id: briefId } : null);
@@ -66,14 +75,14 @@ export default function ExpertDetailPage() {
           <div>
             <h1>{e.full_name}{e.seniority ? ` · ${SENIORITY[e.seniority]}` : ''}</h1>
             <p className="ui-muted">{[e.location, av?.label].filter(Boolean).join(' · ')} {onLeave && <Badge tone="neutral">On leave at the moment</Badge>}</p>
-            <div className="ui-tags">{(e.skills || []).map((s) => <span key={s} className="ui-tag">{s}</span>)}<span className="xprov">Expert stated</span></div>
+            <div className="ui-tags">{(e.skills || []).map((s) => <span key={s} className="ui-tag">{s}</span>)}<span className="xprov">{provLabel(prov.skills)}</span></div>
           </div>
           {fit && <ExpertScore score={fit.expert_match_score} confidence={fit.data_confidence} />}
         </div>
         <div className="ui-row xhead-actions">
           {shortlisted ? <Badge tone="ok">Shortlisted</Badge> : (
-            <Button variant="secondary" disabled={busy || !projectReq} title={!projectReq ? 'Search for a need first, then shortlist.' : undefined}
-              onClick={async () => { if (await run(() => shortlistExpert(companyId, projectReq.id, e.id), 'Shortlisted. See them in My experts.')) setShortlisted(true); }}>+ Shortlist</Button>
+            <Button variant="secondary" disabled={busy || !companyId}
+              onClick={async () => { if (await run(() => shortlistDirect(companyId, e.id, realBrief || conversation?.id), 'Shortlisted. See them in My experts.')) setShortlisted(true); }}>+ Shortlist</Button>
           )}
           {conversation
             ? <Badge tone="gold">Requested · waiting for confirmation</Badge>
@@ -84,8 +93,8 @@ export default function ExpertDetailPage() {
         </div>
       </Card>
 
-      <div className="ui-grid ui-grid-2">
-        <Card title={req ? `How ${fname} fits your need: ${[(req.labels || []).join(' + '), SENIORITY[req.seniority]].filter(Boolean).join(' · ')}` : 'How they fit'}>
+      <div className="xprofile-grid">
+        <Card className="xprofile-fit" title={req ? `How ${fname} fits your need: ${[(req.labels || []).join(' + '), SENIORITY[req.seniority]].filter(Boolean).join(' · ')}` : 'How they fit'}>
           {fit ? (
             <>
               {brief?.gapLabel && <p className="ui-muted">You came here from: {brief.gapLabel} gap.</p>}

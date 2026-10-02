@@ -8,8 +8,8 @@ export const getRecommendation = (companyId, raiseTiming) =>
 export const getEntitlements = (companyId) => apiFetch(`/api/v1/packages/entitlements/${companyId}`);
 export const selectPackage = (companyId, code) =>
   apiFetch('/api/v1/packages/selection', { method: 'POST', body: JSON.stringify({ company_id: companyId, code }) });
-export const setPocPlan = (plan) =>
-  apiFetch('/api/v1/packages/poc-plan', { method: 'PATCH', body: JSON.stringify({ plan }) });
+export const setPocPlan = (companyId, plan) =>
+  apiFetch('/api/v1/packages/poc-plan', { method: 'PATCH', body: JSON.stringify({ company_id: companyId, plan }) });
 
 /** Free-tier defaults (catalog FREE_ENTITLEMENTS) used only to gate the UI when entitlements can't be read. */
 export const FREE_ENTITLEMENTS = {

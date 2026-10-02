@@ -44,7 +44,7 @@ export async function runMatch(companyId, options = {}) {
   const res = await apiFetch(`/capital/profiles/${companyId}/match`, { method: 'POST', body: JSON.stringify(options) });
   if (res?.run_id) {
     const byRecord = new Map((res.results || []).map((r) => [r.record_id, { caveats: r.caveats, fit_reasons: r.fit_reasons, fit_tier: r.fit_tier, bucket: r.bucket, likely_outside_reasons: r.likely_outside_reasons, fit_provenance: r.fit_provenance || r.provenance, route_keys: r.route_keys }]));
-    runCache.set(res.run_id, { byRecord, plan: res.plan, ai_gated: res.ai_gated, counts: res.counts, excluded_by_reason: res.counts?.excluded_by_reason });
+    runCache.set(res.run_id, { byRecord, plan: res.plan, ai_gated: res.ai_gated, ai_error_code: res.ai_error_code, counts: res.counts, excluded_by_reason: res.counts?.excluded_by_reason });
     if (runCache.size > 10) runCache.delete(runCache.keys().next().value);
   }
   return res;
@@ -91,6 +91,7 @@ export function normaliseRun(run, results, extra = {}) {
     provider: run?.provider || extra.provider || 'heuristic',
     ai_model: run?.ai_model || extra.ai_model || null,
     ai_error: run?.ai_error || extra.ai_error || null,
+    ai_error_code: run?.ai_error_code || extra.ai_error_code || cached?.ai_error_code || null,
     counts: run?.counts || extra.counts || {},
     plan: extra.plan || cached?.plan || null,
     ai_gated: cached?.ai_gated || null,
@@ -337,3 +338,16 @@ export const FILTER_LABEL = {
   business_model: 'Business model',
 };
 export const filterLabel = (k) => FILTER_LABEL[k] || (k ? k.charAt(0).toUpperCase() + k.slice(1).replace(/_/g, ' ') : '');
+
+/** Honest, short reason when AI refinement didn't run (never provider text). */
+export const AI_ERROR_TEXT = {
+  consent: 'AI refinement unavailable: AI processing is switched off for this company.',
+  provider_timeout: 'AI refinement unavailable: the AI provider took too long.',
+  provider_rate_limited: 'AI refinement unavailable: the AI provider is busy.',
+  provider_auth: 'AI refinement unavailable right now.',
+  provider_model: 'AI refinement unavailable right now.',
+  invalid_output: "AI refinement unavailable: the AI answer didn't pass our checks.",
+  bad_purpose: 'AI refinement unavailable right now.',
+  dependency: 'AI refinement unavailable right now.',
+  unknown: 'AI refinement unavailable right now.',
+};

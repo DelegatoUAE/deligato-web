@@ -128,7 +128,7 @@ function ItemDrawer({ item, companyId, onClose, onChanged, onMove, onRemove }) {
 }
 
 export default function PipelinePage() {
-  const { companyId } = useCompany();
+  const { companyId, reloadPipeline } = useCompany();
   const toast = useToast();
   const q = useApi(() => listPipeline(companyId).then((x) => x.pipeline || []), [companyId]);
   const [view, setView] = useState(() => (typeof window !== 'undefined' && window.innerWidth < 768 ? 'list' : 'board'));
@@ -156,6 +156,7 @@ export default function PipelinePage() {
     try {
       const { item: next } = await updatePipelineItem(item.id, { stage: to });
       replace(next);
+      reloadPipeline();
       if (extra) await extra();
       else await eventForMove(companyId, item, to).catch(() => null);
     } catch (e) {
@@ -180,8 +181,7 @@ export default function PipelinePage() {
           record_id: item.record_id, pipeline_item_id: item.id, outcome: form.outcome,
           reason_code: form.reason || undefined, amount_usd: form.amount ? Number(form.amount) : undefined,
           instrument: form.instrument || undefined,
-          // A date-only 'today' reads as UTC midnight server-side; omit it so the server stamps now.
-          occurred_on: form.date && form.date !== todayIso() ? form.date : undefined, note: form.note || undefined,
+          occurred_on: form.date || undefined, note: form.note || undefined,
         });
         toast.success('Outcome saved.');
       } catch (e) {

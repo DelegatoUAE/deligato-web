@@ -41,7 +41,7 @@ unset), and the UI shows which one produced the ranking. Allocating creates a
   component styles in `src/App.css`, grouped by section with `/* ==== NAME ==== */`
   banners. Use the tokens (`var(--brand)`, `var(--surface)`, `var(--radius)`…)
   rather than hard-coded colors.
-- Brand: indigo `#3C3489` / `#534AB7` / `#7A6FE2` on light `#F5F5FA`. DM Sans.
+- Brand: Deligato · Capital Access in the Conncct design language (navy #051C38, gold #E7A81E, cream #F8F5EF, Poppins). Tokens and primitives live in `src/design/` (see `src/design/ADOPTION.md`); routes and the API per screen are in `src/IA.md`.
 - No TypeScript. Function components, default-exported.
 - Small, surgical edits. Don't reformat unrelated code or restyle working pages.
 

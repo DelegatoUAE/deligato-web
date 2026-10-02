@@ -491,3 +491,7 @@
 .onboard-nav { display: flex; justify-content: space-between; gap: var(--s-3); margin-top: var(--s-4); }
 .onboard-foot { text-align: center; }
 .staff-filters { margin-bottom: var(--s-5); } .staff-card { display: grid; gap: var(--s-3); text-decoration: none !important; color: inherit; }
+.xprofile-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s-4); margin-top: var(--s-4); }
+.xprofile-grid .ui-card + .ui-card { margin-top: 0; }
+.xprofile-fit { grid-column: 1 / -1; }
+@media (max-width: 900px) { .xprofile-grid { grid-template-columns: 1fr; } }

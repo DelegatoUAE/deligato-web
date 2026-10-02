@@ -45,7 +45,7 @@ export function ReadinessSnapshot({ readiness, variant = 'compact', conncctHref,
     <div className={`rsnap rsnap-${variant}`}>
       <div className="rsnap-dial">
         <ScoreRing variant="readiness" value={value === null ? null : Math.round(value)} band={prov ? undefined : name} bandTone={tone} label="Readiness" size={variant === 'full' ? 'md' : 'sm'} />
-        {exact && value !== null && <div className="rsnap-exact">Score as sent by Conncct: <strong>{value}</strong></div>}
+        {exact && value !== null && <div className="rsnap-exact">{src.key === 'embedded' ? 'Score' : 'Score as sent by Conncct'}: <strong>{value}</strong></div>}
       </div>
       <div className="rsnap-body">
         <div className="rsnap-chips"><BandChip readiness={r} /><SrcBadge tone="outline" size="sm">{src.label}</SrcBadge></div>

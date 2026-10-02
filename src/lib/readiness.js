@@ -37,6 +37,6 @@ export function readinessSource(out) {
 
 /** Gaps (00 §3 K5): missing/unknown factors, or under 60% of their points; debt_type excluded. */
 export function readinessGapFactors(r) {
-  return (r?.factors || []).filter((f) => f.key !== 'debt_type'
+  return (r?.factors || []).filter((f) => !['debt', 'debt_type'].includes(f.key)
     && (['missing', 'unknown'].includes(f.status) || (f.max ? Number(f.points) / Number(f.max) < 0.6 : false)));
 }

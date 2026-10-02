@@ -115,7 +115,7 @@ export default function ReadinessAssessPage() {
           ? <Button variant="accent" onClick={finish} loading={busy} disabled={answered < required.length}>See my score</Button>
           : <Button variant="primary" onClick={() => setI(idx + 1)} disabled={!canNext}>Next</Button>}
       </div>
-      <p className="ui-faint">Uses Conncct's readiness method ({qQ.data.label || qQ.data.provider?.label || 'Conncct engine'}). Your answers stay private to {company.name}.</p>
+      <p className="ui-faint">Uses Conncct's readiness method · {qQ.data.label || qQ.data.provider?.label || 'Conncct method'}. Your answers stay private to {company.name}.</p>
     </div>
   );
 }

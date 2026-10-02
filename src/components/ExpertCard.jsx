@@ -14,7 +14,7 @@ export function ExpertScore({ score, confidence }) {
   );
 }
 
-export default function ExpertCard({ result, expert: e0, requestId, onShortlist, shortlisted, busy }) {
+export default function ExpertCard({ result, expert: e0, requestId, onShortlist, shortlisted, busy, explainProvider }) {
   const e = e0 || result?.expert || {};
   const av = AVAILABILITY[e.availability];
   const href = `/experts/${e.id}${requestId ? `?brief=${requestId}` : ''}`;
@@ -32,7 +32,7 @@ export default function ExpertCard({ result, expert: e0, requestId, onShortlist,
       </div>
       {result && <ExpertFitRow fits={result.fits} />}
       {why.length > 0 && <p className="xcard-why">{(more ? why : why.slice(0, 2)).join(' ')}{why.length > 2 && <> <button type="button" className="linkish" onClick={() => setMore((v) => !v)}>{more ? 'Less' : 'More'}</button></>}</p>}
-      {typeof result?.explanation === 'string' && <p className="xcard-why"><Badge tone="gold" size="sm">AI-refined</Badge> {result.explanation}</p>}
+      {typeof result?.explanation === 'string' && <p className="xcard-why"><Badge tone={explainProvider && explainProvider !== 'heuristic' ? 'gold' : 'outline'} size="sm">{explainProvider && explainProvider !== 'heuristic' ? 'AI-refined' : 'Rules-based'}</Badge> {result.explanation}</p>}
       {(e.skills || []).length > 0 && <div className="ui-tags">{e.skills.slice(0, 5).map((x) => <span key={x} className="ui-tag">{x}</span>)}{e.skills.length > 5 && <span className="ui-faint">+{e.skills.length - 5}</span>}</div>}
       <div className="xcard-foot">
         {av && <Badge tone={av.tone} dot size="sm">{av.label}</Badge>}

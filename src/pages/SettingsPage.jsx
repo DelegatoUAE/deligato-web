@@ -127,14 +127,14 @@ function Privacy({ companyId }) {
   );
 }
 
-function Plan({ plan, entitlements, reloadEntitlements }) {
+function Plan({ companyId, plan, entitlements, reloadEntitlements }) {
   const toast = useToast();
   const [choice, setChoice] = useState(plan?.key || 'trial');
   const [busy, setBusy] = useState(false);
   const pocOn = import.meta.env.VITE_POC_PLAN_SWITCH === 'true';
   async function apply() {
     setBusy(true);
-    try { await setPocPlan(choice); reloadEntitlements(); toast.success(`Plan set to ${choice} (testing only).`); } catch (e) {
+    try { await setPocPlan(companyId, choice); reloadEntitlements(); toast.success(`Plan set to ${choice}. POC: no payment taken.`); } catch (e) {
       toast.error(isMissingEndpoint(e) ? "The POC plan switch isn't available on this server." : e.message);
     } finally { setBusy(false); }
   }
@@ -164,7 +164,7 @@ export default function SettingsPage() {
     <div>
       <PageHeader title="Settings" />
       <Tabs label="Settings" value={tab} onChange={(t) => setParams({ tab: t })} items={[{ id: 'account', label: 'Account' }, { id: 'privacy', label: 'Privacy and AI' }, { id: 'plan', label: 'Plan' }]}>
-        {(t) => (t === 'account' ? <Account me={me} /> : t === 'privacy' ? <Privacy companyId={companyId} /> : <Plan plan={plan} entitlements={entitlements} reloadEntitlements={reloadEntitlements} />)}
+        {(t) => (t === 'account' ? <Account me={me} /> : t === 'privacy' ? <Privacy companyId={companyId} /> : <Plan companyId={companyId} plan={plan} entitlements={entitlements} reloadEntitlements={reloadEntitlements} />)}
       </Tabs>
     </div>
   );

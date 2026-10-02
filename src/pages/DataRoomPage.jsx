@@ -19,7 +19,7 @@ const STATUS = {
 
 /** Data room (09-data-room.md). mode="documents" is the Company › Documents view of the same items. */
 export default function DataRoomPage({ mode = 'dataroom' }) {
-  const { companyId, company, entitlements } = useCompany();
+  const { companyId, company, entitlements, reloadDataRoom } = useCompany();
   const toast = useToast();
   const q = useApi(() => getDataRoom(companyId), [companyId]);
   const [tab, setTab] = useState(null);
@@ -53,7 +53,7 @@ export default function DataRoomPage({ mode = 'dataroom' }) {
 
   async function act(label, fn, ok) {
     setBusy(label);
-    try { await fn(); await q.reload(); if (ok) toast.success(ok); } catch (e) {
+    try { await fn(); q.reload(); reloadDataRoom(); if (ok) toast.success(ok); } catch (e) {
       toast.error(e.upgradeRequired ? 'Data room uploads are included from Investor-Ready.' : e.message);
     } finally { setBusy(null); }
   }

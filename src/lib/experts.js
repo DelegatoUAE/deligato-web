@@ -80,3 +80,11 @@ export const listShortlist = (companyId) => apiFetch(`/api/v1/experts/shortlist?
 export const listProjects = (companyId, status) => apiFetch(`/api/v1/experts/projects?company_id=${encodeURIComponent(companyId)}${status ? `&status=${status}` : ''}`);
 export const updateProject = (companyId, id, body) =>
   apiFetch(`/api/v1/experts/projects/${id}`, { method: 'PATCH', body: JSON.stringify({ company_id: companyId, ...body }) });
+
+/** Shortlist works with or without a brief (duplicate: true on repeat). */
+export const shortlistDirect = (companyId, expertId, requestId) => post('/shortlist', { company_id: companyId, expert_id: expertId, request_id: requestId || undefined });
+export const updateBrief = (companyId, briefId, requirement) =>
+  apiFetch(`${base}/briefs/${briefId}`, { method: 'PATCH', body: JSON.stringify({ company_id: companyId, requirement }) });
+/** Expert profile with fit (null without a brief) and per-field provenance; records 'viewed'. */
+export const getExpertProfile = (expertId, companyId, requestId) =>
+  apiFetch(`${base}/${expertId}?company_id=${encodeURIComponent(companyId)}${requestId ? `&request_id=${encodeURIComponent(requestId)}` : ''}`);

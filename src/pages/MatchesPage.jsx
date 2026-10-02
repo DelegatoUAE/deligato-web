@@ -8,7 +8,7 @@ import { GateCard, ProviderBadge, LoadError } from '../components/capital/bits';
 import useApi from '../lib/useApi';
 import {
   getRunNormalised, getLatestRun, runMatch, getUnlocks, listPipeline, addToPipeline, previewMatch,
-  completeness, TIERS, BUCKETS, filterLabel,
+  completeness, TIERS, BUCKETS, filterLabel, AI_ERROR_TEXT,
 } from '../lib/capital';
 import { sendFeedback, listFeedback } from '../lib/learning';
 import { getRouting, normaliseRoute } from '../lib/routing';
@@ -230,7 +230,7 @@ export default function MatchesPage() {
       <SubNav section="capital" />
       {header}
 
-      {run.ai_error && <Alert tone="warn">AI refinement was unavailable, so these are rules-based results.</Alert>}
+      {(run.ai_error || run.ai_error_code) && <Alert tone="warn">{AI_ERROR_TEXT[run.ai_error_code] || AI_ERROR_TEXT.unknown} These are rules-based results.</Alert>}
       {routes.length > 0 && (
         <div className="route-filter">
           <span>Showing {routeParam === 'fits' ? 'every route that fits' : 'route'}:</span>
