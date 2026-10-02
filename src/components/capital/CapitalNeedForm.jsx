@@ -144,7 +144,7 @@ export default function CapitalNeedForm({ firstRun = false, onSaved, submitLabel
       {timingNote && <Alert tone="warn">Saved your raise, instrument, investor types and markets. Your timing couldn't be stored yet; it stays on this screen until the companies service is connected.</Alert>}
       <div className="need-actions is-wide">
         {!firstRun && <Button variant="secondary" onClick={() => submit(false)} loading={busy === 'save'} disabled={Boolean(busy)}>Save</Button>}
-        <Button type="submit" variant="accent" loading={busy === 'find'} disabled={Boolean(busy)}>{submitLabel || (firstRun ? 'Confirm and find capital' : 'Save and find capital')}</Button>
+        <Button type="submit" variant="accent" loading={busy === 'find'} disabled={Boolean(busy)}>{submitLabel || (firstRun ? 'Confirm and find capital' : 'Save and see routes')}</Button>
       </div>
     </form>
   );

@@ -9,7 +9,7 @@ import AiOutput from '../components/AiOutput';
 import { FundraisingNotice, LoadError } from '../components/capital/bits';
 import useApi from '../lib/useApi';
 import {
-  getSource, getRunNormalised, listPipeline, addToPipeline, previewMatch, FIT_DIMENSIONS, tierLabel, confidenceLevel, stageLabel,
+  getSource, getRunNormalised, listPipeline, addToPipeline, previewMatch, FIT_DIMENSIONS, tierLabel, confidenceLevel, stageLabel, fitReasonText,
 } from '../lib/capital';
 import { submitCorrection, recordNotFit, CORRECTION_FIELDS, FEEDBACK_DOWN_REASONS } from '../lib/learning';
 import { recordOutcome, kindForRoute } from '../lib/fundraising';
@@ -43,7 +43,7 @@ const list = (a) => (Array.isArray(a) && a.length ? a.join(', ') : null);
 const NOT_ON_RECORD = 'Not on record';
 
 function fitDetail(dim, m, company, result) {
-  const reason = result?.fit_reasons?.[dim];
+  const reason = fitReasonText(result, dim);
   if (reason) return reason;
   const missingOwn = (result?.missing_from_your_profile || []);
   const state = result?.fits?.[dim];
@@ -72,7 +72,7 @@ const SECTIONS = [
 export default function InvestorProfilePage() {
   const { recordId } = useParams();
   const [params] = useSearchParams();
-  const { company, companyId, run: latestRun, entitlements } = useCompany();
+  const { company, companyId, run: latestRun, entitlements, reloadPipeline } = useCompany();
   const toast = useToast();
   const runId = params.get('run');
 
@@ -115,6 +115,7 @@ export default function InvestorProfilePage() {
     try {
       const { item } = await addToPipeline({ profile_id: companyId, record_id: recordId, match_score_at_add: result?.match_score ?? null, stage, fit_tier_at_add: result?.fit_tier, run_id: runQ.data?.run_id });
       pipeQ.setData((l) => [...(l || []), item]);
+      reloadPipeline();
       toast.success(stage === 'shortlisted' ? `Saved ${id.name}.` : `${id.name} is in your pipeline.`);
     } catch (e) {
       toast.error(e.upgradeRequired ? 'Pipeline tracking is included from Investor-Ready.' : `Couldn't save: ${e.message}`);
@@ -174,7 +175,9 @@ export default function InvestorProfilePage() {
           <p className="ui-muted">{fr.label || 'No dated evidence of activity'}</p>
           <div className="inv-actions">
             {pipelineItem ? (
-              <Button as={Link} to="/capital/pipeline" variant="secondary" iconLeft="check">In pipeline · {stageLabel(pipelineItem.stage)}</Button>
+              pipelineItem.stage === 'shortlisted'
+                ? <Button as={Link} to="/capital/saved" variant="secondary" iconLeft="check">Saved</Button>
+                : <Button as={Link} to="/capital/pipeline" variant="secondary" iconLeft="check">In pipeline · {stageLabel(pipelineItem.stage)}</Button>
             ) : canTrack ? (
               <>
                 <Button variant="primary" onClick={() => track('shortlisted')} loading={busy === 'shortlisted'}>Save</Button>

@@ -236,7 +236,7 @@ export default function PipelinePage() {
   return (
     <div className="pipeline">
       <SubNav section="capital" />
-      <PageHeader title="Pipeline" subtitle={`${tracked.length} providers · ${conv} in conversation`}
+      <PageHeader title="Pipeline" subtitle={`${tracked.length} ${tracked.length === 1 ? "provider" : "providers"} · ${conv} in conversation`}
         meta={savedN > 0 && <Link to="/capital/saved">{savedN} saved, not in your pipeline yet</Link>}
         actions={<Tabs variant="pill" label="View" value={view} onChange={setView} items={[{ id: 'board', label: 'Board' }, { id: 'list', label: 'List' }]} />} />
       {q.data === undefined ? <Skeleton h="300px" /> : tracked.length === 0 ? (

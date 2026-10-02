@@ -43,7 +43,7 @@ export function cachedRunExtras(runId) {
 export async function runMatch(companyId, options = {}) {
   const res = await apiFetch(`/capital/profiles/${companyId}/match`, { method: 'POST', body: JSON.stringify(options) });
   if (res?.run_id) {
-    const byRecord = new Map((res.results || []).map((r) => [r.record_id, { caveats: r.caveats, fit_reasons: r.fit_reasons, fit_tier: r.fit_tier }]));
+    const byRecord = new Map((res.results || []).map((r) => [r.record_id, { caveats: r.caveats, fit_reasons: r.fit_reasons, fit_tier: r.fit_tier, bucket: r.bucket, likely_outside_reasons: r.likely_outside_reasons, fit_provenance: r.fit_provenance || r.provenance, route_keys: r.route_keys }]));
     runCache.set(res.run_id, { byRecord, plan: res.plan, ai_gated: res.ai_gated, counts: res.counts, excluded_by_reason: res.counts?.excluded_by_reason });
     if (runCache.size > 10) runCache.delete(runCache.keys().next().value);
   }
@@ -83,7 +83,7 @@ export function normaliseRun(run, results, extra = {}) {
   const cached = run?.id ? runCache.get(run.id) : null;
   const items = (results || []).map((r) => {
     const x = cached?.byRecord.get(r.record_id);
-    return normaliseResult(x ? { ...r, caveats: r.caveats || x.caveats, fit_reasons: r.fit_reasons || x.fit_reasons, fit_tier: r.fit_tier || x.fit_tier } : r);
+    return normaliseResult(x ? { ...x, ...Object.fromEntries(Object.entries(r).filter(([, v]) => v !== null && v !== undefined)) } : r);
   });
   return {
     run_id: run?.id || extra.run_id || null,
@@ -185,6 +185,14 @@ export function sortByTier(results) {
     || ((b.data_confidence_score ?? -1) - (a.data_confidence_score ?? -1)));
 }
 
+/** The one-line reason for a fit dimension, whichever shape the engine sent. */
+export function fitReasonText(r, dim) {
+  const fr = r?.fit_reasons?.[dim];
+  if (!fr) return null;
+  if (typeof fr === 'string') return fr;
+  return fr.reason || null;
+}
+
 /** Engine result (POST /match) and stored row (GET /runs/:id) → one shape. */
 export function normaliseResult(r) {
   const s = r.capital_sources || {};
@@ -238,12 +246,14 @@ export const BUCKETS = [
   { key: 'possible', label: 'Possible: insufficient evidence', short: 'possible' },
   { key: 'likely_outside', label: 'Likely outside their mandate', short: 'likely outside mandate' },
 ];
-const CORE = ['stage', 'geography', 'ticket', 'sector'];
-/** Client fallback when the run predates buckets: any core unknown = possible. Never promotes. */
+/**
+ * Client fallback when a stored result carries no bucket. Only the server can
+ * see evidence tiers, so the client never promotes anything to "Verified
+ * eligible": with no server bucket a result is at best "possible" (D24).
+ */
 export function bucketOf(r) {
   if ((r.likely_outside_reasons || []).length) return 'likely_outside';
-  const fits = r.fits || {};
-  return CORE.some((d) => normState(fits[d]) === 'unknown') ? 'possible' : 'eligible';
+  return 'possible';
 }
 
 // D16 labels for a fit chip. Server labels win (fit_provenance); otherwise
@@ -255,8 +265,10 @@ export const PROVENANCE_LABEL = {
   verified: 'Conncct Verified', asserted: 'Public Source', inferred_read: 'AI Inferred', inferred_default: 'AI Inferred', weak_record: 'Public Source', absent: 'Unknown',
 };
 export function fitProvenance(r, dim) {
-  const p = r?.fit_provenance?.[dim];
+  const fr = r?.fit_reasons?.[dim];
+  const p = r?.fit_provenance?.[dim] || (fr && typeof fr === 'object' ? (typeof fr.provenance === 'string' ? fr.provenance : fr.provenance?.label || fr.provenance?.key || fr.provenance?.tier) : null);
   if (p) return PROVENANCE_LABEL[p] || p;
+  if (fr && typeof fr === 'object' && fr.inferred) return 'AI Inferred';
   if (normState(r?.fits?.[dim]) === 'unknown') return 'Unknown';
   if ((r?.likely_outside_reasons || []).some((x) => x.dimension === dim)) return 'AI Inferred';
   return 'Public Source';

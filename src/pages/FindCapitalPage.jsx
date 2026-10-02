@@ -118,6 +118,7 @@ export default function FindCapitalPage() {
       <SubNav section="capital" />
       <PageHeader title="Find capital" subtitle={`Which kinds of capital fit ${company.name}, and who offers them.`} />
       <ProgressSteps className="find-steps" steps={steps} compact />
+      {new URLSearchParams(window.location.search).get('confirm') && !capitalNeedConfirmed && <Alert tone="info">Confirm your raise first. It takes a minute.</Alert>}
 
       <Card className="raise-card" title="Your raise" action={<Button as={Link} to="/capital/need" variant="secondary" size="sm">Edit your raise</Button>}>
         <p className="raise-line">{capitalNeedConfirmed || company.raise_usd

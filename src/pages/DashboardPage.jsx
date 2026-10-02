@@ -80,8 +80,9 @@ export default function DashboardPage() {
   const pipelineGated = pipelineError?.status === 402;
   const active = pipeline ? pipeline.filter((p) => ACTIVE.includes(p.stage)) : null;
   const staleN = active ? active.filter((p) => daysSince(p.stage_entered_at || p.updated_at) > 21).length : 0;
-  const strong = run ? run.results.filter((x) => x.fit_tier === 'strong').length : null;
-  const possible = run ? run.results.filter((x) => x.fit_tier === 'possible').length : null;
+  // Counts come from the whole run (a trial sees only its top 5 results).
+  const strong = run ? run.counts?.strong_fits ?? run.results.filter((x) => x.fit_tier === 'strong').length : null;
+  const possible = run ? run.counts?.possible_fits ?? run.results.filter((x) => x.fit_tier === 'possible').length : null;
   const gaps = r ? countGaps(r) : null;
   const biggest = r?.insight?.biggest_gap;
   const biggestLabel = typeof biggest === 'object' ? biggest?.label : r?.factors?.find((f) => f.key === biggest)?.label;

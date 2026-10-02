@@ -63,7 +63,7 @@ export async function apiFetch(path, options = {}) {
 export function isMissingEndpoint(err) {
   if (!err || err.status !== 404) return false;
   if (typeof err.body === 'string' || err.body == null) return true; // Express "Cannot GET" page
-  return err.code === 'not_found' && /^no such/i.test(err.message || '');
+  return (err.code === 'not_found' || err.code === 'route_not_found') && /^no (such|route)/i.test(err.message || '');
 }
 
 export async function login(email, password) {

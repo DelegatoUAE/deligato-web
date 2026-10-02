@@ -12,8 +12,8 @@ const TITLES = [
   [/^\/$/, 'Home'],
   [/^\/capital\/find/, 'Find capital'],
   [/^\/capital\/readiness/, 'Readiness'],
-  [/^\/capital\/matches/, 'My matches'],
   [/^\/capital\/matches\/./, 'Capital provider'],
+  [/^\/capital\/matches/, 'My matches'],
   [/^\/capital\/saved/, 'Saved'],
   [/^\/capital\/pipeline/, 'Pipeline'],
   [/^\/capital\/data-room/, 'Data room'],
@@ -52,7 +52,7 @@ export default function AppLayout({ children }) {
 
   useEffect(() => { document.title = `${title} · ${PAGE_SUFFIX}`; }, [title]);
 
-  const strong = run ? run.results.filter((r) => r.fit_tier === 'strong').length : null;
+  const strong = run ? run.counts?.strong_fits ?? run.results.filter((r) => r.fit_tier === 'strong').length : null;
   const nav = [
     { items: [{ id: 'home', label: 'Home', icon: 'home', href: '/', end: true }] },
     { title: 'Capital', items: CAPITAL_NAV.map((i) => {
@@ -96,7 +96,6 @@ export default function AppLayout({ children }) {
     <div className="ui-shell-brand">
       <div>
         <div className="ui-wordmark">Conncct</div>
-        <span className="ui-wordmark-sub">Capital Access</span>
       </div>
       {companies?.length > 1 && (
         <div className="coswitch">

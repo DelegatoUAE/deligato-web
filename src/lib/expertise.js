@@ -12,7 +12,7 @@ const FACTOR = {
   decisions: 'finance', risk_appetite: 'strategy',
 };
 const BLOCKER = {
-  instrument: 'fundraising', ticket: 'fundraising', raise_usd: 'fundraising', presence: 'legal', willing_to_relocate: 'legal',
+  instrument: 'fundraising', investor_type: 'fundraising', ticket: 'fundraising', local_presence: 'legal', raise_usd: 'fundraising', presence: 'legal', willing_to_relocate: 'legal',
   revenue: 'finance', profile: 'strategy', stage: 'fundraising', geography: 'strategy', sector: 'strategy', investor_types_sought: 'fundraising',
 };
 const DATA_ROOM = {

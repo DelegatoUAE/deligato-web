@@ -49,7 +49,7 @@ export default function SavedPage() {
     } catch (e) { toast.error(`Couldn't remove: ${e.message}`); } finally { setBusy(null); setRemoving(null); }
   }
 
-  const head = <><SubNav section="capital" /><PageHeader title="Saved" subtitle="Investors you've saved from your matches. Move one into your pipeline when you start working on it." /></>;
+  const head = <><SubNav section="capital" /><PageHeader title="Saved" subtitle="Providers you saved from your matches, to compare and decide who to approach first." /></>;
   if (q.error?.status === 402) return <div>{head}<GateCard title="Save investors and track your raise." body="Included from Investor-Ready." /></div>;
   if (q.error) return <div>{head}<LoadError error={q.error} onRetry={q.reload} what="your saved investors" /></div>;
   if (!q.data) return <div>{head}<SkeletonCards count={3} height={72} /></div>;

@@ -76,7 +76,7 @@ function EligibilityPanel({ counts, unlocks, company, onShowExcluded }) {
           <ul className="bars">
             {rows.map((r) => (
               <li key={r.dimension}>
-                <span className="bars-label">{r.dimension === 'ticket' && company.raise_usd ? `Ticket doesn't fit ${fmtUsd(company.raise_usd)}` : `${r.label || filterLabel(r.dimension)} outside mandate`}</span>
+                <span className="bars-label">{r.dimension === 'ticket' && company.raise_usd ? `Ticket doesn't fit ${fmtUsd(company.raise_usd)}` : r.label || filterLabel(r.dimension)}</span>
                 <span className="bars-track" aria-hidden="true"><i style={{ width: `${(r.also_involved / max) * 100}%` }} /></span>
                 <span className="bars-n">{fmtInt(r.also_involved)}</span>
               </li>
@@ -90,7 +90,7 @@ function EligibilityPanel({ counts, unlocks, company, onShowExcluded }) {
 }
 
 export default function MatchesPage() {
-  const { company, companyId, entitlements, reloadRun } = useCompany();
+  const { company, companyId, entitlements, reloadRun, reloadPipeline } = useCompany();
   const [params, setParams] = useSearchParams();
   const navigate = useNavigate();
   const toast = useToast();
@@ -145,6 +145,7 @@ export default function MatchesPage() {
     try {
       const { item } = await addToPipeline({ profile_id: companyId, record_id: r.record_id, match_score_at_add: r.match_score, stage, fit_tier_at_add: r.fit_tier, run_id: run?.run_id });
       pipeQ.setData((list) => [...(list || []), item]);
+      reloadPipeline();
       toast.success(stage === 'shortlisted' ? `Saved ${r.name}.` : `${r.name} is in your pipeline.`);
     } catch (e) {
       toast.error(e.upgradeRequired ? 'Pipeline tracking is included from Investor-Ready.' : `Couldn't save ${r.name}: ${e.message}`);
@@ -267,14 +268,14 @@ export default function MatchesPage() {
             {bucketCount('likely_outside') > 0 ? ` · ${fmtInt(bucketCount('likely_outside'))} likely outside their mandate` : ''}
           </p>
           <section className="tier" aria-labelledby="b-eligible">
-            <h2 id="b-eligible" className="tier-h tier-h-strong">Verified eligible <span>({byBucket.eligible.length})</span></h2>
+            <h2 id="b-eligible" className="tier-h tier-h-strong">Verified eligible <span>({byBucket.eligible.length}{bucketCount('eligible') > byBucket.eligible.length ? ` shown of ${fmtInt(bucketCount('eligible'))}` : ''})</span></h2>
             <p className="ui-muted">Every decisive fit (stage, sector, geography, ticket) rests on researched evidence.</p>
             {byBucket.eligible.length ? byBucket.eligible.map(card) : (
               <p className="tier-empty">No verified fits yet. That reflects how much of these investors' mandates we have verified, not your company.{topMissing ? ` Adding ${topMissing.label.toLowerCase()} would also sharpen your results.` : ''}</p>
             )}
           </section>
           <section className="tier" aria-labelledby="b-possible">
-            <h2 id="b-possible" className="tier-h">Possible: insufficient evidence <span>({byBucket.possible.length})</span></h2>
+            <h2 id="b-possible" className="tier-h">Possible: insufficient evidence <span>({byBucket.possible.length}{bucketCount('possible') > byBucket.possible.length ? ` shown of ${fmtInt(bucketCount('possible'))}` : ''})</span></h2>
             <p className="ui-muted">Nothing on record rules them out, but at least one decisive fact is unknown. Unknown never counts as a fit.</p>
             {byBucket.possible.length > 12 && !showLeads ? (
               <>
@@ -286,7 +287,7 @@ export default function MatchesPage() {
           <section className="tier tier-outside" aria-labelledby="b-outside">
             <h2 id="b-outside" className="tier-h">
               <button type="button" className="tier-toggle" aria-expanded={showOutside} onClick={() => setShowOutside((v) => !v)}>
-                Likely outside their mandate <span>({byBucket.likely_outside.length})</span> <span aria-hidden="true">{showOutside ? '▾' : '▸'}</span>
+                Likely outside their mandate <span>({byBucket.likely_outside.length}{bucketCount('likely_outside') > byBucket.likely_outside.length ? ` shown of ${fmtInt(bucketCount('likely_outside'))}` : ''})</span> <span aria-hidden="true">{showOutside ? '▾' : '▸'}</span>
               </button>
             </h2>
             <p className="ui-muted">Their own published criteria suggest they don't back companies like yours. This isn't verified, so we show the reason rather than hide them.</p>

@@ -3,7 +3,6 @@ import { PageHeader, useToast, Button } from '../design/ui';
 import SubNav from '../components/SubNav';
 import CapitalNeedForm from '../components/capital/CapitalNeedForm';
 import { useCompany } from '../components/company-context';
-import { runMatch } from '../lib/capital';
 
 export default function CapitalNeedPage() {
   const { capitalNeedConfirmed, reloadCompanies, reloadRun } = useCompany();
@@ -13,12 +12,12 @@ export default function CapitalNeedPage() {
   async function onSaved(out, { andFind }) {
     reloadCompanies();
     if (!andFind) {
-      toast.push({ tone: 'ok', title: 'Saved', message: 'Re-run matches to see the effect.', action: <Button size="sm" variant="link" onClick={() => navigate('/capital/find?step=routing')}>Re-run</Button> });
+      toast.push({ tone: 'ok', title: 'Saved', message: 'Re-run matches to see the effect.', action: <Button size="sm" variant="link" onClick={() => navigate('/capital/find')}>See routes</Button> });
       return;
     }
-    const res = await runMatch(out.company.id);
+    // Raise → routes → matches (16): routing first, then providers inside the routes.
     reloadRun();
-    navigate(`/capital/matches${res.run_id ? `?run=${res.run_id}` : ''}`);
+    navigate('/capital/find');
   }
 
   return (
