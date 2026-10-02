@@ -30,7 +30,8 @@ export default function LoginPage() {
   return (
     <div className="login">
       <aside className="login-side ui-on-navy">
-        <div className="ui-wordmark">Conncct</div>
+        <div className="ui-wordmark">Deligato</div>
+        <span className="ui-wordmark-sub">Capital Access</span>
         <p className="login-line">Understand your business. Become capital ready. Find the right capital. Get the right expertise. Execute the raise.</p>
         <p className="login-foot">We help you with fundraising. We never fundraise for you.</p>
       </aside>

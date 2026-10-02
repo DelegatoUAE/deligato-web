@@ -9,7 +9,7 @@ import AiOutput from '../components/AiOutput';
 import { FundraisingNotice, LoadError } from '../components/capital/bits';
 import useApi from '../lib/useApi';
 import {
-  getSource, getRunNormalised, listPipeline, addToPipeline, previewMatch, FIT_DIMENSIONS, tierLabel, confidenceLevel, stageLabel, fitReasonText,
+  getSource, getRunNormalised, listPipeline, addToPipeline, previewMatch, FIT_DIMENSIONS, confidenceLevel, stageLabel, fitReasonText, bucketHeadline, tierWithinBucket,
 } from '../lib/capital';
 import { submitCorrection, recordNotFit, CORRECTION_FIELDS, FEEDBACK_DOWN_REASONS } from '../lib/learning';
 import { recordOutcome, kindForRoute } from '../lib/fundraising';
@@ -195,7 +195,8 @@ export default function InvestorProfilePage() {
           {result ? (
             <>
               <MatchScore score={result.match_score} confidence={result.data_confidence} size="lg" />
-              <span className={`tier tier-${result.fit_tier}`}>{tierLabel(result.fit_tier)}</span>
+              <span className={`inv-bucket inv-bucket-${result.bucket}`}>{bucketHeadline(result)}</span>
+              <span className="tier">{tierWithinBucket(result)}</span>
             </>
           ) : notInRun ? <Badge tone="neutral">Not in your latest run</Badge> : <Skeleton w="96px" h="96px" />}
         </div>

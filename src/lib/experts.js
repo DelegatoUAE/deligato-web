@@ -74,10 +74,9 @@ export function projectStatus(project, allocation) {
   return 'Requested · waiting for the expert to confirm';
 }
 
-/** Requests with their shortlist, matched experts and project, in one call per request. */
-export async function loadExpertActivity(companyId) {
-  const { requests = [] } = await listExpertRequests(companyId);
-  const details = await Promise.all(requests.map((r) => getExpertRequest(companyId, r.id).catch(() => ({ request: r }))));
-  return details.map((d, i) => ({ ...requests[i], ...d.request, shortlisted: d.shortlisted || [], matched: d.matched || [], project: d.project || null }));
-}
 
+
+export const listShortlist = (companyId) => apiFetch(`/api/v1/experts/shortlist?company_id=${encodeURIComponent(companyId)}`);
+export const listProjects = (companyId, status) => apiFetch(`/api/v1/experts/projects?company_id=${encodeURIComponent(companyId)}${status ? `&status=${status}` : ''}`);
+export const updateProject = (companyId, id, body) =>
+  apiFetch(`/api/v1/experts/projects/${id}`, { method: 'PATCH', body: JSON.stringify({ company_id: companyId, ...body }) });

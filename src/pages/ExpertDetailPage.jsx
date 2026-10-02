@@ -111,11 +111,11 @@ export default function ExpertDetailPage() {
             <li>Agree the scope with the expert.</li>
             <li>Start a project here so you can track it and record the outcome.</li>
           </ol>
-          <p className="ui-faint">Requests go to the Conncct team inside the platform. Nobody is emailed by the system, and no payment is taken here.</p>
+          <p className="ui-faint">Requests go to our team inside the platform. Nobody is emailed by the system, and no payment is taken here.</p>
         </Card>
       </div>
 
-      <Modal open={dialog === 'request'} onClose={() => setDialog(null)} title={`Request a conversation with ${fname}`} description="The Conncct team will confirm a time with you both."
+      <Modal open={dialog === 'request'} onClose={() => setDialog(null)} title={`Request a conversation with ${fname}`} description="Our team will confirm a time with you both."
         footer={<><Button variant="ghost" onClick={() => setDialog(null)}>Cancel</Button><Button variant="primary" loading={busy} disabled={!form?.topic?.trim()}
           onClick={async () => {
             const out = await run(() => requestExpertHelp({ company_id: companyId, consultant_id: e.id, kind: 'expert_help', topic: form.topic, note: [form.note, form.times && `Preferred times: ${form.times}`].filter(Boolean).join('\n') }), `Requested. We'll confirm a time with you and ${fname}.`);
@@ -129,7 +129,7 @@ export default function ExpertDetailPage() {
           </div>
         )}
       </Modal>
-      <Modal open={dialog === 'project'} onClose={() => setDialog(null)} title="Start a project" description={`Records the project so you can track it with ${fname}. The Conncct team confirms it with you both.`}
+      <Modal open={dialog === 'project'} onClose={() => setDialog(null)} title="Start a project" description={`Records the project so you can track it with ${fname}. Our team confirms it with you both.`}
         footer={<><Button variant="ghost" onClick={() => setDialog(null)}>Cancel</Button><Button variant="primary" loading={busy}
           onClick={async () => { const out = await run(() => startExpertProject(companyId, projectReq.id, e.id, { start_date: proj.start_date || undefined, end_date: proj.end_date || undefined }), 'Project requested.'); if (out) navigate('/experts/projects'); }}>Start project</Button></>}>
         <div className="ui-form">

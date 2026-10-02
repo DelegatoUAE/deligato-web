@@ -256,6 +256,20 @@ export function bucketOf(r) {
   return 'possible';
 }
 
+const DIM_WORD = { stage: 'stage', sector: 'sector', geography: 'geography', ticket: 'ticket', business_model: 'business model' };
+
+/** One concept per screen (D24): the evidence bucket first, the fit tier only inside it. */
+export function bucketHeadline(r) {
+  if (r?.bucket === 'eligible') return 'Verified eligible';
+  if (r?.bucket === 'likely_outside') return 'Likely outside their mandate';
+  const unknown = FIT_DIMENSIONS.map((d) => d.key).filter((k) => normState(r?.fits?.[k]) === 'unknown').map((k) => DIM_WORD[k]);
+  return unknown.length ? `Possible: ${unknown.join(', ')} unknown` : 'Possible: insufficient evidence';
+}
+export function tierWithinBucket(r) {
+  const t = tierLabel(r?.fit_tier);
+  return r?.bucket === 'eligible' ? t : `${t} on what's known`;
+}
+
 // D16 labels for a fit chip. Server labels win (fit_provenance); otherwise
 // the conservative reading: unknown → Unknown, an inference from their own
 // text → AI Inferred, anything else → Public Source (never "Verified" without proof).

@@ -80,7 +80,7 @@ export default function AppLayout({ children }) {
     });
   }
   nav.push({ items: [
-    { id: 'ask-ai', label: 'Ask Conncct AI', icon: 'spark', onClick: () => setAssistantOpen(true) },
+    { id: 'ask-ai', label: 'Ask AI', icon: 'spark', onClick: () => setAssistantOpen(true) },
     { id: 'settings', label: 'Settings', icon: 'settings', href: '/settings' },
   ] });
 
@@ -95,7 +95,8 @@ export default function AppLayout({ children }) {
   const brand = (
     <div className="ui-shell-brand">
       <div>
-        <div className="ui-wordmark">Conncct</div>
+        <div className="ui-wordmark">Deligato</div>
+        <span className="ui-wordmark-sub">Capital Access</span>
       </div>
       {companies?.length > 1 && (
         <div className="coswitch">

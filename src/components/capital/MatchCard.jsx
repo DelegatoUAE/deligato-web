@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Badge, Button, Icon, Modal, Select, Tooltip } from '../../design/ui';
 import MatchScore from './MatchScore';
 import FitPills from './FitPills';
-import { investorHref } from '../../lib/capital';
+import { investorHref, tierWithinBucket } from '../../lib/capital';
 import { FEEDBACK_DOWN_REASONS } from '../../lib/learning';
 import { fmtDate } from '../../lib/format';
 
@@ -25,7 +25,7 @@ export default function MatchCard({ r, runId, pipelineItem, canTrack, canDraft, 
         <div className="mcard-head">
           <h3 id={`m-${r.record_id}`}><Link to={href}>{r.name}</Link></h3>
           <span className="mcard-meta">{[r.type, [r.city, r.country].filter(Boolean).join(', ')].filter(Boolean).join(' · ')}</span>
-          {r.fit_tier === 'strong' && <Badge tone="ok" size="sm" className="mcard-tier">Strong fit</Badge>}
+          {r.fit_tier === 'strong' && <Badge tone={r.bucket === 'eligible' ? 'ok' : 'outline'} size="sm" className="mcard-tier">{tierWithinBucket(r)}</Badge>}
         </div>
         <FitPills fits={r.fits} result={r} />
         {r.why_matched && (

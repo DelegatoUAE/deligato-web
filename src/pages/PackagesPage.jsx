@@ -104,7 +104,7 @@ export default function PackagesPage() {
 
       <Modal open={Boolean(choosing)} onClose={() => setChoosing(null)} size="sm" title={choosing ? `Request ${choosing.name}${choosing.price_usd ? ` (${priceText(choosing)})` : ''}?` : ''}
         description="An advisor will confirm scope and timing with you before any payment. Nothing is charged in this app."
-        footer={<><Button variant="ghost" onClick={() => setChoosing(null)}>Cancel</Button><Button variant="primary" loading={busy} onClick={choose}>Request from Conncct</Button></>} />
+        footer={<><Button variant="ghost" onClick={() => setChoosing(null)}>Cancel</Button><Button variant="primary" loading={busy} onClick={choose}>Request this package</Button></>} />
     </div>
   );
 }

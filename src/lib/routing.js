@@ -3,6 +3,8 @@
 import { apiFetch } from './auth';
 
 export const getRouting = (companyId) => apiFetch(`/api/v1/routing/${companyId}`);
+export const selectRoutes = (companyId, routeKeys) =>
+  apiFetch(`/api/v1/routing/${companyId}/selection`, { method: 'POST', body: JSON.stringify({ route_keys: routeKeys }) });
 
 export const ROUTE_FIT = {
   strong: { label: 'Strong fit', tone: 'ok' },

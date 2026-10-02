@@ -84,6 +84,6 @@ export const TIMINGS = [
 ];
 export const timingLabel = (k) => TIMINGS.find((t) => t.key === k)?.label || null;
 
-export const PAGE_SUFFIX = 'Conncct';
+export const PAGE_SUFFIX = 'Deligato';
 
 export const POSITIONING = 'Understand your business. Become capital ready. Find the right capital. Get the right expertise. Execute the raise.';

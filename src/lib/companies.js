@@ -34,13 +34,14 @@ const NEED_FIELDS = ['raise_usd', 'instrument', 'investor_types_sought', 'target
 
 /**
  * Save the capital need. Returns { company, timingSaved, confirmed_at, via }.
- * via 'companies' = the documented endpoint; 'capital' = fallback, in which
+ * via 'routing' = PATCH /api/v1/routing/:id/capital-need; 'capital' = fallback, in which
  * case raise_timing and the confirmation stamp could not be stored.
  */
 export async function saveCapitalNeed(id, need) {
   try {
-    const out = await apiFetch(`/api/v1/companies/${id}/capital-need`, { method: 'PATCH', body: JSON.stringify(need) });
-    return { company: normaliseCompany(out.company), confirmed_at: out.capital_need_confirmed_at || null, timingSaved: true, via: 'companies' };
+    // The capital need lives with routing (it feeds routes first): saves and confirms.
+    const out = await apiFetch(`/api/v1/routing/${id}/capital-need`, { method: 'PATCH', body: JSON.stringify({ ...need, confirm: true }) });
+    return { company: { id, ...out.capital_need }, confirmed_at: out.capital_need?.confirmed_at || null, timingSaved: true, via: 'routing', routing: out.routing };
   } catch (e) {
     if (!isMissingEndpoint(e)) throw e;
   }

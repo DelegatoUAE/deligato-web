@@ -33,7 +33,7 @@ function CapitalAssessment({ companyId }) {
     <Card id="assessment" className="assess" title="Start here if you're not sure" action={<Button variant="secondary" onClick={() => setOpen(true)} disabled={!companyId}>Request a Capital Assessment</Button>}>
       <p><strong>Capital Assessment · $99, credited against any package</strong></p>
       <p className="ui-muted">A 40-minute session with an advisor who reviews your readiness and maps your gaps.</p>
-      <Modal open={open} onClose={() => setOpen(false)} title="Request a Capital Assessment" description="A request to the Conncct team inside the platform. Nobody is emailed by the system, and no payment is taken in this app."
+      <Modal open={open} onClose={() => setOpen(false)} title="Request a Capital Assessment" description="A request to our team inside the platform. Nobody is emailed by the system, and no payment is taken in this app."
         footer={<><Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button><Button variant="primary" loading={busy} onClick={send}>Request a Capital Assessment</Button></>}>
         <FormField label="Anything we should know?" optional><Textarea rows={3} value={note} onChange={(e) => setNote(e.target.value)} /></FormField>
       </Modal>

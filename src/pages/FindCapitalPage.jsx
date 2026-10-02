@@ -5,7 +5,7 @@ import SubNav from '../components/SubNav';
 import { useCompany } from '../components/company-context';
 import { LoadError } from '../components/capital/bits';
 import useApi from '../lib/useApi';
-import { getRouting, normaliseRoute, ROUTE_FIT } from '../lib/routing';
+import { getRouting, normaliseRoute, selectRoutes, ROUTE_FIT } from '../lib/routing';
 import { runMatch } from '../lib/capital';
 import { conncctLink } from '../lib/companies';
 import { fmtUsd, timingLabel } from '../lib/format';
@@ -83,8 +83,8 @@ export default function FindCapitalPage() {
   async function see(routeKey) {
     setSeeing(routeKey);
     try {
-      const routes = q.data?.routes?.map(normaliseRoute) || [];
-      try { sessionStorage.setItem('conncct.routes', JSON.stringify(routes)); } catch { /* optional */ }
+      const keys = routeKey === 'fits' ? (q.data?.capital_filter?.routes || []) : [routeKey];
+      selectRoutes(companyId, keys).catch(() => null); // analytics + capital filter; never blocks (D12)
       let runId = run?.run_id;
       if (!runId) { const res = await runMatch(companyId); runId = res.run_id; reloadRun(); }
       navigate(`/capital/matches?route=${routeKey}${runId ? `&run=${runId}` : ''}`);
