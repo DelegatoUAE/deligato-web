@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { lazy, Suspense, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Alert, Button, ChipToggle, FormField, Input } from '../design/ui';
 import AuthLayout from '../components/AuthLayout';
 import { apiFetch, setToken } from '../lib/auth';
+
+const DevRegister = import.meta.env.DEV ? lazy(() => import('../components/DevRegister')) : null;
 
 /** Register: every self-registered account is a founder (or SME); staff roles are assigned by an admin. */
 export default function SignupPage() {
@@ -44,6 +46,11 @@ export default function SignupPage() {
         <p className="login-alt">Already have an account? <Link to="/login">Sign in</Link></p>
         <p className="ui-faint">By creating an account you agree to how we handle your data: company facts only go to AI with your consent, and you can export or delete everything at any time.</p>
       </form>
+      {DevRegister && (
+        <Suspense fallback={null}>
+          <DevRegister fullName={form.full_name} email={form.email} onCreated={() => navigate('/onboarding')} />
+        </Suspense>
+      )}
     </AuthLayout>
   );
 }
