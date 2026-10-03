@@ -11,7 +11,7 @@ export function fmtUsd(n) {
   return `$${Math.round(v)}`;
 }
 
-/** Exact price as printed in the catalog ($6,999 · $7.99). */
+/** Exact price as printed in the catalog (e.g. $6,999 · $54). */
 export function fmtPrice(n) {
   if (n === null || n === undefined) return null;
   const v = Number(n);
