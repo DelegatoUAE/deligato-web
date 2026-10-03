@@ -1,9 +1,9 @@
 import { Link } from 'react-router-dom';
 import { Button, Drawer, FitMark } from '../../design/ui';
 import MatchScore from './MatchScore';
-import { FIT_DIMENSIONS, fitProvenance, fitReasonText, investorHref, bucketHeadline, ticketRange } from '../../lib/capital';
+import { FIT_DIMENSIONS, fitProvenance, fitReasonText, investorHref, bucketHeadline, ticketRange, timingOf } from '../../lib/capital';
 import { fitSummary } from '../../lib/matchview';
-import { fmtDate } from '../../lib/format';
+import { wordsForCodes, countryName } from '../../lib/format';
 
 const SPOKEN = { yes: 'Fits', partial: 'Partly fits', no: "Doesn't fit", unknown: 'Not on record' };
 const norm = (s) => (['yes', 'partial', 'no', 'unknown'].includes(s) ? s : 'unknown');
@@ -29,7 +29,7 @@ export default function CompareDrawer({ open, onClose, rows, runId, onRemove }) 
           <div className="cmp-fit">
             <span className={`cmp-fit-state cmp-${s}`}><FitMark state={s} />{SPOKEN[s]}</span>
             <span className="cmp-prov">{fitProvenance(r, d.key)}</span>
-            {why && <span className="cmp-why">{why}</span>}
+            {why && <span className="cmp-why">{wordsForCodes(why)}</span>}
           </div>
         );
       },
@@ -38,9 +38,9 @@ export default function CompareDrawer({ open, onClose, rows, runId, onRemove }) 
     { label: 'Stages', render: (r) => list(r.stages) || NOR },
     { label: 'Sectors', render: (r) => list(r.sectors) || NOR },
     { label: 'Investor types', render: (r) => list(r.investor_types) || r.type || NOR },
-    { label: 'Location', render: (r) => [r.city, r.country].filter(Boolean).join(', ') || NOR },
-    { label: 'Timing', render: (r) => (r.deadline ? `Deadline ${fmtDate(r.deadline)}` : r.next_intake ? `Next intake ${r.next_intake}` : r.application_open === true ? 'Open now' : NOR) },
-    { label: 'Why we matched you', render: (r) => r.why_matched || <span className="ui-faint">No explanation in this run</span> },
+    { label: 'Location', render: (r) => [r.city, countryName(r.country)].filter(Boolean).join(', ') || NOR },
+    { label: 'Timing', render: (r) => timingOf(r)?.text || NOR },
+    { label: 'Why we matched you', render: (r) => wordsForCodes(r.why_matched) || <span className="ui-faint">No explanation in this run</span> },
   ];
 
   return (

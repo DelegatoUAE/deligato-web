@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { Alert, Badge, Button, ChipToggle, FormField, Input, Select, Tag } from '../../design/ui';
 import { useCompany } from '../company-context';
 import { saveCapitalNeed } from '../../lib/companies';
-import { TIMINGS, fmtUsd } from '../../lib/format';
+import { TIMINGS, fmtUsd, countryName } from '../../lib/format';
+import { COUNTRY_CODES, marketCode } from '../../lib/countries';
 import { logEvent } from '../../lib/events';
 
 const FALLBACK_INSTRUMENTS = ['Equity', 'SAFE', 'Convertible note', 'Venture debt', 'Revenue-based', 'Grant', 'Loan'];
@@ -44,10 +45,10 @@ export default function CapitalNeedForm({ firstRun = false, onSaved, submitLabel
   const debtEarly = EARLY.includes(company?.stage) && ['Venture debt', 'Revenue-based'].includes(form.instrument);
 
   function addMarket(raw) {
-    const v = String(raw || '').trim().toUpperCase().replace(/\s+/g, '_');
-    if (!v) return;
-    if (!/^[A-Z]{2}$/.test(v) && !blocs.includes(v)) {
-      setErrors((e) => ({ ...e, target_markets: 'Use a two-letter country code (AE, SA, GB) or a region from the list.' }));
+    if (!String(raw || '').trim()) return;
+    const v = marketCode(raw, blocs);
+    if (!v) {
+      setErrors((e) => ({ ...e, target_markets: 'Pick a country or a region from the list.' }));
       return;
     }
     if (!form.target_markets.includes(v)) set('target_markets', [...form.target_markets, v]);
@@ -111,17 +112,17 @@ export default function CapitalNeedForm({ firstRun = false, onSaved, submitLabel
       </FormField>
 
       <FormField wide label={<span className="need-label">Markets you'll serve {sourceTag(company, 'target_markets', edited.target_markets)}</span>} error={errors.target_markets}
-        hint="Two-letter country codes or regions, e.g. AE, SA, GCC.">
+        hint="Countries or regions, e.g. Saudi Arabia, GCC, Europe.">
         {(id, describedBy) => (
           <div className="need-markets">
             <div className="ui-tags">
-              {form.target_markets.map((m) => <Tag key={m} onRemove={() => set('target_markets', form.target_markets.filter((x) => x !== m))} removeLabel={`Remove ${m}`}>{m}</Tag>)}
+              {form.target_markets.map((m) => <Tag key={m} onRemove={() => set('target_markets', form.target_markets.filter((x) => x !== m))} removeLabel={`Remove ${countryName(m)}`}>{countryName(m)}</Tag>)}
               {!form.target_markets.length && <span className="ui-muted">No markets set</span>}
             </div>
             <div className="ui-row">
               <Input id={id} aria-describedby={describedBy} value={market} onChange={(e) => setMarket(e.target.value)} placeholder="Add country or region"
                 onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addMarket(market); } }} list="need-blocs" style={{ maxWidth: 220 }} />
-              <datalist id="need-blocs">{blocs.map((b) => <option key={b} value={b} />)}</datalist>
+              <datalist id="need-blocs">{[...blocs.map((b) => countryName(b)), ...COUNTRY_CODES.map((c) => countryName(c)).sort()].map((n) => <option key={n} value={n} />)}</datalist>
               <Button variant="secondary" size="sm" onClick={() => addMarket(market)}>Add</Button>
             </div>
           </div>

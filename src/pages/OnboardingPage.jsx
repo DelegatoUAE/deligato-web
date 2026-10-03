@@ -1,14 +1,13 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { Alert, Button, Card, ChipToggle, FormField, Input, ProgressSteps, Select, Textarea, useToast } from '../design/ui';
 import { useCompany } from '../components/company-context';
 import { createCompany } from '../lib/companies';
-import { POSITIONING, fmtUsd } from '../lib/format';
+import { POSITIONING, fmtUsd, countryName } from '../lib/format';
+import { countryOptions } from '../lib/countries';
 
-const COUNTRIES = ['AE', 'SA', 'QA', 'KW', 'BH', 'OM', 'EG', 'JO', 'LB', 'MA', 'TN', 'NG', 'KE', 'ZA', 'GB', 'IE', 'FR', 'DE', 'NL', 'ES', 'IT', 'SE', 'CH', 'US', 'CA', 'BR', 'MX', 'IN', 'PK', 'SG', 'ID', 'MY', 'VN', 'PH', 'AU', 'NZ', 'JP', 'KR', 'TR'];
-const regionName = (() => {
-  try { const dn = new Intl.DisplayNames(['en'], { type: 'region' }); return (c) => dn.of(c); } catch { return (c) => c; }
-})();
+const COUNTRY_OPTIONS = countryOptions();
+const regionName = countryName;
 const FALLBACK_STAGES = ['Idea', 'Pre-seed', 'Seed', 'Series A', 'Series B', 'Series C+', 'Growth'];
 const STEPS = ['Your company', 'What you do', 'Traction', 'Review'];
 // Which step shows each field, so a server validation error lands on its input.
@@ -29,6 +28,9 @@ export default function OnboardingPage() {
   const toast = useToast();
   const vocab = meta?.vocab || {};
   const [step, setStep] = useState(0);
+  const topRef = useRef(null);
+  // I-09: each step starts at the top.
+  useEffect(() => { topRef.current?.scrollIntoView?.({ block: 'start' }); window.scrollTo?.(0, 0); }, [step]);
   const [f, setF] = useState({
     company_name: me?.profile?.organization || '', one_liner: '', website: '', hq_country_iso2: '',
     stage: '', sector: '', business_model: '', keywords: '', description: '', revenue_usd: '', traction: '',
@@ -103,7 +105,7 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="onboard">
+    <div className="onboard" ref={topRef}>
       <header className="onboard-head">
         <p className="home-positioning onboard-line">{POSITIONING}</p>
         <h1>Tell us about your company</h1>
@@ -117,7 +119,7 @@ export default function OnboardingPage() {
             <FormField label="One line on what you do" optional wide hint="e.g. Automated reconciliation and VAT-ready books for GCC SMEs."><Input value={f.one_liner} onChange={set('one_liner')} maxLength={200} /></FormField>
             <FormField label="Headquarters" required error={errors.hq_country_iso2}>
               <Select value={f.hq_country_iso2} onChange={set('hq_country_iso2')} placeholder="Choose a country"
-                options={COUNTRIES.map((c) => ({ value: c, label: regionName(c) })).sort((a, b) => a.label.localeCompare(b.label))} />
+                options={COUNTRY_OPTIONS} />
             </FormField>
             <FormField label="City" optional error={errors.hq_city}><Input value={f.hq_city} onChange={set('hq_city')} maxLength={120} autoComplete="address-level2" /></FormField>
             <FormField label="Website" optional error={errors.website}><Input value={f.website} onChange={set('website')} placeholder="https://" inputMode="url" /></FormField>

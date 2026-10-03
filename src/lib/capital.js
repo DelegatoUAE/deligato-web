@@ -9,7 +9,7 @@
 // ============================================================
 
 import { apiFetch } from './auth';
-import { fmtUsd, stealthLabel } from './format';
+import { fmtUsd, fmtDate, stealthLabel } from './format';
 
 export { fmtUsd };
 
@@ -351,3 +351,18 @@ export const AI_ERROR_TEXT = {
   dependency: 'AI refinement unavailable right now.',
   unknown: 'AI refinement unavailable right now.',
 };
+
+/**
+ * I-10: one timing line per provider. A deadline wins; a future intake is
+ * shown as the intake ("Next intake 1 Sep 2027"), never beside "Open now".
+ * → { kind: 'deadline'|'intake'|'open', date?, text } or null.
+ */
+export function timingOf(r, now = Date.now()) {
+  if (!r) return null;
+  if (r.deadline) return { kind: 'deadline', date: r.deadline, text: `Deadline ${fmtDate(r.deadline) || r.deadline}` };
+  const intake = r.next_intake ? new Date(r.next_intake) : null;
+  const intakeOk = intake && !Number.isNaN(intake.getTime());
+  if (r.next_intake && (!intakeOk || intake.getTime() > now)) return { kind: 'intake', date: r.next_intake, text: `Next intake ${intakeOk ? fmtDate(r.next_intake) : r.next_intake}` };
+  if (r.application_open === true) return { kind: 'open', text: 'Open now' };
+  return null;
+}

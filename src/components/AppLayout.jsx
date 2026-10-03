@@ -59,15 +59,16 @@ export default function AppLayout({ children }) {
 
   useEffect(() => { document.title = `${title} · ${PAGE_SUFFIX}`; }, [title]);
 
-  const strong = run ? run.counts?.strong_fits ?? run.results.filter((r) => r.fit_tier === 'strong').length : null;
+  // I-01: the nav badge is the verified-fit count, the same number as Home, Overview and Matches.
+  const verified = run ? run.counts?.eligible_bucket ?? run.results.filter((r) => r.bucket === 'eligible').length : null;
   const nav = [
     { items: [{ id: 'home', label: 'Home', icon: 'home', href: '/', end: true }] },
     { title: 'Capital', items: CAPITAL_NAV.map((i) => {
       const badge = {
         'cap-readiness': readiness?.readiness ? Math.round(Number(readiness.readiness.score)) : null,
-        'cap-matches': strong || null,
+        'cap-matches': verified || null,
         'cap-saved': pipeline ? pipeline.filter((p) => p.stage === 'shortlisted').length || null : null,
-        'cap-pipeline': pipeline ? pipeline.filter((p) => ['researching', 'intro_requested', 'contacted', 'in_conversation', 'diligence', 'term_sheet'].includes(p.stage)).length || null : null,
+        'cap-pipeline': pipeline ? pipeline.filter((p) => p.stage !== 'shortlisted').length || null : null,
         'cap-dataroom': dataRoom ? `${dataRoom.completeness_pct}%` : null,
       }[i.id];
       return badge != null ? { ...i, badge } : i;
@@ -93,6 +94,12 @@ export default function AppLayout({ children }) {
     { id: 'ask-ai', label: 'Ask AI', icon: 'spark', onClick: () => setAssistantOpen(true) },
     { id: 'settings', label: 'Settings', icon: 'settings', href: '/settings' },
   ] });
+
+  // I-09: while a founder sets up their company, the shell shows only Home and Settings.
+  const settingUp = pathname.startsWith('/onboarding') || (!company && !staff);
+  const shownNav = settingUp
+    ? [{ items: [{ id: 'home', label: 'Home', icon: 'home', href: '/', end: true }, { id: 'settings', label: 'Settings', icon: 'settings', href: '/settings' }] }]
+    : nav;
 
   const profile = me?.profile || {};
   const name = profile.full_name || me?.user?.email || 'You';
@@ -121,7 +128,7 @@ export default function AppLayout({ children }) {
   return (
     <div className="applayout">
       <AppShell
-        nav={nav}
+        nav={shownNav}
         LinkComponent={NavLink}
         brand={brand}
         title={title}
@@ -137,7 +144,7 @@ export default function AppLayout({ children }) {
       >
         <div className="page"><ErrorBoundary resetKey={pathname}>{children}</ErrorBoundary></div>
       </AppShell>
-      <nav className="tabbar" aria-label="Quick">
+      {!settingUp && <nav className="tabbar" aria-label="Quick">
         {TABS.map((t) => (
           <NavLink key={t.to} to={t.to} end={t.end} className={({ isActive }) => `tabbar-item${isActive ? ' is-active' : ''}`}>
             <Icon name={t.icon} />
@@ -148,7 +155,7 @@ export default function AppLayout({ children }) {
           <Icon name="spark" />
           <span>AI</span>
         </button>
-      </nav>
+      </nav>}
       <AssistantPanel open={assistantOpen} onClose={() => setAssistantOpen(false)} />
     </div>
   );

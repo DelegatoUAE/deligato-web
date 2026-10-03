@@ -7,9 +7,9 @@ import { getUnlocks, listRuns, getRunNormalised, stageLabel } from '../lib/capit
 import { getRecommendation } from '../lib/packages';
 import { getRouting, normaliseRoute } from '../lib/routing';
 import { listExpertRequests } from '../lib/experts';
-import { fmtUsd, fmtPrice, firstName, humanise, daysSince, POSITIONING } from '../lib/format';
-import { rankActions, countGaps, partOfDay } from '../lib/home';
-import { bandLabel, readinessSource } from '../lib/readiness';
+import { fmtUsd, fmtPrice, fmtInt, firstName, humanise, daysSince, countryName, POSITIONING } from '../lib/format';
+import { rankActions, partOfDay, pipelineCounts } from '../lib/home';
+import { bandLabel, readinessSource, readinessGaps } from '../lib/readiness';
 import NextActions from '../components/capital/NextActions';
 import MatchRow from '../components/capital/MatchRow';
 import { FundraisingNotice, GateCard, LoadError } from '../components/capital/bits';
@@ -27,15 +27,15 @@ function readDismissed() {
   } catch { return new Set(); }
 }
 
-/** K3 "+N since {weekday}": strong records in the latest run that weren't in the previous one. */
+/** K3 "+N since {weekday}": verified-eligible records in the latest run that weren't in the previous one. */
 async function strongDelta(companyId, latest) {
   if (!latest) return null;
   const { runs } = await listRuns(companyId);
   const sorted = (runs || []).slice().sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
   if (sorted.length < 2) return null;
   const prev = await getRunNormalised(sorted[1].id);
-  const before = new Set(prev.results.filter((r) => r.fit_tier === 'strong').map((r) => r.record_id));
-  const n = latest.results.filter((r) => r.fit_tier === 'strong' && !before.has(r.record_id)).length;
+  const before = new Set(prev.results.filter((r) => r.bucket === 'eligible').map((r) => r.record_id));
+  const n = latest.results.filter((r) => r.bucket === 'eligible' && !before.has(r.record_id)).length;
   return { n, since: WEEKDAY[new Date(sorted[1].created_at).getDay()] };
 }
 
@@ -87,12 +87,13 @@ export default function DashboardPage() {
   const pipelineGated = pipelineError?.status === 402;
   const active = pipeline ? pipeline.filter((p) => ACTIVE.includes(p.stage)) : null;
   const staleN = active ? active.filter((p) => daysSince(p.stage_entered_at || p.updated_at) > 21).length : 0;
-  // Counts come from the whole run (a trial sees only its top 5 results).
-  const strong = run ? run.counts?.strong_fits ?? run.results.filter((x) => x.fit_tier === 'strong').length : null;
-  const possible = run ? run.counts?.possible_fits ?? run.results.filter((x) => x.fit_tier === 'possible').length : null;
-  const gaps = r ? countGaps(r) : null;
-  const biggest = r?.insight?.biggest_gap;
-  const biggestLabel = typeof biggest === 'object' ? biggest?.label : r?.factors?.find((f) => f.key === biggest)?.label;
+  // I-01: the same three evidence-tier counts as Capital overview and Matches (D24),
+  // from the whole run (a trial sees only its top 5 results).
+  const bucket = (k) => run?.counts?.[`${k}_bucket`] ?? run?.results.filter((x) => x.bucket === k).length ?? 0;
+  const pc = pipelineCounts(pipeline);
+  const gapList = r ? readinessGaps(r) : [];
+  const gaps = gapList.length;
+  const biggestLabel = gapList[0] ? (r.factors?.find((f) => f.key === gapList[0].factor)?.label || gapList[0].label || humanise(gapList[0].factor)) : null;
 
   const actions = rankActions({
     raiseTiming: company.raise_timing,
@@ -103,6 +104,7 @@ export default function DashboardPage() {
     pipeline: (pipeline || []).map((p) => ({ ...p, name: p.capital_sources?.name })),
     unlocks: unlocksQ.data,
     newStrong: deltaQ.data,
+    questionCount: null,
     dismissed,
   });
 
@@ -129,30 +131,30 @@ export default function DashboardPage() {
     <div className="home">
       <header className="home-head">
         <h1>{name ? `Good ${partOfDay()}, ${name}.` : `Good ${partOfDay()}.`} Here's where your company stands.</h1>
-        <p className="home-sub">{[company.name, company.stage || 'stage unknown', company.sector || 'sector unknown', company.hq_country_iso2 || 'HQ unknown'].join(' · ')}</p>
+        <p className="home-sub">{[company.name, company.stage || 'stage unknown', company.sector || 'sector unknown', countryName(company.hq_country_iso2) || 'HQ unknown'].join(' · ')}</p>
       </header>
 
       <section className="home-stats" aria-label="Where you stand">
         {readinessError ? (
-          <div className="ui-stat"><div className="ui-stat-label">Readiness</div><div className="ui-stat-value">—</div><Button variant="link" size="sm" onClick={reloadReadiness}>Couldn't load. Retry</Button></div>
+          <div className="ui-stat"><div className="ui-stat-label">Readiness</div><div className="ui-stat-value ui-stat-value-text">Couldn't load</div><Button variant="link" size="sm" onClick={reloadReadiness}>Retry</Button></div>
         ) : (
           <StatTile as={Link} to={r ? '/capital/readiness' : '/capital/readiness/assess'} tone="navy" label="Readiness" loading={readinessLoading}
             value={r ? Math.round(Number(r.score)) : 'Not scored yet'} foot={r ? `${bandLabel(r)} · ${src.label}` : 'Get your score'} />
         )}
         <StatTile as={Link} to="/capital/need" label="Current raise" value={company.raise_usd != null ? fmtUsd(company.raise_usd) : 'Not set'}
           foot={[company.instrument, TIMING[company.raise_timing] || (capitalNeedConfirmed ? 'timing not set' : 'Confirm your raise')].filter(Boolean).join(' · ')} />
-        <StatTile as={Link} to="/capital/matches?tier=strong" label="Strong matches" loading={runLoading}
-          value={run ? strong : '—'} foot={!run ? 'Appears after your first match' : deltaQ.data?.n ? `+${deltaQ.data.n} since ${deltaQ.data.since}` : `${possible} possible fits`} />
+        <StatTile as={Link} to={run ? '/capital/matches?evidence=eligible' : '/capital/find'} label="Verified fits" loading={runLoading}
+          value={run ? fmtInt(bucket('eligible')) : 'Not yet'} foot={!run ? 'Appears after your first match' : `${deltaQ.data?.n ? `+${deltaQ.data.n} since ${deltaQ.data.since} · ` : ''}${fmtInt(bucket('possible'))} possible · ${fmtInt(bucket('likely_outside'))} likely outside`} />
         {pipelineGated ? (
-          <StatTile as={Link} to="/packages?highlight=investor-ready" label="Active pipeline" value="—" foot="Included from Investor-Ready" />
+          <StatTile as={Link} to="/packages?highlight=investor-ready" label="In pipeline" value="Locked" foot="Included from Investor-Ready" />
         ) : pipelineError ? (
-          <div className="ui-stat"><div className="ui-stat-label">Active pipeline</div><div className="ui-stat-value">—</div><Button variant="link" size="sm" onClick={reloadPipeline}>Couldn't load. Retry</Button></div>
+          <div className="ui-stat"><div className="ui-stat-label">In pipeline</div><div className="ui-stat-value ui-stat-value-text">Couldn't load</div><Button variant="link" size="sm" onClick={reloadPipeline}>Retry</Button></div>
         ) : (
-          <StatTile as={Link} to="/capital/pipeline" label="Active pipeline" loading={!pipeline}
-            value={active && (active.length || pipeline.length) ? active.length : '—'} foot={!active?.length ? 'Starts when you save a match' : staleN ? `${staleN} need a reply` : 'All up to date'} />
+          <StatTile as={Link} to="/capital/pipeline" label="In pipeline" loading={!pipeline}
+            value={pipeline ? pc.inPipeline : ''} foot={!pipeline ? '' : `${pc.saved} saved${pc.inPipeline === 0 ? ' · starts when you add a match' : staleN ? ` · ${staleN} need a reply` : ' · all up to date'}`} />
         )}
         <StatTile as={Link} to="/capital/readiness#gaps" label="Readiness gaps" loading={readinessLoading}
-          value={r ? gaps : '—'} foot={!r ? 'Appears after scoring' : gaps === 0 ? 'No gaps flagged' : biggestLabel ? `Biggest: ${biggestLabel}` : 'factors to strengthen'} />
+          value={r ? gaps : 'Not scored yet'} foot={!r ? 'Appears after scoring' : gaps === 0 ? 'No gaps flagged' : biggestLabel ? `First: ${biggestLabel}` : 'factors to strengthen'} />
       </section>
 
       <section className="home-actions" aria-labelledby="nba-h">

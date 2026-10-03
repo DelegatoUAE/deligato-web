@@ -15,7 +15,7 @@ import {
 } from '../lib/capital';
 import { sendFeedback, listFeedback } from '../lib/learning';
 import { getRouting, normaliseRoute } from '../lib/routing';
-import { fmtUsd, fmtDateTime, fmtInt } from '../lib/format';
+import { fmtUsd, fmtDateTime, fmtInt, countryName } from '../lib/format';
 import { logEvent } from '../lib/events';
 
 function inRoutes(r, routes) {
@@ -121,6 +121,8 @@ export default function MatchesPage() {
   const [busy, setBusy] = useState({});
   const [excluded, setExcluded] = useState({ open: false, rows: null, error: null });
   const [compare, setCompare] = useState([]);
+  const [showStats, setShowStats] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
   const [compareOpen, setCompareOpen] = useState(false);
   const view = params.get('view') === 'table' ? 'table' : 'cards';
   const bucketFilter = params.get('evidence') || '';
@@ -187,15 +189,16 @@ export default function MatchesPage() {
   const header = (
     <PageHeader
       title="Capital matches"
-      subtitle={[company.name, company.stage || 'stage unknown', company.sector || 'sector unknown', company.hq_country_iso2 || 'HQ unknown',
+      subtitle={[company.name, company.stage || 'stage unknown', company.sector || 'sector unknown', countryName(company.hq_country_iso2) || 'HQ unknown',
         `${fmtUsd(company.raise_usd) || 'raise unknown'} ${company.instrument || 'instrument unknown'}`].join(' · ')}
       meta={run && (
         <>
           <ProviderBadge provider={run.provider} />
           {run.created_at && <span className="ui-muted">Run {fmtDateTime(run.created_at)}</span>}
+          <Button variant="secondary" size="sm" onClick={rerun} loading={running}>Re-run</Button>
         </>
       )}
-      actions={<Button variant="secondary" onClick={rerun} loading={running}>Re-run</Button>}
+      actions={!run ? <Button variant="secondary" size="sm" onClick={rerun} loading={running}>Re-run</Button> : null}
     />
   );
 
@@ -258,10 +261,23 @@ export default function MatchesPage() {
         </div>
       )}
 
-      <div className="matches-top">
-        {unlocksQ.data ? <ImprovePanel unlocks={unlocksQ.data} /> : null}
-        <EligibilityPanel counts={run.counts} unlocks={unlocksQ.data} company={company} onShowExcluded={showExcluded} />
+      {/* I-07: investors first. One summary line; the statistics open on demand. */}
+      <div className="msummary">
+        <p>
+          <strong>{fmtInt(eligible)}</strong> open to you
+          {run.counts?.excluded != null && <> · {fmtInt(run.counts.excluded)} excluded by a hard filter</>}
+          {' · '}
+          <button type="button" className="msummary-toggle" aria-expanded={showStats} aria-controls="mstats" onClick={() => setShowStats((v) => !v)}>
+            {showStats ? 'Hide why' : 'Why, and how to open more'}<Icon name="chevronDown" />
+          </button>
+        </p>
       </div>
+      {showStats && (
+        <div className="matches-top" id="mstats">
+          {unlocksQ.data ? <ImprovePanel unlocks={unlocksQ.data} /> : null}
+          <EligibilityPanel counts={run.counts} unlocks={unlocksQ.data} company={company} onShowExcluded={showExcluded} />
+        </div>
+      )}
 
       {eligible === 0 ? (
         <EmptyState icon="search" title="No source in our database fits every hard filter for this profile."
@@ -277,12 +293,17 @@ export default function MatchesPage() {
                 </button>
               ))}
             </div>
+            <div className="mtool-right">
+            <button type="button" className={`mfilter-btn${showFilters ? ' is-on' : ''}${activeFilters.length ? ' has-active' : ''}`} aria-expanded={showFilters} aria-controls="mfilters" onClick={() => setShowFilters((v) => !v)}>
+              <Icon name="settings" />Filters{activeFilters.length ? ` (${activeFilters.length})` : ''}
+            </button>
             <div className="mview" role="group" aria-label="Layout">
               <button type="button" aria-pressed={view === 'cards'} className={view === 'cards' ? 'is-on' : ''} onClick={() => setParam('view', '')}><Icon name="layers" />Cards</button>
               <button type="button" aria-pressed={view === 'table'} className={view === 'table' ? 'is-on' : ''} onClick={() => setParam('view', 'table')}><Icon name="menu" />Table</button>
             </div>
+            </div>
           </div>
-          <div className="mfilters" role="group" aria-label="Filter matches">
+          <div className={`mfilters${showFilters ? ' is-open' : ''}`} id="mfilters" role="group" aria-label="Filter matches">
             <Select aria-label="Type" value={filters.type} onChange={(e) => setFilters({ ...filters, type: e.target.value })} placeholder="All types" options={types} />
             <Select aria-label="Confidence" value={filters.confidence} onChange={(e) => setFilters({ ...filters, confidence: e.target.value })} placeholder="Any confidence"
               options={[{ value: 'high', label: 'High confidence' }, { value: 'medium', label: 'Medium confidence' }, { value: 'low', label: 'Low confidence' }]} />
@@ -298,6 +319,7 @@ export default function MatchesPage() {
             </div>
           )}
 
+          <p className="tier-order">Proven fits first. Higher scores further down rest on details we can't confirm yet.</p>
           <p className="bucket-summary">
             <strong>{fmtInt(bucketCount('eligible'))} verified {bucketCount('eligible') === 1 ? 'fit' : 'fits'}</strong>
             {' · '}{fmtInt(bucketCount('possible'))} possible{bucketCount('possible') > 0 ? ': our data on these investors is still being verified' : ''}

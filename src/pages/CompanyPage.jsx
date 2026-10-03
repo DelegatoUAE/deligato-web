@@ -8,7 +8,7 @@ import { ConncctSourceTag } from '../components/capital/bits';
 import { completeness } from '../lib/capital';
 import { deleteCompany } from '../lib/companies';
 import { isMissingEndpoint } from '../lib/auth';
-import { fmtUsd, fmtDateTime, timingLabel } from '../lib/format';
+import { fmtUsd, fmtDateTime, timingLabel, countryName } from '../lib/format';
 
 function Unknown({ href }) {
   return <span className="unknown-pill" title="Not set yet. Every match shows this as unknown, and confidence drops.">unknown {href && <Link to="/company/business">Set it</Link>}</span>;
@@ -53,7 +53,7 @@ export default function CompanyPage() {
           <dl className="facts">
             <Row label="Name" value={company.name} />
             <Row label="Website" value={company.website} href={href} />
-            <Row label="Headquarters" value={[company.hq_city, company.hq_country_iso2].filter(Boolean).join(', ')} href={href} />
+            <Row label="Headquarters" value={[company.hq_city, countryName(company.hq_country_iso2)].filter(Boolean).join(', ')} href={href} />
             <Row label="Founded" value={company.founded_year} href={href} />
           </dl>
           {company.one_liner && <p>{company.one_liner}</p>}
@@ -64,7 +64,7 @@ export default function CompanyPage() {
             <Row label="Stage" value={company.stage} href={href} />
             <Row label="Sector" value={company.sector ? `${company.sector}${company.sub_sectors?.length ? ` (also: ${company.sub_sectors.join(', ')})` : ''}` : null} href={href} />
             <Row label="Business model" value={company.business_model} href={href} />
-            <Row label="HQ country" value={company.hq_country_iso2} href={href} />
+            <Row label="HQ country" value={countryName(company.hq_country_iso2)} href={href} />
             <Row label="Revenue (12 months)" value={company.revenue_usd != null ? `${fmtUsd(company.revenue_usd)} / yr` : null} href={href} />
             <Row label="Keywords" value={company.keywords} href={href} />
           </dl>

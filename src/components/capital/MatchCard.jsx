@@ -3,9 +3,9 @@ import { Link } from 'react-router-dom';
 import { Badge, Button, Icon, Modal, Select, Tooltip } from '../../design/ui';
 import MatchScore from './MatchScore';
 import FitPills from './FitPills';
-import { investorHref, tierWithinBucket } from '../../lib/capital';
+import { investorHref, tierWithinBucket, timingOf } from '../../lib/capital';
 import { FEEDBACK_DOWN_REASONS } from '../../lib/learning';
-import { fmtDate } from '../../lib/format';
+import { wordsForCodes, countryName } from '../../lib/format';
 
 /**
  * One capital source in the matches list (06-matches.md, D19 card anatomy):
@@ -16,6 +16,7 @@ export default function MatchCard({ r, runId, pipelineItem, canTrack, canDraft, 
   const [askWhy, setAskWhy] = useState(false);
   const [reason, setReason] = useState('wrong_geography');
   const href = investorHref(r.record_id, runId);
+  const timing = timingOf(r);
   const outreachHref = `/capital/outreach?record=${encodeURIComponent(r.record_id)}`;
 
   return (
@@ -24,14 +25,14 @@ export default function MatchCard({ r, runId, pipelineItem, canTrack, canDraft, 
       <div className="mcard-main">
         <div className="mcard-head">
           <h3 id={`m-${r.record_id}`}><Link to={href}>{r.name}</Link></h3>
-          <span className="mcard-meta">{[r.type, [r.city, r.country].filter(Boolean).join(', ')].filter(Boolean).join(' · ')}</span>
+          <span className="mcard-meta">{[r.type, [r.city, countryName(r.country)].filter(Boolean).join(', ')].filter(Boolean).join(' · ')}</span>
           {r.fit_tier === 'strong' && <Badge tone={r.bucket === 'eligible' ? 'ok' : 'outline'} size="sm" className="mcard-tier">{tierWithinBucket(r)}</Badge>}
         </div>
         <FitPills fits={r.fits} result={r} instrumentUnknown={instrumentUnknown} />
         {r.why_matched && (
           <div className="mcard-why">
             <span className="mcard-why-label">Why we matched you</span>
-            <p>{r.why_matched}</p>
+            <p>{wordsForCodes(r.why_matched)}</p>
           </div>
         )}
         {r.ai_reasoning && (
@@ -39,14 +40,12 @@ export default function MatchCard({ r, runId, pipelineItem, canTrack, canDraft, 
         )}
         {r.caveats.length > 0 && (
           <ul className="mcard-caveats">
-            {r.caveats.map((c, i) => <li key={i}>{typeof c === 'string' ? c : c.message || c.text}</li>)}
+            {r.caveats.map((c, i) => <li key={i}>{wordsForCodes(typeof c === 'string' ? c : c.message || c.text)}</li>)}
           </ul>
         )}
         <div className="mcard-foot">
           {r.activity && <span className="mcard-activity">{r.activity}</span>}
-          {r.deadline && <Badge tone="gold" dot size="sm">Deadline {fmtDate(r.deadline)}</Badge>}
-          {!r.deadline && r.next_intake && <Badge tone="neutral" size="sm">Next intake {r.next_intake}</Badge>}
-          {r.application_open === true && <Badge tone="ok" size="sm">Open now</Badge>}
+          {timing && <Badge tone={timing.kind === 'deadline' ? 'gold' : timing.kind === 'open' ? 'ok' : 'neutral'} dot={timing.kind === 'deadline'} size="sm">{timing.text}</Badge>}
           {r.locked && <span className="ui-faint">How to reach them is included from Investor-Ready.</span>}
         </div>
       </div>
@@ -67,7 +66,7 @@ export default function MatchCard({ r, runId, pipelineItem, canTrack, canDraft, 
         {canDraft ? (
           <Button as={Link} to={outreachHref} variant="ghost" size="sm">Prepare outreach</Button>
         ) : (
-          <Button as={Link} to="/packages?highlight=investor-ready" variant="ghost" size="sm" iconLeft="lock">Prepare outreach</Button>
+          <Button as={Link} to="/packages?highlight=investor-ready" variant="ghost" size="sm" iconLeft="lock" title="Outreach drafts are included from Investor-Ready. Opens Packages.">Prepare outreach</Button>
         )}
         {onFeedback && (
           <div className="mcard-fb" role="group" aria-label="Is this a relevant match?">

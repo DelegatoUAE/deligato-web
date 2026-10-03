@@ -14,7 +14,7 @@ import {
 import { submitCorrection, recordNotFit, CORRECTION_FIELDS, FEEDBACK_DOWN_REASONS } from '../lib/learning';
 import { recordOutcome, kindForRoute } from '../lib/fundraising';
 import { runTask } from '../lib/intelligence';
-import { fmtUsd, fmtDate, stealthLabel } from '../lib/format';
+import { fmtUsd, fmtDate, stealthLabel, countryName, wordsForCodes } from '../lib/format';
 
 // D16 provenance labels. Derived from the record's own evidence until the
 // data module publishes per-field labels (it then wins: profile.field_provenance).
@@ -46,7 +46,7 @@ const NOT_ON_RECORD = 'Not on record';
 
 function fitDetail(dim, m, company, result) {
   const reason = fitReasonText(result, dim);
-  if (reason) return reason;
+  if (reason) return wordsForCodes(reason);
   const missingOwn = (result?.missing_from_your_profile || []);
   const state = result?.fits?.[dim];
   if (state === 'unknown') {
@@ -59,7 +59,7 @@ function fitDetail(dim, m, company, result) {
   switch (dim) {
     case 'stage': return `Backs ${list(m.stages) || 'stages not on record'}; you're ${company.stage || 'stage unknown'}.`;
     case 'sector': return `${list(m.sectors) || 'Sectors not on record'}; you're ${company.sector || 'sector unknown'}.`;
-    case 'geography': return `Accepts companies from ${list(m.accepts_hq) || 'markets not on record'}; you're ${company.hq_country_iso2 || 'HQ unknown'}.`;
+    case 'geography': return `Accepts companies from ${list((m.accepts_hq || []).map(countryName)) || 'markets not on record'}; you're in ${countryName(company.hq_country_iso2) || 'a country not set'}.`;
     case 'ticket': return `Writes ${m.ticket?.label || 'cheques of unknown size'}; you're raising ${fmtUsd(company.raise_usd) || 'an amount not set'}.`;
     case 'business_model': return `${list(m.business_models) || 'Business models not on record'}; you're ${company.business_model || 'model unknown'}.`;
     default: return null;
@@ -220,8 +220,8 @@ export default function InvestorProfilePage() {
     ['Stage', 'stages', m.stages, list(m.stages)],
     ['Sector', 'sectors', m.sectors, list(m.sectors)],
     ['Sector exclusions', 'sector_exclusions', m.sector_exclusions, list(m.sector_exclusions)],
-    ['Geography (accepts HQ)', 'accepts_hq', m.accepts_hq, list(m.accepts_hq)],
-    ['Target markets', 'target_markets', m.target_markets, list(m.target_markets)],
+    ['Geography (accepts HQ)', 'accepts_hq', m.accepts_hq, list((m.accepts_hq || []).map(countryName))],
+    ['Target markets', 'target_markets', m.target_markets, list((m.target_markets || []).map(countryName))],
     ['Ticket', 'ticket_min_usd', m.ticket?.label, m.ticket?.label],
     ['Investment type', 'instruments', m.instruments, list(m.instruments)],
     ['Investor types', 'investor_types', m.investor_types, list(m.investor_types)],
@@ -302,7 +302,7 @@ export default function InvestorProfilePage() {
                     : <Link to="/company/business">Edit company details</Link>}
                 </p>
               )}
-              {result.why_matched && <div className="mcard-why"><span className="mcard-why-label">Why you match</span><p>{result.why_matched}</p></div>}
+              {result.why_matched && <div className="mcard-why"><span className="mcard-why-label">Why you match</span><p>{wordsForCodes(result.why_matched)}</p></div>}
               {result.ai_reasoning && <p className="mcard-ai"><Badge tone="gold" size="sm">AI-refined</Badge> {result.ai_reasoning}</p>}
               <details className="explainer"><summary>How the Match score works</summary><p>Fit counts for most of the score. How much we know about the investor pulls it toward the middle. Unknown details never add points. This score is about fit, not your chance of raising.</p></details>
             </>
@@ -392,8 +392,8 @@ export default function InvestorProfilePage() {
               <li key={x.record_id}>
                 <Link to={investorHref(x.record_id, runIds.has(x.record_id) ? runQ.data?.run_id : null)} className="sim-card">
                   <span className="sim-top"><span className="sim-name">{x.name}</span><span className="sim-pct" title="Mandate overlap with this provider">{x.similarity}% overlap</span></span>
-                  <span className="sim-meta">{[x.type, x.country].filter(Boolean).join(' · ') || 'Type and country not on record'}{' · '}{ticketRange(x.ticket_min_usd, x.ticket_max_usd) || 'ticket not on record'}</span>
-                  <span className="sim-why">{x.why_similar}</span>
+                  <span className="sim-meta">{[x.type, countryName(x.country)].filter(Boolean).join(' · ') || 'Type and country not on record'}{' · '}{ticketRange(x.ticket_min_usd, x.ticket_max_usd) || 'ticket not on record'}</span>
+                  <span className="sim-why">{wordsForCodes(x.why_similar)}</span>
                   {runIds.has(x.record_id) && <Badge tone="info" size="sm">In your matches</Badge>}
                 </Link>
               </li>

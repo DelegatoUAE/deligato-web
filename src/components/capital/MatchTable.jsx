@@ -2,9 +2,9 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { FitMark, Icon } from '../../design/ui';
 import MatchScore from './MatchScore';
-import { FIT_DIMENSIONS, fitProvenance, investorHref, bucketHeadline, ticketRange, confidenceLevel } from '../../lib/capital';
+import { FIT_DIMENSIONS, fitProvenance, investorHref, bucketHeadline, ticketRange, confidenceLevel, timingOf } from '../../lib/capital';
 import { sortMatches, COMPARE_MAX } from '../../lib/matchview';
-import { fmtDate } from '../../lib/format';
+import { countryName } from '../../lib/format';
 
 const SPOKEN = { yes: 'fits', partial: 'partly fits', no: 'does not fit', unknown: 'not on record' };
 const norm = (s) => (['yes', 'partial', 'no', 'unknown'].includes(s) ? s : 'unknown');
@@ -61,7 +61,7 @@ export default function MatchTable({ rows, runId, selected = [], onToggle }) {
             <th scope="col">Evidence tier</th>
             {FIT_DIMENSIONS.map((d) => <SortHeader key={d.key} k={d.key} label={d.label} sort={sort} onSort={onSort} />)}
             <SortHeader k="ticket_size" label="Ticket size" sort={sort} onSort={onSort} align="right" />
-            <SortHeader k="deadline" label="Deadline" sort={sort} onSort={onSort} />
+            <SortHeader k="deadline" label="Timing" sort={sort} onSort={onSort} />
           </tr>
         </thead>
         <tbody>
@@ -77,7 +77,7 @@ export default function MatchTable({ rows, runId, selected = [], onToggle }) {
                 </td>
                 <td className="mt-name">
                   <Link to={investorHref(r.record_id, runId)} className="ui-cell-main">{r.name}</Link>
-                  <div className="ui-cell-sub">{[r.type, [r.city, r.country].filter(Boolean).join(', ')].filter(Boolean).join(' · ') || 'Type and location not on record'}</div>
+                  <div className="ui-cell-sub">{[r.type, [r.city, countryName(r.country)].filter(Boolean).join(', ')].filter(Boolean).join(' · ') || 'Type and location not on record'}</div>
                 </td>
                 <td className="is-num"><MatchScore score={r.match_score} confidence={r.data_confidence} size="sm" /></td>
                 <td><span className={`mt-conf mt-conf-${conf}`}>{CONF[conf]}</span></td>
@@ -85,7 +85,7 @@ export default function MatchTable({ rows, runId, selected = [], onToggle }) {
                 {FIT_DIMENSIONS.map((d) => <FitCell key={d.key} r={r} dim={d.key} label={d.label} />)}
                 <td className="is-num mt-nowrap">{(r.ticket_min_usd ?? r.ticket_max_usd) != null ? ticketRange(r.ticket_min_usd, r.ticket_max_usd) : <span className="ui-faint">Not on record</span>}</td>
                 <td className="mt-nowrap">
-                  {r.deadline ? fmtDate(r.deadline) : r.application_open === true ? <span className="mt-open"><Icon name="dot" />Open now</span> : <span className="ui-faint">None on record</span>}
+                  {(() => { const t = timingOf(r); return !t ? <span className="ui-faint">None on record</span> : t.kind === 'open' ? <span className="mt-open"><Icon name="dot" />Open now</span> : t.text; })()}
                 </td>
               </tr>
             );

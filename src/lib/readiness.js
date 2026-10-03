@@ -40,3 +40,23 @@ export function readinessGapFactors(r) {
   return (r?.factors || []).filter((f) => !['debt', 'debt_type'].includes(f.key)
     && (['missing', 'unknown'].includes(f.status) || (f.max ? Number(f.points) / Number(f.max) < 0.6 : false)));
 }
+
+/**
+ * I-01/I-06: "Your gaps" in the readiness method's own order (improvements[],
+ * by rank; never re-ranked here). Home's count and "Biggest" read this list,
+ * so they always equal the Readiness page.
+ */
+export function readinessGaps(r) {
+  return (r?.improvements || []).filter((i) => !['debt_type'].includes(i.factor)).slice().sort((a, b) => (a.rank ?? 99) - (b.rank ?? 99));
+}
+
+// I-06: plain factor names. The method's labels carry its internals
+// ("Raise vs cost (Q2 ÷ Q3)"); founders see what the factor means.
+const PLAIN_FACTOR = { raise_vs_cost: 'Raise vs yearly cost', dilution: 'Raise vs valuation (dilution)' };
+export function factorName(f) {
+  if (!f) return '';
+  if (PLAIN_FACTOR[f.key || f.factor]) return PLAIN_FACTOR[f.key || f.factor];
+  return String(f.label || f.key || f.factor || '').replace(/\s*\((?:Q\d+[^)]*)\)/g, '').trim();
+}
+/** A factor the questionnaire never asked: "Not asked yet", never "unknown". */
+export const notAsked = (f) => f && (f.status === 'unknown' || f.status === 'missing');

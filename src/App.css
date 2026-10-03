@@ -664,3 +664,29 @@
 .dash-skel { display: grid; gap: var(--s-3); }
 .dash-skel-tiles { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: var(--s-4); margin: var(--s-5) 0 var(--s-3); }
 @media (max-width: 900px) { .dash-skel-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.msummary { margin: var(--s-3) 0 0; padding: var(--s-3) var(--s-4); background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); font-size: var(--text-sm); }
+.msummary p { margin: 0; }
+.msummary-toggle { all: unset; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; color: var(--text-link); font-weight: var(--fw-medium); }
+.msummary-toggle svg { width: 14px; height: 14px; transition: transform var(--t-fast) var(--ease); }
+.msummary-toggle[aria-expanded='true'] svg { transform: rotate(180deg); }
+.msummary-toggle:focus-visible { box-shadow: var(--ring); border-radius: var(--r-xs); }
+#mstats { margin-top: var(--s-3); }
+.tier-order { margin: 0 0 var(--s-1); font-size: var(--text-sm); color: var(--text-soft); }
+@media (max-width: 767px) { .matches .ui-page-header-actions .ui-btn { height: 34px; } }
+.mtool-right { display: flex; align-items: center; gap: var(--s-2); }
+.mfilter-btn { display: none; align-items: center; gap: 6px; height: 36px; padding: 0 var(--s-3); border-radius: var(--r-md); border: 1px solid var(--border-strong); background: var(--surface); color: var(--text); font-size: var(--text-sm); font-weight: var(--fw-medium); }
+.mfilter-btn svg { width: 15px; height: 15px; }
+.mfilter-btn.is-on, .mfilter-btn.has-active { border-color: var(--navy); color: var(--navy); }
+.mfilter-btn:focus-visible { outline: none; box-shadow: var(--ring); }
+@media (max-width: 767px) {
+  .mfilter-btn { display: inline-flex; }
+  .mfilters:not(.is-open) { display: none; }
+  .mtoolbar { margin-top: var(--s-3); }
+  .mchips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin: 0 calc(-1 * var(--gutter)); padding: 2px var(--gutter); width: calc(100% + 2 * var(--gutter)); }
+  .mchip { flex: none; }
+  .matches .bucket-summary { display: none; }
+  .matches .tier .ui-muted { font-size: var(--text-xs); margin: 2px 0 var(--s-2); }
+  .matches .tier-empty { font-size: var(--text-sm); margin: var(--s-1) 0 var(--s-3); }
+  .matches .ui-page-header { margin-bottom: 0; }
+}
+.assess-prefill { display: flex; align-items: center; gap: var(--s-2); margin: 0 0 var(--s-2); font-size: var(--text-sm); color: var(--text-soft); }

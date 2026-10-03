@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Alert, Badge, Button, Card, EmptyState, PageHeader, Skeleton } from '../design/ui';
+import { Alert, Button, Card, EmptyState, PageHeader, Skeleton } from '../design/ui';
 import SubNav from '../components/SubNav';
 import ExpertBridgeLink from '../components/ExpertBridgeLink';
 import { useCompany } from '../components/company-context';
 import { ReadinessSnapshot, FactorBars } from '../components/capital/Readiness';
 import { LoadError } from '../components/capital/bits';
-import { readinessSource } from '../lib/readiness';
+import { readinessSource, readinessGaps, factorName, notAsked } from '../lib/readiness';
 import { fmtDate } from '../lib/format';
 
 const WHO = { founder: 'you', expert: 'an expert', conncct_service: 'a readiness partner' };
@@ -18,7 +18,7 @@ export default function ReadinessPage() {
   const r = readiness?.readiness;
   const src = readinessSource(readiness);
   const bridge = r && src.key === 'conncct';
-  const gaps = (r?.improvements || []).filter((i) => !['debt', 'debt_type'].includes(i.factor)).slice().sort((a, b) => (a.rank ?? 99) - (b.rank ?? 99));
+  const gaps = readinessGaps(r);
   const shownGaps = showAll ? gaps : gaps.slice(0, 3);
   const dilution = (r?.blockers || []).find((b) => b.code === 'dilution_over_100');
 
@@ -26,7 +26,6 @@ export default function ReadinessPage() {
     <>
       <SubNav section="capital" />
       <PageHeader title="Capital readiness" subtitle={company.name}
-        meta={r && <Badge tone="outline" title={src.key === 'embedded' ? 'Scored here with the Conncct 14-question readiness method.' : 'Imported from your readiness partner, scored with the Conncct method.'}>{src.label}</Badge>}
         actions={bridge
           ? null
           : r ? <Button as={Link} to="/capital/readiness/assess" variant="secondary" size="sm">{r.provisional ? 'Finish the questions' : 'Update my answers'}</Button> : null} />
@@ -39,13 +38,13 @@ export default function ReadinessPage() {
     return (
       <div>{head}
         <EmptyState icon="gauge" title={`How ready is ${company.name} to raise?`}
-          body="Answer 14 short questions about your runway, raise, revenue and team. It takes about 5 minutes. You'll get a Capital Readiness Score (Conncct method) and the three gaps worth closing first."
+          body="Answer a short set of questions about your runway, raise, revenue and team. It takes about 5 minutes. You'll get a Capital Readiness Score (Conncct method) and the three gaps worth closing first."
           action={(
             <div className="ui-stack ui-stack-sm" style={{ justifyItems: 'center' }}>
               <Button as={Link} to="/capital/readiness/assess" variant="accent">Get your score</Button>
             </div>
           )} />
-        <p className="ui-faint" style={{ textAlign: 'center' }}>Your readiness score doesn't change your matches. It tells you how investors are likely to read your company.</p>
+        <p className="ui-faint" style={{ textAlign: 'center' }}>Investors read this before they read your deck. It also decides which help we suggest.</p>
       </div>
     );
   }
@@ -67,8 +66,8 @@ export default function ReadinessPage() {
               return (
                 <li key={`${g.factor}-${i}`} className="gap">
                   <div className="gap-head">
-                    <strong>{f?.label || g.label || g.factor}</strong>
-                    {f && <span className="gap-pts">{f.status === 'unknown' ? (r.provisional ? 'Not answered yet' : 'unknown') : `${f.points} of ${f.max}`}</span>}
+                    <strong>{factorName(f || g)}</strong>
+                    {f && <span className="gap-pts">{notAsked(f) ? (src.key === 'embedded' ? <Link to="/capital/readiness/assess">Not asked yet: answer it</Link> : 'Not asked yet') : `${f.points} of ${f.max}`}</span>}
                   </div>
                   <p>Suggested: “{g.action}”</p>
                   <p className="ui-muted">{g.impact_points ? `Could add up to ${g.impact_points} points` : ''}{g.who ? `${g.impact_points ? ' · ' : ''}Who: ${WHO[g.who] || g.who}` : ''}</p>
@@ -86,7 +85,7 @@ export default function ReadinessPage() {
           <p className="ui-muted ready-history">History: {readiness.history.slice().reverse().map((h) => `${fmtDate(h.computed_at)} ${h.score}`).join(' · ')}</p>
         )}
       </Card>
-      <p className="ui-faint">Your readiness score doesn't change your matches. It tells you how investors are likely to read your company.</p>
+      <p className="ui-faint">Investors read this before they read your deck. It also decides which help we suggest.</p>
     </div>
   );
 }

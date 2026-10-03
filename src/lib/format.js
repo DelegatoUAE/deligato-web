@@ -91,3 +91,41 @@ export const POSITIONING = 'Understand your business. Become capital ready. Find
 // D28 (stealth): server provenance text may still say "Conncct Verified";
 // the founder UI shows "Research Verified". Applied wherever a server label is shown.
 export const stealthLabel = (s) => (typeof s === 'string' ? s.replace(/Conncct Verified/g, 'Research Verified').replace(/Conncct research/g, 'our research team') : s);
+
+// ---- I-10: codes to words -------------------------------------------
+const REGION_WORDS = {
+  GLOBAL: 'Global', MENA: 'MENA', GCC: 'GCC', NORTH_AMERICA: 'North America', LATAM: 'Latin America', LATIN_AMERICA: 'Latin America',
+  EUROPE: 'Europe', EU: 'EU', UK: 'United Kingdom', SSA: 'Sub-Saharan Africa', AFRICA: 'Africa', ASIA: 'Asia', APAC: 'Asia-Pacific',
+  SEA: 'Southeast Asia', SOUTH_ASIA: 'South Asia', CEE: 'Central and Eastern Europe', MEA: 'Middle East and Africa', EMEA: 'EMEA',
+  NORDICS: 'Nordics', DACH: 'DACH', OCEANIA: 'Oceania', LEVANT: 'Levant', NORTH_AFRICA: 'North Africa', MIDDLE_EAST: 'Middle East',
+};
+let regionNames = null;
+try { regionNames = new Intl.DisplayNames(['en'], { type: 'region' }); } catch { regionNames = null; }
+
+/** "AE" → "United Arab Emirates"; region codes → words; anything else as sent. */
+export function countryName(code) {
+  if (!code) return null;
+  const c = String(code).trim();
+  const up = c.toUpperCase();
+  if (REGION_WORDS[up]) return REGION_WORDS[up];
+  if (/^[A-Z]{2}$/.test(up)) {
+    try { const n = regionNames?.of(up); if (n && n !== up) return n; } catch { /* fall through */ }
+  }
+  return c;
+}
+
+const joinWords = (xs) => (xs.length <= 1 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`);
+
+/**
+ * Server sentences sometimes carry mandate enums ("a GLOBAL/MENA/NORTH_AMERICA
+ * mandate", "both cover GLOBAL/NORTH_AMERICA"). Show them as words. Only
+ * all-caps region tokens are touched; nothing else in the sentence changes.
+ */
+export function wordsForCodes(text) {
+  if (typeof text !== 'string') return text;
+  return text.replace(/\b[A-Z][A-Z_]{1,}(?:\/[A-Z][A-Z_]{1,})+\b|\b[A-Z]+_[A-Z_]+\b/g, (m) => {
+    const parts = m.split('/');
+    if (!parts.every((p) => REGION_WORDS[p] || /^[A-Z]{2}$/.test(p))) return m;
+    return joinWords(parts.map((p) => countryName(p)));
+  });
+}

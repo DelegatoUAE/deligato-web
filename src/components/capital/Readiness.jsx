@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { ScoreRing, Badge } from '../../design/ui';
 import { fmtDate, daysSince } from '../../lib/format';
-import { bandOf, provisionalText, bandLabel, readinessSource } from '../../lib/readiness';
+import { bandOf, provisionalText, bandLabel, readinessSource, readinessGaps, factorName, notAsked } from '../../lib/readiness';
 import { Badge as SrcBadge } from '../../design/ui';
 
 export function BandChip({ readiness }) {
@@ -15,10 +15,11 @@ export function BandChip({ readiness }) {
   );
 }
 
-function factorLabel(r, key) {
-  if (!key) return null;
-  if (typeof key === 'object') return key.label || key.key || null;
-  return r?.factors?.find((f) => f.key === key)?.label || key;
+/** I-01: "Biggest gap" is the first of "Your gaps" (the method's improvements[] order). */
+function firstGapLabel(r) {
+  const g = readinessGaps(r)[0];
+  if (!g) return null;
+  return factorName(r?.factors?.find((f) => f.key === g.factor) || g);
 }
 
 /** Score exactly as sent on the Company page; integer elsewhere (ia.md §7.4). */
@@ -37,7 +38,7 @@ export function ReadinessSnapshot({ readiness, variant = 'compact', conncctHref,
   const { name, tone, description } = bandOf(r);
   const prov = provisionalText(r);
   const stale = daysSince(r?.computed_at) > 90;
-  const gap = factorLabel(r, r?.insight?.biggest_gap);
+  const gap = firstGapLabel(r);
   const exact = variant === 'full';
   const value = displayScore(r?.score, exact);
 
@@ -45,10 +46,10 @@ export function ReadinessSnapshot({ readiness, variant = 'compact', conncctHref,
     <div className={`rsnap rsnap-${variant}`}>
       <div className="rsnap-dial">
         <ScoreRing variant="readiness" value={value === null ? null : Math.round(value)} band={prov ? undefined : name} bandTone={tone} label="Readiness" size={variant === 'full' ? 'md' : 'sm'} />
-        {exact && value !== null && <div className="rsnap-exact">{src.key === 'embedded' ? 'Score' : 'Imported score'}: <strong>{value}</strong></div>}
+        {exact && value !== null && value !== Math.round(value) && <div className="rsnap-exact">Exact score: <strong>{value}</strong></div>}
       </div>
       <div className="rsnap-body">
-        <div className="rsnap-chips"><BandChip readiness={r} /><SrcBadge tone="outline" size="sm">{src.label}</SrcBadge></div>
+        <div className="rsnap-chips">{(variant !== 'full' || prov) && <BandChip readiness={r} />}<SrcBadge tone="outline" size="sm">{src.label}</SrcBadge></div>
         {variant === 'full' && description && !prov && <p className="rsnap-desc">{description}</p>}
         {prov && <p className="rsnap-desc">Your readiness isn't final yet. Some questions are still unanswered.</p>}
         {gap && variant !== 'full' && <p className="rsnap-gap">Biggest gap: <strong>{gap}</strong></p>}
@@ -74,7 +75,7 @@ const STATUS_WORD = { met: 'met', partial: 'partial', missing: 'missing', unknow
 export function FactorBars({ readiness }) {
   const factors = readiness?.factors || [];
   if (!factors.length) return <p className="ui-muted">This score arrived without a factor breakdown.</p>;
-  const gapKey = typeof readiness?.insight?.biggest_gap === 'object' ? readiness.insight.biggest_gap?.key : readiness?.insight?.biggest_gap;
+  const gapKey = readinessGaps(readiness)[0]?.factor;
   return (
     <ul className="factors">
       {factors.map((f) => {
@@ -82,10 +83,10 @@ export function FactorBars({ readiness }) {
         const pctv = f.max ? Math.max(0, Math.min(100, (Number(f.points) / Number(f.max)) * 100)) : 0;
         return (
           <li key={f.key} className={`factor factor-${st}`}>
-            <span className="factor-label">{f.label || f.key}{gapKey === f.key && <Badge tone="warn" size="sm">Biggest gap</Badge>}</span>
+            <span className="factor-label">{factorName(f)}{gapKey === f.key && <Badge tone="warn" size="sm">First gap</Badge>}</span>
             <span className="factor-bar" aria-hidden="true"><i style={{ width: st === 'unknown' ? '0%' : `${pctv}%` }} /></span>
             <span className="factor-val">
-              {st === 'unknown' ? 'unknown' : `${f.points} / ${f.max}`}
+              {notAsked(f) ? 'Not asked yet' : `${f.points} / ${f.max}`}
               <span className="ui-sr">, {STATUS_WORD[st]}</span>
             </span>
           </li>

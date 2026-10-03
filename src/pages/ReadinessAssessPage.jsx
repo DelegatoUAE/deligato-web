@@ -1,11 +1,12 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
-import { Alert, Button, EmptyState, ProgressBar, Skeleton, useToast } from '../design/ui';
+import { Alert, Badge, Button, EmptyState, ProgressBar, Skeleton, useToast } from '../design/ui';
 import { useCompany } from '../components/company-context';
 import useApi from '../lib/useApi';
 import { getReadinessQuestions, assessReadiness } from '../lib/companies';
 import { readinessSource } from '../lib/readiness';
 import { isMissingEndpoint } from '../lib/auth';
+import { prefillAnswers, sentenceCase, PLAIN_HINTS, internalHint, loadDraft, saveDraft, clearDraft } from '../lib/readinessForm';
 
 // 15 §7: this spec owns the "why we ask" lines; the questions come from the provider.
 const WHY = {
@@ -33,19 +34,14 @@ function visible(q, answers) {
   if (s.notEquals !== undefined) return a !== undefined && a !== s.notEquals;
   return true;
 }
-const optsOf = (q) => (q.opts || q.options || []).map((o) => (typeof o === 'string' ? { value: o, label: o } : { value: o.value, label: o.label || o.value }));
+// Display only: the value sent to the method is unchanged.
+const optsOf = (q) => (q.opts || q.options || []).map((o) => (typeof o === 'string' ? { value: o, label: sentenceCase(o) } : { value: o.value, label: sentenceCase(o.label || o.value) }));
+const hintOf = (q) => PLAIN_HINTS[q.key] || (internalHint(q.hint) ? null : q.hint);
 
 /** 15 §4 · the questionnaire, one question per step. Scored only by the provider. */
 export default function ReadinessAssessPage() {
-  const { company, companyId, readiness, reloadCompanies, reloadReadiness } = useCompany();
-  const navigate = useNavigate();
-  const toast = useToast();
+  const { companyId, readiness } = useCompany();
   const qQ = useApi(() => getReadinessQuestions(), []);
-  const [answers, setAnswers] = useState({});
-  const [i, setI] = useState(0);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState(null);
-
   if (readiness?.readiness && readinessSource(readiness).key === 'conncct') return <Navigate to="/capital/readiness" replace />;
   if (qQ.error) {
     return isMissingEndpoint(qQ.error)
@@ -53,8 +49,45 @@ export default function ReadinessAssessPage() {
       : <Alert tone="bad">Couldn't load the questions. {qQ.error.message}</Alert>;
   }
   if (!qQ.data) return <Skeleton h="320px" />;
+  return <Questionnaire key={companyId} questionsData={qQ.data} />;
+}
 
-  const qs = (qQ.data.questions || []).filter((q) => visible(q, answers));
+function Questionnaire({ questionsData }) {
+  const { company, companyId, reloadCompanies, reloadReadiness } = useCompany();
+  const navigate = useNavigate();
+  const toast = useToast();
+  // I-09: start from a saved draft, else from what the profile already says.
+  const [init] = useState(() => {
+    const draft = loadDraft(companyId);
+    const pre = prefillAnswers(company, questionsData.questions || []);
+    if (!draft) return { answers: pre.answers, i: 0, fromProfile: pre.fromProfile, restored: false };
+    return {
+      answers: { ...pre.answers, ...draft.answers },
+      i: Number(draft.i) || 0,
+      fromProfile: pre.fromProfile.filter((k) => !(k in draft.answers) || draft.answers[k] === pre.answers[k]),
+      restored: Object.keys(draft.answers).length > 0,
+    };
+  });
+  const [answers, setAnswers] = useState(init.answers);
+  const [i, setI] = useState(init.i);
+  const [fromProfile, setFromProfile] = useState(init.fromProfile);
+  const restored = init.restored;
+  const started = useRef(false);
+  const cardRef = useRef(null);
+
+  // Autosave every change, per company.
+  useEffect(() => {
+    if (companyId) saveDraft(companyId, { answers, i });
+  }, [answers, i, companyId]);
+  // Each step starts at the top of the question.
+  useEffect(() => {
+    if (started.current) cardRef.current?.scrollIntoView?.({ block: 'nearest' });
+    started.current = true;
+  }, [i]);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
+
+  const qs = (questionsData.questions || []).filter((q) => visible(q, answers));
   const required = qs.filter((q) => !q.optional);
   const answered = required.filter((q) => answers[q.key] !== undefined && !(Array.isArray(answers[q.key]) && !answers[q.key].length)).length;
   const idx = Math.min(i, qs.length - 1);
@@ -65,6 +98,7 @@ export default function ReadinessAssessPage() {
   const canNext = q.optional || (multi ? (val || []).length > 0 : val !== undefined);
 
   function choose(v) {
+    setFromProfile((f) => f.filter((k) => k !== q.key));
     setAnswers((a) => {
       if (!multi) return { ...a, [q.key]: v };
       const cur = a[q.key] || [];
@@ -75,6 +109,7 @@ export default function ReadinessAssessPage() {
     setBusy(true); setError(null);
     try {
       await assessReadiness(companyId, answers);
+      clearDraft(companyId);
       reloadCompanies();
       reloadReadiness();
       toast.success('Your readiness score is ready.');
@@ -91,10 +126,12 @@ export default function ReadinessAssessPage() {
         <Button variant="ghost" size="sm" onClick={() => navigate('/capital/readiness')}>Save and exit</Button>
       </div>
       <ProgressBar value={answered} max={required.length || 1} showValue={false} label={`${answered} of ${required.length} answered`} tone="gold" />
-      <section className="assess-card" aria-labelledby="aq">
+      {restored && <Alert tone="brand">We kept your answers from last time. Pick up where you left off.</Alert>}
+      <section className="assess-card" aria-labelledby="aq" ref={cardRef}>
         <p className="assess-n">Question {idx + 1} of {qs.length}{q.optional ? ' · optional' : ''}</p>
         <h2 id="aq">{q.q || q.text}</h2>
-        {q.hint && <p className="ui-muted">{q.hint}</p>}
+        {hintOf(q) && <p className="ui-muted">{hintOf(q)}</p>}
+        {fromProfile.includes(q.key) && <p className="assess-prefill"><Badge tone="info" size="sm">From your profile</Badge> Change it if it's out of date.</p>}
         <div className="assess-opts" role={multi ? 'group' : 'radiogroup'} aria-labelledby="aq">
           {optsOf(q).map((o) => {
             const on = multi ? (val || []).includes(o.value) : val === o.value;

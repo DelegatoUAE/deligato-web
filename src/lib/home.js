@@ -9,6 +9,8 @@ const DAY = 86400000;
 
 const daysBetween = (a, b) => Math.floor((b - new Date(a).getTime()) / DAY);
 const fmtN = (n) => Number(n).toLocaleString('en-US');
+const PLAIN = { raise_vs_cost: 'Raise vs yearly cost', dilution: 'Raise vs valuation (dilution)' };
+const plainLabel = (f) => PLAIN[f.key] || String(f.label || f.key).replace(/\s*\((?:Q\d+[^)]*)\)/g, '').trim();
 
 /**
  * inputs: {
@@ -29,7 +31,7 @@ export function rankActions(inputs = {}) {
 
   // 1. setup (never dismissible), at most 2; S2+S3 together only without S1
   const setup = [];
-  if (!r) setup.push({ pool: 'S', key: 'S1', title: 'Get your Capital Readiness Score', why: '14 short questions. It shows how investors are likely to read your company.', cta: 'Get your score', to: '/capital/readiness/assess' });
+  if (!r) setup.push({ pool: 'S', key: 'S1', title: 'Get your Capital Readiness Score', why: `${inputs.questionCount ? `${inputs.questionCount} short questions` : 'A short questionnaire'}. It shows how investors are likely to read your company.`, cta: 'Get your score', to: '/capital/readiness/assess' });
   else if (r.provisional && inputs.readinessSource === 'conncct') setup.push({ pool: 'S', key: 'S1', title: 'Finish your readiness questions', why: 'Your score is provisional until every question is answered.', cta: 'See readiness', to: '/capital/readiness' });
   if (!inputs.capitalNeedConfirmed) setup.push({ pool: 'S', key: 'S2', title: "Confirm what you're raising", why: 'Amount, instrument and timing drive every route and match.', cta: 'Confirm your raise', to: '/capital/need' });
   if (!inputs.hasRun && (inputs.capitalNeedConfirmed || !setup.some((s) => s.key === 'S1'))) {
@@ -58,7 +60,8 @@ export function rankActions(inputs = {}) {
   if (u) {
     const dom = u.blockers?.dominant_blocker;
     if (dom) {
-      const relax = (u.unlocks || []).find((x) => x.kind === dom.dimension || x.field === dom.dimension);
+      // D29: stage re-labelling advice lives on Improve only, never on Home.
+      const relax = dom.dimension === 'stage' ? null : (u.unlocks || []).find((x) => x.kind === dom.dimension || x.field === dom.dimension);
       cands.push({
         pool: 'U', key: `dominant:${dom.dimension}`, raw: dom.also_involved, score: 78 + (close ? 5 : 0),
         title: `${dom.label || dom.dimension} is behind ${dom.share_of_excluded}% of your exclusions`,
@@ -68,6 +71,7 @@ export function rankActions(inputs = {}) {
     }
     for (const x of u.unlocks || []) {
       if (!(x.net > 0)) continue;
+      if (x.kind === 'stage') continue; // D29
       if (dom && (x.kind === dom.dimension || x.field === dom.dimension)) continue;
       cands.push({
         pool: 'U', key: `unlock:${x.kind}:${String(x.to)}`, raw: x.net, score: 50 + Math.min(25, Math.round(10 * Math.log10(1 + x.net))) + (close ? 5 : 0),
@@ -89,7 +93,7 @@ export function rankActions(inputs = {}) {
     const gap = 1 - ratio;
     cands.push({
       pool: 'R', key: f.key, raw: gap, score: 45 + Math.round(30 * gap) + (far ? 10 : 0),
-      title: unknown ? `${f.label} isn't answered yet` : `${f.label} is a readiness gap (${f.points} of ${f.max})`,
+      title: unknown ? `${plainLabel(f)} isn't asked yet` : `${plainLabel(f)} is a readiness gap (${f.points} of ${f.max})`,
       why: imp ? `Suggested: "${imp.action}"` : 'Investors read this factor closely.',
       cta: 'See readiness', to: '/capital/readiness#gaps', bridge: { kind: 'readiness_factor', key: f.key },
     });
@@ -97,7 +101,7 @@ export function rankActions(inputs = {}) {
 
   if (inputs.newStrong && inputs.newStrong.n > 0) {
     const n = inputs.newStrong.n;
-    cands.push({ pool: 'M', key: 'new-strong', raw: n, score: 55 + Math.min(20, 5 * n), title: `${n} new strong ${n === 1 ? 'match' : 'matches'}${inputs.newStrong.since ? ` since ${inputs.newStrong.since}` : ''}`, why: 'Strong fits from your latest run that you haven\'t opened yet.', cta: 'See matches', to: '/capital/matches?tier=strong' });
+    cands.push({ pool: 'M', key: 'new-strong', raw: n, score: 55 + Math.min(20, 5 * n), title: `${n} new verified ${n === 1 ? 'fit' : 'fits'}${inputs.newStrong.since ? ` since ${inputs.newStrong.since}` : ''}`, why: 'Verified eligible providers from your latest run that weren\'t in the one before.', cta: 'See matches', to: '/capital/matches?evidence=eligible' });
   }
 
   const live = cands.filter((c) => !dismissed.has(`${c.pool}:${c.key}`));
@@ -124,4 +128,18 @@ export function countGaps(r) {
 export function partOfDay(date = new Date()) {
   const h = date.getHours();
   return h >= 5 && h < 12 ? 'morning' : h >= 12 && h < 18 ? 'afternoon' : 'evening';
+}
+
+/**
+ * I-01: one set of pipeline numbers everywhere. "Saved" is the shortlist;
+ * "in pipeline" is every tracked provider past the shortlist (closed included,
+ * as the Pipeline page counts them); "active" excludes closed stages.
+ */
+export function pipelineCounts(items) {
+  const list = items || [];
+  return {
+    saved: list.filter((p) => p.stage === 'shortlisted').length,
+    inPipeline: list.filter((p) => p.stage !== 'shortlisted').length,
+    active: list.filter((p) => ACTIVE.includes(p.stage)).length,
+  };
 }
