@@ -27,3 +27,9 @@ test('market input accepts names, codes and regions, and refuses anything else',
   assert.ok(COUNTRY_CODES.length > 100);
   assert.equal(countryOptions().length, COUNTRY_CODES.length);
 });
+
+test('AI text loses echoed evidence ids and shouts', async () => {
+  const { stripEvidenceIds } = await import('./format.js');
+  assert.equal(stripEvidenceIds('Stage fits (evidence_id: ev_stage).'), 'Stage fits.');
+  assert.equal(wordsForCodes('they list GLOBAL, MENA, North America'), 'they list Global, MENA, North America');
+});

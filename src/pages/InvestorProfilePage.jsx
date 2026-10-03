@@ -6,6 +6,8 @@ import {
 import { useCompany } from '../components/company-context';
 import MatchScore from '../components/capital/MatchScore';
 import AiOutput from '../components/AiOutput';
+import WhyThisFits from '../components/capital/WhyThisFits';
+import useAiConsent from '../lib/useAiConsent';
 import { FundraisingNotice, LoadError } from '../components/capital/bits';
 import useApi from '../lib/useApi';
 import {
@@ -142,6 +144,7 @@ export default function InvestorProfilePage() {
   const [corr, setCorr] = useState({ field: 'stages', proposed_value: '', evidence_url: '', note: '' });
   const [dismissReason, setDismissReason] = useState('wrong_geography');
   const [brief, setBrief] = useState({ loading: false, result: null, error: null });
+  const consent = useAiConsent(companyId);
   const [activeSection, pickSection] = useActiveSection(SECTION_IDS, Boolean(srcQ.data?.profile));
 
   if (srcQ.error) {
@@ -302,6 +305,7 @@ export default function InvestorProfilePage() {
                     : <Link to="/company/business">Edit company details</Link>}
                 </p>
               )}
+              <WhyThisFits companyId={companyId} runId={runQ.data?.run_id} match={result} consent={consent} />
               {result.why_matched && <div className="mcard-why"><span className="mcard-why-label">Why you match</span><p>{wordsForCodes(result.why_matched)}</p></div>}
               {result.ai_reasoning && <p className="mcard-ai"><Badge tone="gold" size="sm">AI-refined</Badge> {result.ai_reasoning}</p>}
               <details className="explainer"><summary>How the Match score works</summary><p>Fit counts for most of the score. How much we know about the investor pulls it toward the middle. Unknown details never add points. This score is about fit, not your chance of raising.</p></details>

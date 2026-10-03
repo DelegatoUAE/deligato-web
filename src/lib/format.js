@@ -123,9 +123,12 @@ const joinWords = (xs) => (xs.length <= 1 ? xs.join('') : `${xs.slice(0, -1).joi
  */
 export function wordsForCodes(text) {
   if (typeof text !== 'string') return text;
-  return text.replace(/\b[A-Z][A-Z_]{1,}(?:\/[A-Z][A-Z_]{1,})+\b|\b[A-Z]+_[A-Z_]+\b/g, (m) => {
+  return text.replace(/\b[A-Z][A-Z_]{1,}(?:\/[A-Z][A-Z_]{1,})+\b|\b[A-Z]+_[A-Z_]+\b|\b(?:GLOBAL|EUROPE|AFRICA|ASIA|LATAM|OCEANIA|NORDICS)\b/g, (m) => {
     const parts = m.split('/');
     if (!parts.every((p) => REGION_WORDS[p] || /^[A-Z]{2}$/.test(p))) return m;
     return joinWords(parts.map((p) => countryName(p)));
   });
 }
+
+/** AI sentences sometimes echo their citation ids ("(evidence_id: ev_stage)"); the chips carry them instead. */
+export const stripEvidenceIds = (t) => (typeof t === 'string' ? t.replace(/\s*\((?:evidence[_ ]ids?|ids?)\s*:[^)]*\)/gi, '').replace(/\s+([.,;])/g, '$1') : t);

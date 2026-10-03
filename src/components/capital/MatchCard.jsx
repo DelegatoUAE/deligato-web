@@ -12,7 +12,7 @@ import { wordsForCodes, countryName } from '../../lib/format';
  * score tile · name · fit chips · why we matched you · caveats · actions.
  * pipelineItem: the existing pipeline row (if any). canTrack: plan includes pipeline.
  */
-export default function MatchCard({ r, runId, pipelineItem, canTrack, canDraft, onSave, onTrack, feedback, onFeedback, busy, instrumentUnknown = false }) {
+export default function MatchCard({ r, runId, pipelineItem, canTrack, canDraft, onSave, onTrack, feedback, onFeedback, busy, instrumentUnknown = false, why = null }) {
   const [askWhy, setAskWhy] = useState(false);
   const [reason, setReason] = useState('wrong_geography');
   const href = investorHref(r.record_id, runId);
@@ -35,6 +35,7 @@ export default function MatchCard({ r, runId, pipelineItem, canTrack, canDraft, 
             <p>{wordsForCodes(r.why_matched)}</p>
           </div>
         )}
+        {why}
         {r.ai_reasoning && (
           <p className="mcard-ai"><Badge tone="gold" size="sm">AI-refined</Badge> {r.ai_reasoning}</p>
         )}

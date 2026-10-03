@@ -6,7 +6,10 @@ import { useCompany } from '../components/company-context';
 import MatchCard from '../components/capital/MatchCard';
 import MatchTable from '../components/capital/MatchTable';
 import CompareDrawer from '../components/capital/CompareDrawer';
-import { toggleCompare, COMPARE_MAX } from '../lib/matchview';
+import WhyThisFits, { AiConsentCard } from '../components/capital/WhyThisFits';
+import useAiConsent from '../lib/useAiConsent';
+import { toggleCompare, COMPARE_MAX, sortMatches } from '../lib/matchview';
+const sortByEvidence = (rows) => sortMatches(rows, null);
 import { GateCard, ProviderBadge, LoadError } from '../components/capital/bits';
 import useApi from '../lib/useApi';
 import {
@@ -123,6 +126,8 @@ export default function MatchesPage() {
   const [compare, setCompare] = useState([]);
   const [showStats, setShowStats] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  const [aiDeclined, setAiDeclined] = useState(false);
+  const consent = useAiConsent(companyId);
   const [compareOpen, setCompareOpen] = useState(false);
   const view = params.get('view') === 'table' ? 'table' : 'cards';
   const bucketFilter = params.get('evidence') || '';
@@ -229,6 +234,8 @@ export default function MatchesPage() {
   const trial = run.results.length > 0 && run.results.every((r) => r.locked);
   const eligible = run.counts?.eligible ?? run.results.length;
   const topMissing = completeness(company).missing[0];
+  // I-03: AI explanations on the top 3 cards (D32 covers the top 5 on trial).
+  const topIds = new Set(sortByEvidence(shown).slice(0, 3).map((r) => r.record_id));
   const tableRows = shown.filter((r) => (bucketFilter ? r.bucket === bucketFilter : r.bucket !== 'likely_outside'));
   const activeFilters = [
     filters.type && { key: 'type', label: `Type: ${filters.type}`, clear: () => setFilters((f) => ({ ...f, type: '' })) },
@@ -240,7 +247,8 @@ export default function MatchesPage() {
   const card = (r) => (
     <MatchCard key={r.record_id} r={r} runId={run.run_id} pipelineItem={pipeByRecord.get(r.record_id)} canTrack={canTrack} canDraft={canDraft}
       busy={busy[r.record_id]} onSave={(x) => track(x, 'shortlisted')} onTrack={(x) => track(x, 'researching')}
-      feedback={fbByResult.get(r.match_result_id)} onFeedback={feedback} instrumentUnknown={!company.instrument} />
+      feedback={fbByResult.get(r.match_result_id)} onFeedback={feedback} instrumentUnknown={!company.instrument}
+      why={consent.granted && topIds.has(r.record_id) ? <WhyThisFits companyId={companyId} runId={run.run_id} match={r} consent={consent} compact /> : null} />
   );
 
   return (
@@ -319,6 +327,9 @@ export default function MatchesPage() {
             </div>
           )}
 
+          {view === 'cards' && !consent.loading && !consent.granted && !aiDeclined && (
+            <AiConsentCard consent={consent} compact onDecline={() => setAiDeclined(true)} />
+          )}
           <p className="tier-order">Proven fits first. Higher scores further down rest on details we can't confirm yet.</p>
           <p className="bucket-summary">
             <strong>{fmtInt(bucketCount('eligible'))} verified {bucketCount('eligible') === 1 ? 'fit' : 'fits'}</strong>

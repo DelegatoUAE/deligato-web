@@ -690,3 +690,30 @@
   .matches .ui-page-header { margin-bottom: 0; }
 }
 .assess-prefill { display: flex; align-items: center; gap: var(--s-2); margin: 0 0 var(--s-2); font-size: var(--text-sm); color: var(--text-soft); }
+
+/* ==== I-03: AI "Why this fits" ==== */
+.aiconsent { display: grid; gap: var(--s-3); padding: var(--s-4); border: 1px dashed var(--gold-300); border-radius: var(--r-lg); background: var(--gold-050); }
+.aiconsent.is-compact { padding: var(--s-3); gap: var(--s-2); }
+.aiconsent-head { display: flex; gap: var(--s-3); align-items: flex-start; }
+.aiconsent-ic { flex: none; display: grid; place-items: center; width: 30px; height: 30px; border-radius: var(--r-md); background: var(--navy); color: var(--gold); }
+.aiconsent-ic svg { width: 16px; height: 16px; }
+.aiconsent-title { margin: 0; font-weight: var(--fw-semibold); color: var(--text-strong); font-size: var(--text-md); }
+.aiconsent-sub { margin: 2px 0 0; font-size: var(--text-sm); color: var(--text-soft); }
+.aiconsent-text summary { cursor: pointer; font-size: var(--text-sm); color: var(--text-link); }
+.aiconsent-full { white-space: pre-line; font-size: var(--text-sm); color: var(--n-700); max-width: 72ch; }
+.whyfits { display: grid; gap: var(--s-2); }
+.whyfits-body { display: grid; gap: var(--s-2); padding: var(--s-3) var(--s-4); background: var(--surface-2); border: 1px solid var(--border-soft); border-radius: var(--r-md); animation: page-in var(--t-slow) var(--ease-out); }
+.whyfits-top { display: flex; gap: var(--s-2); align-items: center; flex-wrap: wrap; }
+.whyfits-h { color: var(--text-strong); font-size: var(--text-md); }
+.whyfits-notice { margin: 0; font-size: var(--text-xs); }
+.whyfits-list { margin: 0; padding: 0; list-style: none; display: grid; gap: var(--s-2); font-size: var(--text-sm); }
+.whyfits-list li { display: grid; gap: 4px; }
+.cites { display: flex; flex-wrap: wrap; gap: 4px; }
+.cite { display: inline-flex; align-items: center; gap: 6px; padding: 2px 8px; border-radius: var(--r-full); border: 1px solid var(--border-strong); background: var(--surface); font-size: var(--text-2xs); cursor: help; }
+.cite.is-verified { border-color: var(--ok-200); background: var(--ok-050); }
+.cite:focus-visible { outline: none; box-shadow: var(--ring); }
+.cite-f { font-weight: var(--fw-semibold); color: var(--text-strong); text-transform: capitalize; }
+.cite-p { color: var(--text-soft); }
+.whyfits-unknown, .whyfits-next, .whyfits-gate { margin: 0; font-size: var(--text-sm); }
+.whyfits-gate { display: inline-flex; gap: 6px; align-items: center; }
+.whyfits-gate svg { width: 14px; height: 14px; }
