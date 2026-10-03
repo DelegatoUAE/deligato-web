@@ -12,6 +12,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import CompanyProvider from './components/CompanyProvider';
 import AppLayout from './components/AppLayout';
 import FirstRunGuard from './components/FirstRunGuard';
+import { AdminArea } from './components/AdminLayout';
 import './App.css';
 
 // Signed-in screens load on demand, so the public landing and auth pages stay light.
@@ -40,6 +41,10 @@ const ExpertProjectsPage = lazy(() => import('./pages/ExpertProjectsPage'));
 const CompanyPage = lazy(() => import('./pages/CompanyPage'));
 const BusinessInfoPage = lazy(() => import('./pages/BusinessInfoPage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
+const CompanyIntelligencePage = lazy(() => import('./pages/CompanyIntelligencePage'));
+const FinancialHealthPage = lazy(() => import('./pages/FinancialHealthPage'));
+const CheckInPage = lazy(() => import('./pages/CheckInPage'));
+const CompanyRecordPage = lazy(() => import('./pages/CompanyRecordPage'));
 const AdminHomePage = lazy(() => import('./pages/admin/AdminHomePage'));
 const AdminExpertsPage = lazy(() => import('./pages/admin/AdminExpertsPage'));
 const AdminProjectsPage = lazy(() => import('./pages/admin/AdminProjectsPage'));
@@ -141,16 +146,21 @@ export default function App() {
       <Route path="/company" element={<Protected><CompanyPage /></Protected>} />
       <Route path="/company/business" element={<Protected><BusinessInfoPage /></Protected>} />
       <Route path="/company/documents" element={<Protected><DataRoomPage mode="documents" /></Protected>} />
+      <Route path="/company/intelligence" element={<Protected><CompanyIntelligencePage /></Protected>} />
+      <Route path="/company/financial-health" element={<Protected><FinancialHealthPage /></Protected>} />
+      <Route path="/company/check-in" element={<Protected><CheckInPage /></Protected>} />
+      <Route path="/company/record" element={<Protected><CompanyRecordPage /></Protected>} />
 
       <Route path="/settings" element={<Protected gate="open"><SettingsPage /></Protected>} />
+      <Route path="/settings/:tab" element={<Protected gate="open"><SettingsPage /></Protected>} />
 
-      {/* Admin (staff only; the API enforces every call) */}
-      <Route path="/admin" element={<Protected gate="open" staffOnly><AdminHomePage /></Protected>} />
-      <Route path="/admin/experts" element={<Protected gate="open" staffOnly><AdminExpertsPage /></Protected>} />
-      <Route path="/admin/projects" element={<Protected gate="open" staffOnly><AdminProjectsPage /></Protected>} />
-      <Route path="/admin/corrections" element={<Protected gate="open" staffOnly><AdminCorrectionsPage /></Protected>} />
-      <Route path="/admin/learning" element={<Protected gate="open" staffOnly><AdminLearningPage /></Protected>} />
-      <Route path="/admin/match" element={<Protected gate="open" staffOnly><AdminMatchPage /></Protected>} />
+      {/* Admin Portal (D58): own shell; founders get not-found; the API enforces every call */}
+      <Route path="/admin" element={<AdminArea><Suspense fallback={<PageSkeleton />}><AdminHomePage /></Suspense></AdminArea>} />
+      <Route path="/admin/experts" element={<AdminArea><Suspense fallback={<PageSkeleton />}><AdminExpertsPage /></Suspense></AdminArea>} />
+      <Route path="/admin/projects" element={<AdminArea><Suspense fallback={<PageSkeleton />}><AdminProjectsPage /></Suspense></AdminArea>} />
+      <Route path="/admin/corrections" element={<AdminArea><Suspense fallback={<PageSkeleton />}><AdminCorrectionsPage /></Suspense></AdminArea>} />
+      <Route path="/admin/learning" element={<AdminArea><Suspense fallback={<PageSkeleton />}><AdminLearningPage /></Suspense></AdminArea>} />
+      <Route path="/admin/match" element={<AdminArea><Suspense fallback={<PageSkeleton />}><AdminMatchPage /></Suspense></AdminArea>} />
       <Route path="/workspace" element={<Navigate to="/admin" replace />} />
       <Route path="/workspace/experts" element={<Navigate to="/admin/experts" replace />} />
       <Route path="/workspace/experts/:id" element={<Navigate to="/admin/experts" replace />} />

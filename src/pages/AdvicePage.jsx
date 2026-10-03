@@ -107,7 +107,7 @@ export default function AdvicePage() {
               })}
             </ul>
           ) : <p className="ui-muted">Nothing to change right now. No option opens meaningfully more investors.</p>}
-          {hidden > 0 && <GateCard compact title={`${hidden} more options are included from Investor-Ready.`} />}
+          {hidden > 0 && <GateCard compact title={`${hidden} more options are included in Capital Raising.`} />}
         </Card>
       )}
 
@@ -159,7 +159,7 @@ export default function AdvicePage() {
       {!uq.data?.unlocks?.length && !resolvable.length && !dom && uq.data && (
         <EmptyState icon="check" title="Nothing to change right now." body="No option opens meaningfully more investors, and your profile has no blanks." />
       )}
-      <p className="ui-muted">Not sure where to start? <Link to="/experts#assessment">Request a Capital Assessment</Link>: $99, a 40-minute advisor session, credited against any package.</p>
+      <p className="ui-muted">Not sure where to start? <Link to="/experts#assessment">Get Capital Readiness Plus</Link>: $99, your readiness report plus one 40-minute advisor session.</p>
 
       <Modal open={Boolean(preview)} onClose={() => setPreview(null)} title={preview?.label} description="What changes if you apply this to your capital need and re-run."
         footer={<><Button variant="ghost" onClick={() => setPreview(null)}>Cancel</Button><Button variant="primary" loading={applying} onClick={() => apply(preview)}>Apply to my capital need and re-run</Button></>}>

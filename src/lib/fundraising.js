@@ -11,6 +11,8 @@ export const getFundraisingMeta = () => apiFetch('/api/v1/fundraising/meta');
 export const getDataRoom = (id) => apiFetch(`${base(id)}/dataroom`);
 export const addDataRoomItem = (id, body) => apiFetch(`${base(id)}/dataroom/items`, json('POST', body));
 export const setDataRoomItemStatus = (id, key, body) => apiFetch(`${base(id)}/dataroom/items/${encodeURIComponent(key)}`, json('PATCH', body));
+/** PATCH one row by id (document_date / expires_at; null clears; verified_at is server-only). */
+export const updateDataRoomDoc = (id, docId, body) => apiFetch(`${base(id)}/dataroom/items/${docId}`, json('PATCH', body));
 export const deleteDataRoomDoc = (id, docId) => apiFetch(`${base(id)}/dataroom/items/${docId}`, { method: 'DELETE' });
 
 // ---- outreach (the system drafts; the founder sends)

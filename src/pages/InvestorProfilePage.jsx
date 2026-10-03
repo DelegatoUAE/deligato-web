@@ -174,7 +174,7 @@ export default function InvestorProfilePage() {
       reloadPipeline();
       toast.success(stage === 'shortlisted' ? `Saved ${id.name}.` : `${id.name} is in your pipeline.`);
     } catch (e) {
-      toast.error(e.upgradeRequired ? 'Pipeline tracking is included from Investor-Ready.' : `Couldn't save: ${e.message}`);
+      toast.error(e.upgradeRequired ? 'Pipeline tracking is included in Capital Raising.' : `Couldn't save: ${e.message}`);
     } finally { setBusy(null); }
   }
 
@@ -246,10 +246,10 @@ export default function InvestorProfilePage() {
                 <Button variant="primary" onClick={() => track('shortlisted')} loading={busy === 'shortlisted'}>Save</Button>
                 <Button variant="secondary" onClick={() => track('researching')} loading={busy === 'researching'}>Add to pipeline</Button>
               </>
-            ) : <Button as={Link} to="/packages?highlight=investor-ready" variant="secondary" iconLeft="lock">Save</Button>}
+            ) : <Button as={Link} to="/packages?highlight=capital-raising" variant="secondary" iconLeft="lock">Save</Button>}
             {kind === null ? null : canDraft && !locked
               ? <Button as={Link} to={`/capital/outreach?record=${encodeURIComponent(recordId)}&kind=${kind}`} variant="secondary">Prepare outreach</Button>
-              : <Button as={Link} to="/packages?highlight=investor-ready" variant="ghost" iconLeft="lock">Prepare outreach</Button>}
+              : <Button as={Link} to="/packages?highlight=capital-raising" variant="ghost" iconLeft="lock">Prepare outreach</Button>}
             <Button variant="ghost" iconLeft="spark" onClick={() => setDialog('brief')}>Prepare for the call</Button>
             <Button variant="ghost" onClick={() => setDialog('dismiss')}>Not for us</Button>
           </div>
@@ -335,8 +335,8 @@ export default function InvestorProfilePage() {
         <Card id="contact" title="Application and contact route">
           {locked ? (
             <div className="locked-route">
-              <p><Badge tone="outline">Locked</Badge> How to reach them is included from Investor-Ready.</p>
-              <Button as={Link} to="/packages?highlight=investor-ready" variant="secondary" size="sm">See packages</Button>
+              <p><Badge tone="outline">Locked</Badge> How to reach them is included in Capital Raising.</p>
+              <Button as={Link} to="/packages?highlight=capital-raising" variant="secondary" size="sm">See packages</Button>
             </div>
           ) : (
             <>
@@ -369,7 +369,7 @@ export default function InvestorProfilePage() {
         <Card id="sources" title="Sources">
           <p className="ui-muted">Each fact above carries where it comes from: Capital Provider Verified, Research Verified, Licensed Data Provider, Public Source, AI Inferred or Unknown. Inferred values are never shown as verified.</p>
           {ev.derived_note && <p className="ui-muted">{ev.derived_note}</p>}
-          {locked ? <p className="ui-faint">Source links are included from Investor-Ready.</p> : (ev.urls || []).length ? (
+          {locked ? <p className="ui-faint">Source links are included in Capital Raising.</p> : (ev.urls || []).length ? (
             <ul className="plain-list src-list">{ev.urls.map((u) => <li key={u}><a href={u} target="_blank" rel="noreferrer">{u.replace(/^https?:\/\//, '').slice(0, 70)}</a></li>)}</ul>
           ) : <p className="ui-faint">No source links on record.</p>}
         </Card>

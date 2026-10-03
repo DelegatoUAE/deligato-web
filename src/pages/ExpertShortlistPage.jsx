@@ -82,7 +82,7 @@ export default function ExpertShortlistPage() {
       {(d.results || []).length === 0 ? (
         <EmptyState icon="users" title="No expert in our network fits this brief yet."
           body={excluded[0] ? (excluded[0][0] === 'expertise_not_covered' ? 'Try a broader expertise.' : excluded[0][0] === 'above_budget' ? 'Raise or remove your budget.' : excluded[0][0] === 'booked_for_urgent_need' ? "Change 'When' to Soon." : '') : ''}
-          action={<div className="ui-row"><Button as={Link} to="/experts" variant="primary">Edit brief</Button><Button as={Link} to="/experts#assessment" variant="secondary">Request a Capital Assessment</Button></div>} />
+          action={<div className="ui-row"><Button as={Link} to="/experts" variant="primary">Edit brief</Button><Button as={Link} to="/experts#assessment" variant="secondary">Request Capital Readiness Plus</Button></div>} />
       ) : (
         <div className="xresults">
           {results.map((r) => (
@@ -90,7 +90,7 @@ export default function ExpertShortlistPage() {
           ))}
         </div>
       )}
-      <p className="ui-muted">Not quite right? <Link to="/experts">Edit brief</Link> · or <Link to="/experts#assessment">request a Capital Assessment</Link> and we'll route you.</p>
+      <p className="ui-muted">Not quite right? <Link to="/experts">Edit brief</Link> · or <Link to="/experts#assessment">ask for Capital Readiness Plus</Link> and we'll route you.</p>
     </div>
   );
 }

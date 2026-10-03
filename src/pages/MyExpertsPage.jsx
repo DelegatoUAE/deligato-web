@@ -35,7 +35,7 @@ export default function MyExpertsPage() {
   return (
     <div>
       {head}
-      {assessments.length > 0 && <p className="ui-muted">Capital Assessment requested {fmtDate(assessments[0].created_at)} · awaiting confirmation</p>}
+      {assessments.length > 0 && <p className="ui-muted">Capital Readiness Plus requested {fmtDate(assessments[0].created_at)} · awaiting confirmation</p>}
       {rows.length === 0 ? (
         <EmptyState icon="users" title="Experts you shortlist will appear here." action={<Button as={Link} to="/experts" variant="primary">Find an expert</Button>} />
       ) : (

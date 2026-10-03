@@ -163,7 +163,7 @@ export default function MatchesPage() {
       reloadPipeline();
       toast.success(stage === 'shortlisted' ? `Saved ${r.name}.` : `${r.name} is in your pipeline.`);
     } catch (e) {
-      toast.error(e.upgradeRequired ? 'Pipeline tracking is included from Investor-Ready.' : `Couldn't save ${r.name}: ${e.message}`);
+      toast.error(e.upgradeRequired ? 'Pipeline tracking is included in Capital Raising.' : `Couldn't save ${r.name}: ${e.message}`);
     } finally {
       setBusy((b) => ({ ...b, [r.record_id]: null }));
     }
@@ -349,7 +349,7 @@ export default function MatchesPage() {
             <p className="ui-muted">Every decisive fit (stage, sector, geography, ticket) rests on researched evidence.</p>
             {byBucket.eligible.length ? byBucket.eligible.map(card) : (
               bucketCount('eligible') > 0 ? (
-                <p className="tier-empty">{fmtInt(bucketCount('eligible'))} verified {bucketCount('eligible') === 1 ? 'fit is' : 'fits are'} outside the top {run.results.length} your plan shows. <Link to="/packages?highlight=investor-ready">See every match from Investor-Ready</Link>.</p>
+                <p className="tier-empty">{fmtInt(bucketCount('eligible'))} verified {bucketCount('eligible') === 1 ? 'fit is' : 'fits are'} outside the top {run.results.length} your plan shows. <Link to="/packages?highlight=capital-raising">See every match with Capital Raising</Link>.</p>
               ) : (
                 <p className="tier-empty">No verified fits yet. That reflects how much of these investors' mandates we have verified, not your company.{topMissing ? ` Adding ${topMissing.label.toLowerCase()} would also sharpen your results.` : ''}</p>
               )
@@ -394,7 +394,7 @@ export default function MatchesPage() {
 
       {trial && (
         <GateCard title={`You're seeing your top ${run.results.length} of ${fmtInt(eligible)}`}
-          body="See all matches, how to reach each one, and track them in a pipeline. Included from Investor-Ready." />
+          body="See all matches, how to reach each one, and track them in a pipeline. Included in Capital Raising." />
       )}
 
       <Drawer open={excluded.open} onClose={() => setExcluded({ open: false, rows: null, error: null })} title="Excluded sources" description="Sources that fail at least one hard filter for your profile, with the reason.">

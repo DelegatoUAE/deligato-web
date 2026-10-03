@@ -33,6 +33,8 @@ export default function CapitalNeedForm({ firstRun = false, onSaved, submitLabel
     raise_timing: company?.raise_timing || '',
     // capital/eligibility.js#checkLocalPresence: true clears, false excludes,
     // null (not sure) keeps the "requires local presence" caveat.
+    // D46: the date the money must be in the bank (capital timing = target − route duration − 1 month).
+    target_funding_date: company?.target_funding_date ? String(company.target_funding_date).slice(0, 10) : '',
     willing_to_relocate: company?.willing_to_relocate === true ? 'yes' : company?.willing_to_relocate === false ? 'no' : 'unsure',
   }));
   const [edited, setEdited] = useState({});
@@ -41,6 +43,7 @@ export default function CapitalNeedForm({ firstRun = false, onSaved, submitLabel
   const [busy, setBusy] = useState(null);
   const [saveError, setSaveError] = useState(null);
   const [timingNote, setTimingNote] = useState(false);
+  const [targetNote, setTargetNote] = useState(false);
 
   const set = (k, v) => { setForm((f) => ({ ...f, [k]: v })); setEdited((e) => ({ ...e, [k]: true })); setErrors((e) => (e[k] ? { ...e, [k]: null } : e)); };
   const instruments = vocab.instruments || FALLBACK_INSTRUMENTS;
@@ -66,6 +69,7 @@ export default function CapitalNeedForm({ firstRun = false, onSaved, submitLabel
     if (!form.raise_usd || !Number.isFinite(n) || n <= 0) e.raise_usd = 'Enter the amount you are raising, in USD.';
     if (!form.instrument) e.instrument = "Choose an instrument, or 'Not sure yet'.";
     if (!form.raise_timing) e.raise_timing = 'Choose when you want to close.';
+    if (form.target_funding_date && form.target_funding_date < new Date().toISOString().slice(0, 10)) e.target_funding_date = 'Pick today or a later date.';
     setErrors(e);
     return Object.keys(e).length === 0 ? n : null;
   }
@@ -82,6 +86,8 @@ export default function CapitalNeedForm({ firstRun = false, onSaved, submitLabel
         investor_types_sought: form.investor_types_sought,
         target_markets: form.target_markets,
         raise_timing: form.raise_timing,
+        // Sent only when changed here, so a save never fails on a field the founder didn't touch.
+        ...(edited.target_funding_date ? { target_funding_date: form.target_funding_date || null } : {}),
       };
       const out = await saveCapitalNeed(company.id, need);
       // Not part of the routing capital-need allow-list: saved on the profile
@@ -89,6 +95,7 @@ export default function CapitalNeedForm({ firstRun = false, onSaved, submitLabel
       const relocate = { yes: true, no: false, unsure: null }[form.willing_to_relocate];
       if (relocate !== (company?.willing_to_relocate ?? null) || edited.willing_to_relocate) await updateProfile(company.id, { willing_to_relocate: relocate });
       setTimingNote(!out.timingSaved);
+      setTargetNote(Boolean(out.targetNotStored));
       logEvent('capital_need.saved', { changed_fields: Object.keys(edited), raise_usd: n, instrument: need.instrument, raise_timing: need.raise_timing }, company.id);
       setEdited({});
       await onSaved?.(out, { andFind, need });
@@ -130,7 +137,8 @@ export default function CapitalNeedForm({ firstRun = false, onSaved, submitLabel
             <div className="ui-row">
               <Input id={id} aria-describedby={describedBy} value={market} onChange={(e) => setMarket(e.target.value)} placeholder="Add country or region"
                 onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addMarket(market); } }} list="need-blocs" style={{ maxWidth: 220 }} />
-              <datalist id="need-blocs">{[...blocs.map((b) => countryName(b)), ...COUNTRY_CODES.map((c) => countryName(c)).sort()].map((n) => <option key={n} value={n} />)}</datalist>
+              {/* One option per name: the UK bloc and GB both read "United Kingdom" (duplicate-key fix). */}
+              <datalist id="need-blocs">{[...new Set([...blocs.map((b) => countryName(b)), ...COUNTRY_CODES.map((c) => countryName(c)).sort()])].map((n) => <option key={n} value={n} />)}</datalist>
               <Button variant="secondary" size="sm" onClick={() => addMarket(market)}>Add</Button>
             </div>
           </div>
@@ -147,6 +155,11 @@ export default function CapitalNeedForm({ firstRun = false, onSaved, submitLabel
         {() => <ChipToggle single label="Timing" options={TIMINGS.map((t) => ({ key: t.key, label: t.label }))} value={form.raise_timing ? [form.raise_timing] : []} onChange={(v) => set('raise_timing', v[0] || '')} />}
       </FormField>
 
+      <FormField label={<span className="need-label">When do you need the money in the bank?</span>} error={errors.target_funding_date}
+        hint="Optional. With a date, we tell you when to start raising for your route (Company Intelligence).">
+        <Input id="target-date" type="date" value={form.target_funding_date} min={new Date().toISOString().slice(0, 10)} onChange={(e) => set('target_funding_date', e.target.value)} />
+      </FormField>
+
       {uof.length > 0 && (
         <div className="need-uof is-wide">
           <span className="ui-label">Use of funds <Badge tone="outline" size="sm">Imported</Badge></span>
@@ -157,6 +170,7 @@ export default function CapitalNeedForm({ firstRun = false, onSaved, submitLabel
       <p className="need-note is-wide">Your readiness score isn't changed here.</p>
       {saveError && <Alert tone="bad">Couldn't save your capital need. {saveError}</Alert>}
       {timingNote && <Alert tone="warn">Saved your raise, instrument, investor types and markets. Your timing couldn't be stored yet; it stays on this screen until the companies service is connected.</Alert>}
+      {targetNote && <Alert tone="warn">Saved everything except your target date: it can't be stored on this server yet. Nothing else was lost.</Alert>}
       <div className="need-actions is-wide">
         {!firstRun && <Button variant="secondary" onClick={() => submit(false)} loading={busy === 'save'} disabled={Boolean(busy)}>Save</Button>}
         <Button type="submit" variant="accent" loading={busy === 'find'} disabled={Boolean(busy)}>{submitLabel || (firstRun ? 'Confirm and find capital' : 'Save and see routes')}</Button>

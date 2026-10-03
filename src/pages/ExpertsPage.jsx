@@ -22,7 +22,7 @@ function CapitalAssessment({ companyId }) {
   async function send() {
     setBusy(true);
     try {
-      await requestExpertHelp({ company_id: companyId, kind: 'capital_assessment', topic: 'Capital Assessment', note });
+      await requestExpertHelp({ company_id: companyId, kind: 'capital_assessment', topic: 'Capital Readiness Plus', note });
       toast.success('Requested. An advisor will confirm a time with you. No payment is taken in this app.');
       setOpen(false);
     } catch (e) {
@@ -30,11 +30,11 @@ function CapitalAssessment({ companyId }) {
     } finally { setBusy(false); }
   }
   return (
-    <Card id="assessment" className="assess" title="Start here if you're not sure" action={<Button variant="secondary" onClick={() => setOpen(true)} disabled={!companyId}>Request a Capital Assessment</Button>}>
-      <p><strong>Capital Assessment · $99, credited against any package</strong></p>
+    <Card id="assessment" className="assess" title="Start here if you're not sure" action={<Button variant="secondary" onClick={() => setOpen(true)} disabled={!companyId}>Request Capital Readiness Plus</Button>}>
+      <p><strong>Capital Readiness Plus · $99: your readiness report plus one 40-minute advisor session</strong></p>
       <p className="ui-muted">A 40-minute session with an advisor who reviews your readiness and maps your gaps.</p>
-      <Modal open={open} onClose={() => setOpen(false)} title="Request a Capital Assessment" description="A request to our team inside the platform. Nobody is emailed by the system, and no payment is taken in this app."
-        footer={<><Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button><Button variant="primary" loading={busy} onClick={send}>Request a Capital Assessment</Button></>}>
+      <Modal open={open} onClose={() => setOpen(false)} title="Request Capital Readiness Plus" description="A request to our team inside the platform. Nobody is emailed by the system, and no payment is taken in this app."
+        footer={<><Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button><Button variant="primary" loading={busy} onClick={send}>Request Capital Readiness Plus</Button></>}>
         <FormField label="Anything we should know?" optional><Textarea rows={3} value={note} onChange={(e) => setNote(e.target.value)} /></FormField>
       </Modal>
     </Card>
@@ -177,7 +177,7 @@ export default function ExpertsPage() {
           <Alert tone="warn">{isMissingEndpoint(dirQ.error) ? "The expert directory isn't connected in this environment yet." : `Couldn't load experts: ${dirQ.error.message}`}</Alert>
         ) : !dirQ.data ? <Skeleton h="160px" /> : dirQ.data.length ? (
           <div className="ui-grid ui-grid-3">{dirQ.data.slice(0, 12).map((e) => <ExpertCard key={e.id} expert={e} />)}</div>
-        ) : <p className="ui-muted">No experts listed yet. Request a Capital Assessment and we'll route you.</p>}
+        ) : <p className="ui-muted">No experts listed yet. Request Capital Readiness Plus and we'll route you.</p>}
       </section>
     </div>
   );

@@ -132,3 +132,20 @@ export function wordsForCodes(text) {
 
 /** AI sentences sometimes echo their citation ids ("(evidence_id: ev_stage)"); the chips carry them instead. */
 export const stripEvidenceIds = (t) => (typeof t === 'string' ? t.replace(/\s*\((?:evidence[_ ]ids?|ids?)\s*:[^)]*\)/gi, '').replace(/\s+([.,;])/g, '$1') : t);
+
+/** 22.4 → "22.4 months"; null stays null. */
+export const fmtMonths = (m) => (m == null || !Number.isFinite(Number(m)) ? null : `${Math.round(Number(m) * 10) / 10} months`);
+
+/**
+ * Engine sentences (what changed, attention, timing, reassessment) carry ISO dates,
+ * periods and timing codes ("On 2026-10-23.", "Figures for 2026-09", "not set → 3_6m").
+ * Shown to a founder as words: "23 Oct 2026", "Sep 2026", "3–6 months" (D57: no codes).
+ */
+export function plainIntel(text) {
+  if (typeof text !== 'string') return text;
+  return text
+    .replace(/\b(\d{4})-(\d{2})-(\d{2})(?:T[\d:.]+Z?)?\b/g, (m, y, mo, d) => `${Number(d)} ${MONTHS[Number(mo) - 1] || mo} ${y}`)
+    .replace(/\b(\d{4})-(0[1-9]|1[0-2])\b/g, (m, y, mo) => `${MONTHS[Number(mo) - 1]} ${y}`)
+    .replace(/\b(0_3m|3_6m|6_12m)\b/g, (m) => timingLabel(m) || m)
+    .replace(/(→\s*)(now|exploring)\b/g, (m, a, k) => `${a}${timingLabel(k).toLowerCase()}`);
+}
