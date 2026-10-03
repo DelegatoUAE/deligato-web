@@ -12,6 +12,7 @@ export default function SignupPage() {
   const [form, setForm] = useState({ full_name: '', email: '', password: '', organization: '', account_type: 'founder' });
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [sent, setSent] = useState(null);
   const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });
 
   async function onSubmit(e) {
@@ -21,13 +22,29 @@ export default function SignupPage() {
     setBusy(true);
     try {
       const data = await apiFetch('/auth/signup', { method: 'POST', body: JSON.stringify(form) });
-      setToken(data.session.access_token);
-      navigate('/onboarding');
+      // Production confirms the email first: the account exists but there is no session yet.
+      if (data && data.session && data.session.access_token) {
+        setToken(data.session.access_token);
+        navigate('/onboarding');
+      } else {
+        setSent(data && data.message ? data.message : 'Check your email to confirm your address, then sign in.');
+      }
     } catch (err) {
       setError(err.message);
     } finally {
       setBusy(false);
     }
+  }
+
+  if (sent) {
+    return (
+      <AuthLayout title="Check your email" subtitle={`We sent a confirmation link to ${form.email}.`}>
+        <div className="ui-stack">
+          <Alert tone="ok">{sent}</Alert>
+          <p className="login-alt">Confirmed already? <Link to="/login">Sign in</Link></p>
+        </div>
+      </AuthLayout>
+    );
   }
 
   return (
