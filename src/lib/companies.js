@@ -38,11 +38,20 @@ const NEED_FIELDS = ['raise_usd', 'instrument', 'investor_types_sought', 'target
  * case raise_timing and the confirmation stamp could not be stored.
  */
 export async function saveCapitalNeed(id, need) {
+  const patch = (body) => apiFetch(`/api/v1/routing/${id}/capital-need`, { method: 'PATCH', body: JSON.stringify({ ...body, confirm: true }) });
+  const done = (out, extra = {}) => ({ company: { id, ...out.capital_need }, confirmed_at: out.capital_need?.confirmed_at || null, timingSaved: true, via: 'routing', routing: out.routing, ...extra });
   try {
     // The capital need lives with routing (it feeds routes first): saves and confirms.
-    const out = await apiFetch(`/api/v1/routing/${id}/capital-need`, { method: 'PATCH', body: JSON.stringify({ ...need, confirm: true }) });
-    return { company: { id, ...out.capital_need }, confirmed_at: out.capital_need?.confirmed_at || null, timingSaved: true, via: 'routing', routing: out.routing };
+    return done(await patch(need));
   } catch (e) {
+    // D46 target funding date before migration 018: the API refuses the field
+    // with a per-field `not_stored_yet`. Save everything else and say so.
+    const why = e?.body?.error?.fields?.target_funding_date;
+    if (e.status === 400 && typeof why === 'string' && why.startsWith('not_stored_yet') && 'target_funding_date' in need) {
+      const rest = { ...need };
+      delete rest.target_funding_date;
+      return done(await patch(rest), { targetNotStored: true });
+    }
     if (!isMissingEndpoint(e)) throw e;
   }
   const fields = {};

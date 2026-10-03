@@ -1,4 +1,5 @@
-import { useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { PageHeader, useToast, Button } from '../design/ui';
 import SubNav from '../components/SubNav';
 import CapitalNeedForm from '../components/capital/CapitalNeedForm';
@@ -8,6 +9,14 @@ export default function CapitalNeedPage() {
   const { capitalNeedConfirmed, reloadCompanies, reloadRun } = useCompany();
   const navigate = useNavigate();
   const toast = useToast();
+  const { hash } = useLocation();
+  // "Set a target date" (Company Intelligence) lands on the field.
+  useEffect(() => {
+    if (hash !== '#target-date') return;
+    const el = document.getElementById('target-date');
+    el?.scrollIntoView({ block: 'center' });
+    el?.focus({ preventScroll: true });
+  }, [hash]);
 
   async function onSaved(out, { andFind }) {
     reloadCompanies();
