@@ -1,213 +1,222 @@
-import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Button, Card, EmptyState, Skeleton, StatTile } from '../design/ui';
+import { Badge, Button, Icon, Skeleton } from '../design/ui';
 import { useCompany } from '../components/company-context';
 import useApi from '../lib/useApi';
-import { getUnlocks, listRuns, getRunNormalised, stageLabel } from '../lib/capital';
-import { getRecommendation } from '../lib/packages';
-import { getRouting, normaliseRoute } from '../lib/routing';
-import { listExpertRequests } from '../lib/experts';
-import { fmtUsd, fmtPrice, fmtInt, firstName, humanise, daysSince, countryName, POSITIONING } from '../lib/format';
-import { rankActions, partOfDay, pipelineCounts } from '../lib/home';
-import { bandLabel, readinessSource, readinessGaps } from '../lib/readiness';
-import NextActions from '../components/capital/NextActions';
-import MatchRow from '../components/capital/MatchRow';
-import { FundraisingNotice, GateCard, LoadError } from '../components/capital/bits';
-import { logEvent } from '../lib/events';
+import { getCommandCenter, isUnavailable } from '../lib/companyIntel';
+import { firstName, countryName, fmtUsd, fmtDate, fmtMonths, timingLabel, plural } from '../lib/format';
+import { partOfDay } from '../lib/home';
+import { LoadError, FundraisingNotice } from '../components/capital/bits';
+import ClassicHome, { Waiting } from '../components/home/ClassicHome';
+import { ChangeList, AttentionList, AskPrompts, SpecialistLink, Delta, UpgradeLine } from '../components/intel/IntelBits';
 
-const ACTIVE = ['researching', 'intro_requested', 'contacted', 'in_conversation', 'diligence', 'term_sheet'];
-const TIMING = { now: 'Raising now', '0_3m': 'In 0–3 months', '3_6m': 'In 3–6 months', '6_12m': 'In 6–12 months', exploring: 'Exploring' };
-const DISMISS_KEY = 'conncct.home.dismissed';
-const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+/**
+ * Home: the Company Command Center (D58, client-portal.md). One read,
+ * GET /company-intel/:id/command-center. The founder answers six questions in
+ * seconds: how is my company doing, what changed, what needs attention, what
+ * next, am I ready for capital, what is happening with my raise.
+ * Signals sit side by side, each with its own method, date and source:
+ * there is no combined score (D40). Prominence follows the API's order.
+ */
+export default function DashboardPage() {
+  const { me, staff, company, companyId, companiesLoading, dataRoom } = useCompany();
+  const q = useApi(() => (companyId ? getCommandCenter(companyId) : null), [companyId]);
+  const name = firstName(me?.profile?.full_name || me?.user?.user_metadata?.full_name);
 
-function readDismissed() {
-  try {
-    const all = JSON.parse(localStorage.getItem(DISMISS_KEY) || '{}');
-    return new Set(Object.entries(all).filter(([, until]) => until > Date.now()).map(([k]) => k));
-  } catch { return new Set(); }
-}
+  if (companiesLoading) return <CcSkeleton />;
+  if (!company) return <Waiting staff={staff} name={name} />;
+  // Before migration 016 the live layer answers 503: keep the previous Home rather than a blank page.
+  if (q.error && isUnavailable(q.error)) return <ClassicHome />;
+  if (q.error) return <div className="cc"><Greeting name={name} company={company} /><LoadError error={q.error} onRetry={q.reload} what="your Command Center" /></div>;
+  if (!q.data) return <CcSkeleton />;
 
-/** K3 "+N since {weekday}": verified-eligible records in the latest run that weren't in the previous one. */
-async function strongDelta(companyId, latest) {
-  if (!latest) return null;
-  const { runs } = await listRuns(companyId);
-  const sorted = (runs || []).slice().sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-  if (sorted.length < 2) return null;
-  const prev = await getRunNormalised(sorted[1].id);
-  const before = new Set(prev.results.filter((r) => r.bucket === 'eligible').map((r) => r.record_id));
-  const n = latest.results.filter((r) => r.bucket === 'eligible' && !before.has(r.record_id)).length;
-  return { n, since: WEEKDAY[new Date(sorted[1].created_at).getDay()] };
-}
+  const cc = q.data;
+  const order = cc.prominence?.order || ['financial_health', 'company_record', 'capital_readiness', 'capital_need'];
+  const emphasis = cc.prominence?.emphasis || {};
+  const raise = cc.raise;
+  const showRoom = Boolean(raise) || ['now', '0_3m', '3_6m'].includes(cc.signals?.capital_need?.raise_timing);
 
-function Waiting({ staff, name }) {
   return (
-    <div className="home-wait">
-      <h1 className="home-greet">{name ? `Good ${partOfDay()}, ${name}.` : `Good ${partOfDay()}.`}</h1>
-      <p className="home-positioning">{POSITIONING}</p>
-      <EmptyState icon="building" title="Let's start with your company."
-        body="Three minutes of facts about your company. Then we score your readiness, show which kinds of capital fit, and match you with providers."
-        action={(
-          <div className="ui-stack ui-stack-sm" style={{ justifyItems: 'center' }}>
-            <div className="ui-row">
-              <Button as={Link} to="/onboarding" variant="accent">Set up your company</Button>
-              {staff && (import.meta.env.DEV && import.meta.env.VITE_DEV_IMPORT === 'true') && <Button as={Link} to="/dev/import" variant="secondary">Import a test company</Button>}
-            </div>
-            <Link to="/experts">Looking for an expert instead? Find an Expert →</Link>
-          </div>
-        )} />
+    <div className="cc">
+      <Greeting name={name} company={company} snapshot={cc.snapshot} />
+
+      <NextBlock next={cc.next} />
+
+      <section aria-label="Your company's signals" className="cc-signals">
+        <h2 className="cc-h">Where you stand <span className="cc-h-note">Each signal is measured on its own. There is no combined score.</span></h2>
+        <div className="sig-grid">
+          {order.filter((k) => k !== 'raise').map((k) => <Signal key={k} kind={k} s={cc.signals?.[k]} high={emphasis[k] === 'high'} />)}
+        </div>
+      </section>
+
+      {raise && <RaiseStrip raise={raise} />}
+
+      <div className="cc-two">
+        <section aria-labelledby="cc-changed">
+          <h2 id="cc-changed" className="cc-h">What changed</h2>
+          <ChangeList items={dedupe(cc.what_changed, cc.attention)} limit={5} empty="Nothing material has changed recently. Your monthly check-in is the main source of change." />
+          {cc.what_changed_scope === 'last_change_only' && <UpgradeLine note="Your plan shows your last Financial Health change. Company Intelligence follows your record, readiness, matches and pipeline too." />}
+          {cc.what_changed?.length > 0 && <Link to="/company/intelligence" className="cc-more">All changes and attention →</Link>}
+        </section>
+        <section aria-labelledby="cc-attn">
+          <h2 id="cc-attn" className="cc-h">Needs attention</h2>
+          <AttentionList items={(cc.attention || []).slice(0, 4)} />
+        </section>
+      </div>
+
+      {showRoom && <DealRoomLine dataRoom={dataRoom} />}
+
+      <AskPrompts prompts={cc.ask_ai?.prompts} title="Ask about your company" />
+      <FundraisingNotice />
     </div>
   );
 }
 
-/** 00 · Home: the command centre. Every block loads and fails on its own. */
-export default function DashboardPage() {
-  const { me, staff, company, companyId, companiesLoading, readiness, readinessLoading, readinessError, reloadReadiness,
-    run, runLoading, capitalNeedConfirmed, pipeline, pipelineError, reloadPipeline } = useCompany();
-  const unlocksQ = useApi(() => (companyId && run ? getUnlocks(companyId) : null), [companyId, run?.run_id]);
-  const deltaQ = useApi(() => (companyId && run ? strongDelta(companyId, run) : null), [companyId, run?.run_id]);
-  const routesQ = useApi(() => (companyId ? getRouting(companyId) : null), [companyId]);
-  const recQ = useApi(() => (companyId ? getRecommendation(companyId, company?.raise_timing) : null), [companyId]);
-  const expQ = useApi(() => (companyId ? listExpertRequests(companyId).then((x) => x.requests || []).catch(() => []) : []), [companyId]);
-  const [dismissed, setDismissed] = useState(readDismissed);
+/** An item already in "Needs attention" (the reassessment) is not repeated under "What changed". */
+function dedupe(changed, attention) {
+  const reas = (attention || []).some((a) => a.code === 'T6');
+  return (changed || []).filter((c) => !(reas && c.type === 'reassessment_recommended'));
+}
 
-  const name = firstName(me?.profile?.full_name || me?.user?.user_metadata?.full_name);
-  if (companiesLoading) {
+function CcSkeleton() {
+  return (
+    <div className="cc" aria-busy="true" aria-label="Loading your Command Center">
+      <Skeleton w="50%" h="34px" /><Skeleton w="30%" h="14px" />
+      <Skeleton h="150px" r="16px" />
+      <div className="sig-grid">{[0, 1, 2, 3].map((i) => <Skeleton key={i} h="150px" r="12px" />)}</div>
+    </div>
+  );
+}
+
+function Greeting({ name, company, snapshot }) {
+  const co = snapshot?.company || company;
+  const persona = snapshot?.persona?.name;
+  const goal = snapshot?.goal?.name;
+  return (
+    <header className="cc-head">
+      <p className="cc-eyebrow">{`Good ${partOfDay()}${name ? `, ${name}` : ''}`}</p>
+      <h1>{co.name}</h1>
+      <p className="cc-sub">{[co.stage, co.sector, countryName(co.hq_country_iso2 || company?.hq_country_iso2)].filter(Boolean).join(' · ')}</p>
+      {(persona || goal) && (
+        <p className="cc-tags">
+          {goal && <span className="cc-tag"><span>Goal</span> {goal}</span>}
+          {persona && <span className="cc-tag"><span>Persona</span> {persona}</span>}
+        </p>
+      )}
+    </header>
+  );
+}
+
+/** "The most important thing to do next is…" + up to three priorities (shared NBA rules, not generic AI). */
+function NextBlock({ next }) {
+  const top = next?.top;
+  const internal = (r) => typeof r === 'string' && r.startsWith('/');
+  if (!top) {
     return (
-      <div className="dash-skel" aria-busy="true" aria-label="Loading your command centre">
-        <Skeleton w="55%" h="34px" /><Skeleton w="30%" h="14px" />
-        <div className="dash-skel-tiles">{[0, 1, 2, 3, 4].map((i) => <Skeleton key={i} h="118px" r="12px" />)}</div>
-        <Skeleton h="200px" r="12px" />
-      </div>
+      <section className="nextb nextb-calm" aria-label="Next best action">
+        <p className="nextb-kicker">You're up to date</p>
+        <p className="nextb-title">Nothing urgent. Your next monthly check-in keeps this picture current.</p>
+        <Button as={Link} to="/company/check-in" variant="secondary">Open check-in</Button>
+      </section>
     );
   }
-  if (!company) return <Waiting staff={staff} name={name} />;
-
-  const r = readiness?.readiness || null;
-  const src = readinessSource(readiness);
-  const pipelineGated = pipelineError?.status === 402;
-  const active = pipeline ? pipeline.filter((p) => ACTIVE.includes(p.stage)) : null;
-  const staleN = active ? active.filter((p) => daysSince(p.stage_entered_at || p.updated_at) > 21).length : 0;
-  // I-01: the same three evidence-tier counts as Capital overview and Matches (D24),
-  // from the whole run (a trial sees only its top 5 results).
-  const bucket = (k) => run?.counts?.[`${k}_bucket`] ?? run?.results.filter((x) => x.bucket === k).length ?? 0;
-  const pc = pipelineCounts(pipeline);
-  const gapList = r ? readinessGaps(r) : [];
-  const gaps = gapList.length;
-  const biggestLabel = gapList[0] ? (r.factors?.find((f) => f.key === gapList[0].factor)?.label || gapList[0].label || humanise(gapList[0].factor)) : null;
-
-  const actions = rankActions({
-    raiseTiming: company.raise_timing,
-    readiness: r,
-    readinessSource: src.key,
-    capitalNeedConfirmed,
-    hasRun: Boolean(run),
-    pipeline: (pipeline || []).map((p) => ({ ...p, name: p.capital_sources?.name })),
-    unlocks: unlocksQ.data,
-    newStrong: deltaQ.data,
-    questionCount: null,
-    dismissed,
-  });
-
-  function dismiss(a) {
-    const key = `${a.pool}:${a.key}`;
-    try {
-      const all = JSON.parse(localStorage.getItem(DISMISS_KEY) || '{}');
-      all[key] = Date.now() + 7 * 86400000;
-      localStorage.setItem(DISMISS_KEY, JSON.stringify(all));
-    } catch { /* hidden for this visit only */ }
-    setDismissed((s) => new Set([...s, key]));
-    logEvent('home.action_dismissed', { pool: a.pool, key: a.key }, companyId);
-  }
-
-  const routes = (routesQ.data?.routes || []).map((x) => ({ ...normaliseRoute(x), level: x.coverage?.level }));
-  const fits = routes.filter((x) => x.fit === 'strong');
-  const worth = routes.filter((x) => x.fit === 'possible');
-  const thin = routes.filter((x) => x.fit !== 'unlikely' && x.level === 'thin');
-  const rec = recQ.data;
-  const recItem = rec?.recommended_code ? rec.ranked?.find((x) => x.id === rec.recommended_code) : null;
-  const expert = (expQ.data || []).find((x) => x.consultant_id || x.status !== 'cancelled');
-
   return (
-    <div className="home">
-      <header className="home-head">
-        <h1>{name ? `Good ${partOfDay()}, ${name}.` : `Good ${partOfDay()}.`} Here's where your company stands.</h1>
-        <p className="home-sub">{[company.name, company.stage || 'stage unknown', company.sector || 'sector unknown', countryName(company.hq_country_iso2) || 'HQ unknown'].join(' · ')}</p>
-      </header>
-
-      <section className="home-stats" aria-label="Where you stand">
-        {readinessError ? (
-          <div className="ui-stat"><div className="ui-stat-label">Readiness</div><div className="ui-stat-value ui-stat-value-text">Couldn't load</div><Button variant="link" size="sm" onClick={reloadReadiness}>Retry</Button></div>
-        ) : (
-          <StatTile as={Link} to={r ? '/capital/readiness' : '/capital/readiness/assess'} tone="navy" label="Readiness" loading={readinessLoading}
-            value={r ? Math.round(Number(r.score)) : 'Not scored yet'} foot={r ? `${bandLabel(r)} · ${src.label}` : 'Get your score'} />
-        )}
-        <StatTile as={Link} to="/capital/need" label="Current raise" value={company.raise_usd != null ? fmtUsd(company.raise_usd) : 'Not set'}
-          foot={[company.instrument, TIMING[company.raise_timing] || (capitalNeedConfirmed ? 'timing not set' : 'Confirm your raise')].filter(Boolean).join(' · ')} />
-        <StatTile as={Link} to={run ? '/capital/matches?evidence=eligible' : '/capital/find'} label="Verified fits" loading={runLoading}
-          value={run ? fmtInt(bucket('eligible')) : 'Not yet'} foot={!run ? 'Appears after your first match' : `${deltaQ.data?.n ? `+${deltaQ.data.n} since ${deltaQ.data.since} · ` : ''}${fmtInt(bucket('possible'))} possible · ${fmtInt(bucket('likely_outside'))} likely outside`} />
-        {pipelineGated ? (
-          <StatTile as={Link} to="/packages?highlight=investor-ready" label="In pipeline" value="Locked" foot="Included from Investor-Ready" />
-        ) : pipelineError ? (
-          <div className="ui-stat"><div className="ui-stat-label">In pipeline</div><div className="ui-stat-value ui-stat-value-text">Couldn't load</div><Button variant="link" size="sm" onClick={reloadPipeline}>Retry</Button></div>
-        ) : (
-          <StatTile as={Link} to="/capital/pipeline" label="In pipeline" loading={!pipeline}
-            value={pipeline ? pc.inPipeline : ''} foot={!pipeline ? '' : `${pc.saved} saved${pc.inPipeline === 0 ? ' · starts when you add a match' : staleN ? ` · ${staleN} need a reply` : ' · all up to date'}`} />
-        )}
-        <StatTile as={Link} to="/capital/readiness#gaps" label="Readiness gaps" loading={readinessLoading}
-          value={r ? gaps : 'Not scored yet'} foot={!r ? 'Appears after scoring' : gaps === 0 ? 'No gaps flagged' : biggestLabel ? `First: ${biggestLabel}` : 'factors to strengthen'} />
-      </section>
-
-      <section className="home-actions" aria-labelledby="nba-h">
-        <h2 id="nba-h">Your next best actions</h2>
-        {runLoading || readinessLoading || !pipeline ? <Skeleton h="180px" /> : actions.length ? <NextActions actions={actions} company={company} onDismiss={dismiss} /> : (
-          <p className="ui-muted">You're up to date. Review your matches or add to your data room. <Link to="/capital/matches">See matches</Link></p>
-        )}
-      </section>
-
-      <div className="home-grid">
-        <Card title="Capital routes" action={<Button as={Link} to="/capital/find" variant="link" size="sm">Find capital</Button>}>
-          {routesQ.error ? <LoadError error={routesQ.error} onRetry={routesQ.reload} what="your routes" /> : !routesQ.data ? <Skeleton h="80px" /> : !capitalNeedConfirmed && !company.raise_usd ? (
-            <p className="ui-muted">Confirm your raise to see which kinds of capital fit. <Link to="/capital/need">Confirm your raise</Link></p>
-          ) : (
-            <dl className="routes-mini">
-              {fits.length > 0 && <div><dt>Fits you</dt><dd>{fits.slice(0, 4).map((x) => x.label).join(' · ')}</dd></div>}
-              {worth.length > 0 && <div><dt>Worth a look</dt><dd>{worth.slice(0, 3).map((x) => x.label).join(' · ')}</dd></div>}
-              {thin.length > 0 && <div><dt>Thin coverage</dt><dd>{thin.slice(0, 2).map((x) => x.label).join(' · ')}</dd></div>}
-              {!fits.length && !worth.length && <div><dt>Not enough to tell</dt><dd>{routesQ.data.capital_filter?.note}</dd></div>}
-              {routesQ.data.ordering?.key === 'ownership_first' && <p className="ui-faint">{routesQ.data.ordering.text}</p>}
-            </dl>
-          )}
-        </Card>
-
-        <Card title="Top matches" action={run && <Button as={Link} to="/capital/matches" variant="link" size="sm">See all matches</Button>}>
-          {runLoading ? <Skeleton h="140px" /> : !run ? (
-            <p className="ui-muted">Your matches will appear here. <Link to="/capital/find">Find capital</Link></p>
-          ) : <ul className="mrows">{run.results.slice(0, 3).map((x) => <MatchRow key={x.record_id} r={x} runId={run.run_id} />)}</ul>}
-        </Card>
-
-        <Card title="Pipeline" action={pipeline?.length ? <Button as={Link} to="/capital/pipeline" variant="link" size="sm">Open pipeline</Button> : null}>
-          {pipelineGated ? <GateCard compact title="Track your raise in one place." body="Included from Investor-Ready." /> :
-            pipelineError ? <LoadError error={pipelineError} onRetry={reloadPipeline} what="your pipeline" /> :
-              !pipeline ? <Skeleton h="60px" /> : !active.length ? <p className="ui-muted">Starts when you save a match and move it into your pipeline.</p> : (
-                <p className="pipe-line">{ACTIVE.map((s) => ({ s, n: active.filter((p) => p.stage === s).length })).filter((x) => x.n).map((x) => `${stageLabel(x.s)} ${x.n}`).join(' · ')}</p>
-              )}
-        </Card>
-
-        {expert && (
-          <Card title="Experts" action={<Button as={Link} to="/experts/mine" variant="link" size="sm">Open my experts</Button>}>
-            <p>{expert.topic || humanise(expert.kind)}</p>
-            <p className="ui-muted">{expert.status === 'requested' ? 'Requested · waiting for confirmation' : humanise(expert.status)}</p>
-          </Card>
-        )}
-      </div>
-
-      {recItem && (
-        <Card className="home-rec" title="Recommended for you">
-          <p><strong>{recItem.name}</strong> · {recItem.price_pending ? 'Price on request' : fmtPrice(recItem.price_usd)}{rec.reason_lines?.[0] ? ` · ${rec.reason_lines[0]}` : ''}</p>
-          <Button as={Link} to="/packages" variant="link" size="sm">See packages</Button>
-        </Card>
+    <section className="nextb" aria-labelledby="nextb-t">
+      <p className="nextb-kicker">The most important thing to do next is</p>
+      <h2 id="nextb-t" className="nextb-title">{top.label}</h2>
+      {top.why && <p className="nextb-why">{top.why}</p>}
+      {internal(top.route) && <Button as={Link} to={top.route} variant="accent" iconRight="send" className="nextb-cta">{top.label}</Button>}
+      {(next.priorities || []).length > 0 && (
+        <ol className="prio">
+          {next.priorities.slice(0, 3).map((p) => (
+            <li key={p.id}>
+              {internal(p.route) ? <Link to={p.route}>{p.label}</Link> : <span>{p.label}</span>}
+              {p.why && <span className="prio-why">{p.why}</span>}
+            </li>
+          ))}
+        </ol>
       )}
-      <FundraisingNotice />
-    </div>
+      {next.limited?.note && <UpgradeLine note={next.limited.note} />}
+      <SpecialistLink help={next.specialist_help} />
+    </section>
+  );
+}
+
+const SIGNALS = {
+  financial_health: { title: 'Financial Health', to: '/company/financial-health' },
+  capital_readiness: { title: 'Capital Readiness', to: '/capital/readiness' },
+  company_record: { title: 'Company Record', to: '/company/record' },
+  capital_need: { title: 'Capital need', to: '/capital/need' },
+};
+
+function Signal({ kind, s, high }) {
+  const meta = SIGNALS[kind];
+  if (!meta || !s) return null;
+  let value; let line; let foot; let delta = null; let to = meta.to;
+  if (kind === 'financial_health') {
+    if (s.score == null) {
+      value = s.status === 'not_applicable' ? 'N/A' : 'Not yet';
+      line = s.status === 'not_applicable' ? `${s.state_label || 'Dormant'}: not scored` : 'Needs your first check-in';
+      if (s.status !== 'not_applicable') to = '/company/check-in';
+    } else {
+      value = s.score;
+      line = [s.band, s.state_label].filter(Boolean).join(' · ');
+      if (s.last_change?.delta) delta = { direction: s.last_change.direction, text: `${s.last_change.delta > 0 ? '+' : ''}${s.last_change.delta} since last` };
+      else if (s.trend?.direction) delta = { direction: s.trend.direction, text: { up: 'Rising', down: 'Falling', flat: 'Steady' }[s.trend.direction] };
+    }
+    foot = [s.source_label, s.runway_months != null ? `${fmtMonths(s.runway_months)} runway` : s.cash_buffer_months != null ? `${fmtMonths(s.cash_buffer_months)} cash buffer` : null, s.computed_at ? fmtDate(s.computed_at) : null].filter(Boolean).join(' · ');
+  } else if (kind === 'capital_readiness') {
+    if (s.status === 'scored') {
+      value = Math.round(Number(s.score) * 10) / 10;
+      line = [s.band, s.provisional ? 'provisional' : null].filter(Boolean).join(' · ');
+      foot = s.assessed_at ? `Assessed ${fmtDate(s.assessed_at)}` : s.label;
+    } else { value = 'Not yet'; line = 'Not assessed'; foot = 'Take the assessment'; to = '/capital/readiness/assess'; }
+  } else if (kind === 'company_record') {
+    value = s.pct != null ? `${Math.round(Number(s.pct))}%` : '–';
+    line = s.band;
+    const f = s.freshness || {};
+    foot = [f.missing ? `${f.missing} missing` : null, f.expiring ? `${f.expiring} expiring` : null, f.expired ? `${f.expired} expired` : null].filter(Boolean).join(' · ') || 'Up to date';
+  } else if (kind === 'capital_need') {
+    value = s.raise_usd ? fmtUsd(s.raise_usd) : 'Not set';
+    line = s.raising ? `Raising${s.instrument ? ` · ${s.instrument}` : ''}` : s.confirmed ? `Not raising now${s.instrument ? ` · ${s.instrument}` : ''}` : 'Not confirmed yet';
+    const t = s.timing;
+    foot = t?.start_by ? `Start raising by ${fmtDate(t.start_by)}` : t?.status === 'no_target_date' ? 'Set a target date' : timingLabel(s.raise_timing) || (s.timing_locked ? 'Start date: Company Intelligence' : '');
+  }
+  return (
+    <Link to={to} className={`sig${high ? ' sig-high' : ''}`}>
+      <span className="sig-name">{meta.title}{high && <span className="sig-flag"> · leads for you</span>}</span>
+      <span className="sig-value">{value}</span>
+      {line && <span className="sig-line">{line}</span>}
+      {delta && <Delta direction={delta.direction}>{delta.text}</Delta>}
+      {foot && <span className="sig-foot">{foot}</span>}
+    </Link>
+  );
+}
+
+/** Active raise only (D58 §5): each number links to its workflow. */
+function RaiseStrip({ raise }) {
+  return (
+    <section className="raise" aria-labelledby="raise-h">
+      <h2 id="raise-h" className="cc-h">Your raise <span className="raise-head">{raise.headline}</span></h2>
+      <ol className="funnel">
+        {(raise.funnel || []).map((f) => (
+          <li key={f.key}><Link to={f.route}><span className="funnel-n">{f.count}</span><span className="funnel-l">{f.label}</span></Link></li>
+        ))}
+      </ol>
+    </section>
+  );
+}
+
+/** Deal room readiness, when it matters (D58 §6). The investor-facing room is not live yet (D55). */
+function DealRoomLine({ dataRoom }) {
+  return (
+    <section className="cc-room" aria-label="Deal room">
+      <Icon name="folder" />
+      <div>
+        <p className="cc-room-t">Data room {dataRoom ? `${dataRoom.completeness_pct}% ready` : ''}{dataRoom?.stage ? ` for ${dataRoom.stage}` : ''}</p>
+        <p className="ui-muted">{dataRoom ? `${dataRoom.done_count} of ${plural(dataRoom.required_count, 'required item')} in place. ` : ''}Sharing with investors arrives with the Investor Deal Room.</p>
+      </div>
+      <Badge tone="outline">Investor Deal Room: coming soon</Badge>
+      <Button as={Link} to="/capital/data-room" variant="link" size="sm">Prepare</Button>
+    </section>
   );
 }

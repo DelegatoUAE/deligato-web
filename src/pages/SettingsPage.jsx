@@ -1,11 +1,14 @@
 import { useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Alert, Badge, Button, Card, EmptyState, FormField, Input, Modal, PageHeader, Skeleton, Table, Tabs, useToast } from '../design/ui';
 import { useCompany } from '../components/company-context';
 import AppearanceSetting from '../components/AppearanceSetting';
 import useApi from '../lib/useApi';
 import { getConsents, getConsentTexts, grantConsent, revokeConsent, getAiLog, exportMyData, deleteMyAccount } from '../lib/privacy';
-import { setPocPlan } from '../lib/packages';
+import { setPocPlan, getCatalog } from '../lib/packages';
+import { getNotifications, isUnavailable } from '../lib/companyIntel';
+import { tierLabel, displayValue, upgradeHref } from '../lib/plan';
+import { SETTINGS_TABS, settingsTab } from '../lib/portal';
 import { isMissingEndpoint, logout } from '../lib/auth';
 import { fmtDateTime, humanise } from '../lib/format';
 
@@ -18,7 +21,6 @@ function Account({ me }) {
         <div><dt>Email</dt><dd>{me?.user?.email}</dd></div>
         <div><dt>Role</dt><dd>{p.role ? humanise(p.role) : 'Founder'}</dd></div>
       </dl>
-      <p className="ui-muted">To change your password, sign out and use "Forgot password" on the sign-in page.</p>
     </Card>
   );
 }
@@ -128,27 +130,52 @@ function Privacy({ companyId }) {
   );
 }
 
-function Plan({ companyId, plan, entitlements, reloadEntitlements }) {
+const PLAN_ROWS = ['financial_health_history', 'company_intel_live', 'checkin', 'capital_timing', 'record_full', 'next_best_actions', 'notifications',
+  'max_results', 'investor_profile_depth', 'pipeline_items', 'crm', 'outreach_drafts_per_month', 'data_room'];
+
+function Plan({ companyId, entitlementsRaw, reloadEntitlements }) {
   const toast = useToast();
-  const [choice, setChoice] = useState(plan?.key || 'trial');
+  const catQ = useApi(() => getCatalog(), []);
+  const [choice, setChoice] = useState(entitlementsRaw?.capital_plan || 'trial');
   const [busy, setBusy] = useState(false);
   const pocOn = import.meta.env.VITE_POC_PLAN_SWITCH === 'true';
+  const tier = tierLabel(entitlementsRaw?.ladder_tier) || 'Free';
+  const display = entitlementsRaw?.display || {};
+  const keys = catQ.data?.entitlement_keys || {};
+  const ladder = catQ.data?.tiers || [];
   async function apply() {
     setBusy(true);
-    try { await setPocPlan(companyId, choice); reloadEntitlements(); toast.success(`Plan set to ${choice}. POC: no payment taken.`); } catch (e) {
-      toast.error(isMissingEndpoint(e) ? "The POC plan switch isn't available on this server." : e.message);
+    try { await setPocPlan(companyId, choice); reloadEntitlements(); toast.success('Plan switched for testing. No payment taken.'); } catch (e) {
+      toast.error(isMissingEndpoint(e) ? "The test plan switch isn't available on this server." : e.message);
     } finally { setBusy(false); }
   }
   return (
     <div className="ui-stack">
-      <Card title="Current plan" action={<Badge tone="brand">{plan?.label || 'Free'}</Badge>}>
-        <p>Matches: {plan?.limits?.max_results === 5 ? 'top 5' : `up to ${plan?.limits?.max_results ?? 5}`} · Contact routes: {entitlements?.investor_profile_depth === 'full_with_contact' ? 'shown' : 'hidden'} · Pipeline: {plan?.limits?.pipeline ? 'yes' : 'no'} · Outreach drafts: {entitlements?.outreach_drafts_per_month || 0} a month</p>
-        <Button as={Link} to="/packages" variant="secondary">See packages</Button>
+      <Card title="Your plan" action={<Badge tone="brand">{tier}</Badge>}>
+        <p className="ui-muted">Free → Company Intelligence → Capital Raising. Capital Raising includes everything in Company Intelligence.</p>
+        {entitlementsRaw ? (
+          <ul className="plan-ladder plan-rows">
+            {PLAN_ROWS.filter((k) => k in display).map((k) => (
+              <li key={k}><span>{keys[k]?.label || humanise(k)}</span><span className="ui-muted">{displayValue(display, k)}{k === 'data_room' && /shar/i.test(display[k] || '') ? ' (sharing opens with the Investor Deal Room)' : ''}</span></li>
+            ))}
+          </ul>
+        ) : <Skeleton variant="text" lines={4} />}
+        {entitlementsRaw?.data_consent && <p className="ui-faint">Your plan never implies consent to use your data. Data permissions are set separately under Privacy and data.</p>}
+        <div className="ui-row"><Button as={Link} to={upgradeHref()} variant="secondary">Compare plans</Button></div>
+      </Card>
+      <Card title="Billing">
+        <p>Subscription prices are to be announced. No payment is taken in this app, and nothing is charged.</p>
+        {ladder.length > 0 && (
+          <ul className="plan-ladder">
+            {ladder.map((t) => <li key={t.id}><span>{t.name}</span><span className="ui-muted">{t.price_usd === 0 ? '$0' : 'Price to be announced'}</span></li>)}
+            <li><span>Advisor</span><span className="ui-muted">Not available yet (optional)</span></li>
+          </ul>
+        )}
       </Card>
       {pocOn && (
-        <Card title="POC plan switcher (testing only)" subtitle="No payment is taken. The server refuses this unless its POC flag is on.">
+        <Card title="Test plan switch (development only)" subtitle="No payment is taken. The server refuses this unless its POC flag is on.">
           <div className="ui-row">
-            {['trial', 'access', 'concierge'].map((p) => <label key={p} className="check"><input type="radio" name="poc" checked={choice === p} onChange={() => setChoice(p)} /> {p}</label>)}
+            {[['trial', 'Free'], ['concierge', 'Capital Raising']].map(([p, l]) => <label key={p} className="check"><input type="radio" name="poc" checked={choice === p} onChange={() => setChoice(p)} /> {l}</label>)}
             <Button variant="primary" size="sm" onClick={apply} loading={busy}>Apply</Button>
           </div>
         </Card>
@@ -157,15 +184,65 @@ function Plan({ companyId, plan, entitlements, reloadEntitlements }) {
   );
 }
 
+const LEVEL = { monthly_digest: 'A monthly digest', events: 'A monthly digest, plus event and deadline alerts', raise: 'Event, deadline and raise alerts' };
+const EMAIL = { ready: 'Email is on for these alerts.', not_configured: 'Email isn\'t set up yet, so notifications appear in the app only.', disabled: 'Email is off, so notifications appear in the app only.' };
+const KIND = { digest: 'Monthly digest', alert: 'Alert' };
+
+function Notifications({ companyId }) {
+  const q = useApi(() => (companyId ? getNotifications(companyId) : null), [companyId]);
+  if (!companyId) return <Card title="Notifications"><p className="ui-muted">Notifications start once your company is set up.</p></Card>;
+  if (q.error) return <Card title="Notifications"><Alert tone="warn">{isUnavailable(q.error) ? "Notifications aren't switched on here yet." : q.error.message}</Alert></Card>;
+  if (!q.data) return <Card title="Notifications"><Skeleton variant="text" lines={3} /></Card>;
+  const d = q.data;
+  return (
+    <div className="ui-stack">
+      <Card title="What you receive">
+        <p>{LEVEL[d.level] || humanise(d.level)} (set by your plan).</p>
+        <p className="ui-muted">{EMAIL[d.email] || ''} There are no separate preferences to set yet.</p>
+      </Card>
+      <Card title="Recent">
+        {(d.items || []).length ? (
+          <ul className="notif">
+            {d.items.map((n) => <li key={n.key + n.at}><span>{KIND[n.kind] || humanise(n.kind)}{n.code ? ` · ${n.code}` : ''}</span><span className="ui-faint">{fmtDateTime(n.at)} · {n.channel === 'email' ? 'Email' : 'In app'}</span></li>)}
+          </ul>
+        ) : <p className="ui-muted">Nothing yet. Your first monthly digest arrives at the start of next month.</p>}
+      </Card>
+    </div>
+  );
+}
+
+function Security({ me }) {
+  const navigate = useNavigate();
+  return (
+    <Card title="Security">
+      <dl className="facts"><div><dt>Signed in as</dt><dd>{me?.user?.email}</dd></div></dl>
+      <p>To change your password, use the reset link: we email you a secure link and nothing is changed until you open it.</p>
+      <div className="ui-row">
+        <Button as={Link} to="/forgot-password" variant="secondary">Reset my password</Button>
+        <Button variant="ghost" iconLeft="logout" onClick={() => { logout(); navigate('/login'); }}>Sign out on this device</Button>
+      </div>
+    </Card>
+  );
+}
+
 export default function SettingsPage() {
-  const { me, companyId, plan, entitlements, reloadEntitlements } = useCompany();
-  const [params, setParams] = useSearchParams();
-  const tab = ['account', 'privacy', 'plan'].includes(params.get('tab')) ? params.get('tab') : 'account';
+  const { me, companyId, entitlementsRaw, reloadEntitlements } = useCompany();
+  const { tab: param } = useParams();
+  const [query] = useSearchParams();
+  const navigate = useNavigate();
+  const tab = settingsTab(param, query.get('tab'));
   return (
     <div>
       <PageHeader title="Settings" />
-      <Tabs label="Settings" value={tab} onChange={(t) => setParams({ tab: t })} items={[{ id: 'account', label: 'Account' }, { id: 'privacy', label: 'Privacy and AI' }, { id: 'plan', label: 'Plan' }]}>
-        {(t) => (t === 'account' ? <><Account me={me} /><AppearanceSetting /></> : t === 'privacy' ? <Privacy companyId={companyId} /> : <Plan companyId={companyId} plan={plan} entitlements={entitlements} reloadEntitlements={reloadEntitlements} />)}
+      <Tabs label="Settings" value={tab} onChange={(t) => navigate(`/settings/${t}`)} items={SETTINGS_TABS}>
+        {(t) => ({
+          account: <Account me={me} />,
+          plan: <Plan companyId={companyId} entitlementsRaw={entitlementsRaw} reloadEntitlements={reloadEntitlements} />,
+          notifications: <Notifications companyId={companyId} />,
+          privacy: <Privacy companyId={companyId} />,
+          security: <Security me={me} />,
+          appearance: <AppearanceSetting />,
+        }[t])}
       </Tabs>
     </div>
   );

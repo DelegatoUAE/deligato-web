@@ -132,3 +132,6 @@ export function wordsForCodes(text) {
 
 /** AI sentences sometimes echo their citation ids ("(evidence_id: ev_stage)"); the chips carry them instead. */
 export const stripEvidenceIds = (t) => (typeof t === 'string' ? t.replace(/\s*\((?:evidence[_ ]ids?|ids?)\s*:[^)]*\)/gi, '').replace(/\s+([.,;])/g, '$1') : t);
+
+/** 22.4 → "22.4 months"; null stays null. */
+export const fmtMonths = (m) => (m == null || !Number.isFinite(Number(m)) ? null : `${Math.round(Number(m) * 10) / 10} months`);

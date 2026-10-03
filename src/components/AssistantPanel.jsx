@@ -1,13 +1,22 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, matchPath, useSearchParams } from 'react-router-dom';
 import { Alert, Badge, Button, Drawer, Skeleton, Textarea } from '../design/ui';
 import { useCompany } from './company-context';
 import { runTask } from '../lib/intelligence';
 import { isMissingEndpoint } from '../lib/auth';
 import { humanise } from '../lib/format';
+import { ASK_EVENT } from '../lib/ask';
 
-// Page → assistant screen key and starter chips (ia.md §3.1).
+// Page → assistant screen key and starter chips (ia.md §3.1). Screen ids follow
+// the assistant contract (api modules/intelligence _assistant_intent.js SCREENS):
+// Home is 'home' (the Command Center), the new Company screens have their own ids.
 const PAGES = [
+  ['/company/financial-health', 'financial_health', ['Why is my Financial Health this score?', 'What would improve it fastest?', 'What does "You told us" mean?']],
+  ['/company/check-in', 'financial_health', ['Which figures should I use?', 'What is gross burn?']],
+  ['/company/record', 'company_record', ["What's missing from my record?", 'What expires soon?', 'Why does the record matter to investors?']],
+  ['/company/intelligence', 'company_intelligence', ['What changed this month?', "What's stopping me being more capital-ready?", 'When should I start raising?']],
+  ['/settings/*', 'settings', ['What does my plan include?', 'What data goes to the AI provider?']],
+  ['/packages', 'billing', ['What does Capital Raising add?', 'What does my plan include?']],
   ['/capital/matches/:recordId', 'investor_profile', ['Why is this a strong fit?', "What don't we know about them?", 'Draft a first note']],
   ['/capital/readiness/*', 'readiness', ['Explain my biggest gap', 'What do investors read into my runway?', 'Who could help me with this?']],
   ['/capital/find', 'find_capital', ['Why is venture debt recommended?', 'Why not VC?', 'What would change my routes?']],
@@ -19,7 +28,7 @@ const PAGES = [
   ['/capital/*', 'matches', ['What should I do this week?', 'Which capital types fit us?']],
   ['/experts/*', 'experts', ['What kind of expert do I need?', 'Compare these two experts']],
   ['/company/*', 'company', ["What's missing from my profile?"]],
-  ['/', 'home', ['What should I do this week?', 'Explain my readiness score', 'Which capital types fit us?']],
+  ['/', 'home', ['What changed this month?', 'Why did my Financial Health change?', "What's stopping me being more capital-ready?"]],
 ];
 
 function pageContext(pathname) {
@@ -39,6 +48,14 @@ export default function AssistantPanel({ open, onClose }) {
   const [question, setQuestion] = useState('');
   const [state, setState] = useState({ busy: false, result: null, error: null, asked: null });
   const [keepContext, setKeepContext] = useState(true);
+  const askRef = useRef(null);
+
+  // Native prompts on any screen (lib/ask.js) ask here, with this screen as context.
+  useEffect(() => {
+    const onAsk = (e) => askRef.current?.(e.detail?.question);
+    window.addEventListener(ASK_EVENT, onAsk);
+    return () => window.removeEventListener(ASK_EVENT, onAsk);
+  }, []);
 
   async function ask(q) {
     const text = String(q || '').trim();
@@ -59,6 +76,7 @@ export default function AssistantPanel({ open, onClose }) {
     }
   }
 
+  useEffect(() => { askRef.current = ask; });
   const out = state.result?.output;
   const ai = state.result && state.result.provider && state.result.provider !== 'heuristic';
   const internal = (r) => typeof r === 'string' && r.startsWith('/');
