@@ -31,7 +31,7 @@ Each component is one file with a default export, written in plain JSX. `design/
 - Selectors are single-class where possible, so a page can override one with one class.
 - Tokens: use the semantic layer (`--bg`, `--surface`, `--text`, `--text-soft`, `--border`, `--accent`, `--fit-*`) in page CSS. Use the raw scales (`--navy-600`, `--gold-200`) only when you need a specific step.
 - `.ui-on-navy` re-points the semantic tokens for anything placed on navy. Panel `tone="navy"`, the sidebar, the readiness dial and navy stat tiles apply it for you.
-- Dark theme is opt-in only (`<html data-theme="dark">`). It does not switch on `prefers-color-scheme`, because App.css still hard-codes white cards and navy headings. This is a deliberate change from the v0 tokens.
+- Light / Dark / System is live (D54). See §8: page CSS uses semantic tokens only, and `src/lib/tokens.test.js` fails the build's tests on a literal colour or a raw scale step outside the brand chrome.
 - Old token names still work (`--brand`, `--brand-2`, `--brand-3`, `--brand-soft`, `--surface`, `--radius`, `--shadow`, `--error`, `--success`, `--focus`), so App.css keeps rendering while you migrate.
 
 ## 4. Components
@@ -113,3 +113,30 @@ The VS Code session's `web/src/components/ui/index.jsx` (uncommitted, never impo
 ## 7. Preview
 
 `npm run dev -- --port 5180`, then open `http://localhost:5180/design-preview.html`. That file and `src/design/preview-main.jsx` are a scratch entry for visual checks. Vite only builds `index.html`, so they are not in the production bundle.
+
+## 8. Theming: Light / Dark / System (D54)
+
+**How it switches.** `index.html` runs a tiny boot script before the bundle: it reads `localStorage['deligato.theme']` (`light` / `dark` / `system`, default `system`), resolves System with `prefers-color-scheme`, and sets `<html data-theme="light|dark" data-theme-pref="…">` before the first paint. `ThemeProvider` (`components/ThemeProvider.jsx`, `useTheme()` from `components/theme-context.js`) keeps it in step with the user's choice, OS changes and other tabs. Pure logic lives in `lib/theme.js`. Controls: `ThemeToggle` (top bar and auth pages, a keyboard radio group) and Settings → Account → Appearance. Storage is local only until the API has a field (`BUILD/requests/web-appearance-api.md`).
+
+**Where colour lives.** Only in `tokens.css`: `:root` holds the light values, `:root[data-theme='dark']` the dark ones, and `@media (prefers-color-scheme: dark) { :root:not([data-theme]) }` repeats the dark block as a no-script fallback (a test keeps the two identical). `.ui-on-navy` re-points the same names for the navy brand chrome, which looks the same in both themes.
+
+**Rules for page and component CSS**
+1. Use the semantic names below. Never `#hex`, `rgba()`, `white`, or a raw step (`--navy-200`, `--gold-dark`, `--ok-600`, `--cream-2`).
+2. The exception is the fixed navy brand chrome (sidebar, auth panel, landing hero and footer, readiness dial, navy panel, match-score tile, compare bar): white type on navy, gold glows. Those selectors are listed in `lib/tokens.test.js` (`CHROME`); add one there only if it really is navy in both themes.
+3. Never invert or filter images, uploaded documents, logos or the OG image. Images sit on `--surface` as they are.
+4. New screens (Company Intelligence, Financial Health, Company Record) need nothing new: build with these tokens and both themes work. If a colour role is missing, add a semantic token to all three blocks and a contrast pair to `tokens.test.js`.
+
+| Role | Tokens |
+|---|---|
+| Surfaces | `--bg` page · `--bg-sunken` wells, pill tracks · `--surface` cards · `--surface-2` insets, table heads, card feet · `--surface-raised` modals, drawers, menus · `--surface-hover` · `--surface-selected` selected rows/options · `--surface-warm` cream panels, grouped rows |
+| Lines | `--border` · `--border-soft` · `--border-strong` · `--border-control` input edges (3:1) · `--border-focus` |
+| Text | `--text` · `--text-strong` headings and figures · `--text-soft` · `--text-faint` (still AA) · `--text-link` · `--text-accent` gold words |
+| Brand fill | `--brand-fill` / `--on-brand-fill` primary buttons, selected chips, done steps, match segments (navy in light, cream in dark) · `--brand-fill-hover` · `--brand-mid`, `--brand-muted` medium/low marks · `--brand-tint` / `--on-brand-tint` neutral badges and counters |
+| Gold | `--accent` gold fills, focus, the one CTA · `--accent-hover` · `--accent-strong` gold marks (not small text) · `--gold-tint` / `--on-gold-tint` · `--gold-wash` · `--gold-line` |
+| Status (ok, warn, bad, info) | `--X-bg` wash (alerts) · `--X-tint` badge fill · `--X-border` · `--X-fg` text on tint or card · `--X-fg-strong` text on wash · `--X-solid` / `--on-X-solid` dots, bars, toast marks, danger button · `--bad-soft`, `--ok-soft` second shades |
+| Fit (correctness-critical) | `--fit-{yes,partial,no,unknown}-{fg,bg,mark}` · `--fit-yes-on-mark`. Unknown is never green; shape and glyph differ too. |
+| Overlays | `--scrim`, `--scrim-soft` · `--toast-bg`, `--toast-border`, `--toast-fg`, `--toast-fg-strong`, `--toast-fg-soft` · `--tip-bg`, `--tip-fg` · `--chrome-border` |
+| Bands | `--band-*` (on the navy dial) · `--on-band` words on a band colour |
+| Depth, focus | `--shadow-*` (re-tuned for dark) · `--ring`, `--ring-danger` |
+
+**Checks.** `npm test` runs `lib/tokens.test.js` (WCAG AA for ~70 text/control pairs in light, dark and navy chrome; dark block covers every light colour; fallback block identical; no literal colours) and `lib/theme.test.js` (System/explicit/storage failure, and the boot script agrees with `resolveTheme`).

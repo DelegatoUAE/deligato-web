@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { PAGE_SUFFIX, POSITIONING } from '../lib/format';
+import ThemeToggle from './ThemeToggle';
 
 /** Sign-in, sign-up and password screens: navy brand panel + form, Conncct design language. */
 export default function AuthLayout({ title, subtitle, children }) {
@@ -15,6 +16,7 @@ export default function AuthLayout({ title, subtitle, children }) {
         <p className="login-foot">We help you with fundraising. We never fundraise for you.</p>
       </aside>
       <main className="login-main">
+        <ThemeToggle className="login-theme" />
         <div className="login-form">
           <h1>{title}</h1>
           {subtitle && <p className="login-sub">{subtitle}</p>}

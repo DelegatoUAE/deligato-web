@@ -5,6 +5,7 @@ import { logout } from '../lib/auth';
 import { useCompany } from './company-context';
 import { ReadinessPill } from './capital/Readiness';
 import AssistantPanel from './AssistantPanel';
+import ThemeToggle from './ThemeToggle';
 import ErrorBoundary from './ErrorBoundary';
 import { CAPITAL_NAV, EXPERT_NAV, COMPANY_NAV } from './nav';
 import { PAGE_SUFFIX } from '../lib/format';
@@ -139,6 +140,7 @@ export default function AppLayout({ children }) {
             {company && !readinessLoading && <ReadinessPill readiness={readiness?.readiness} source={readiness} />}
             {plan && <Link to="/settings?tab=plan" className="planlink"><Badge tone="neutral">{plan.label}</Badge></Link>}
             <Button variant="secondary" size="sm" iconLeft="spark" onClick={() => setAssistantOpen(true)} aria-haspopup="dialog">Ask AI</Button>
+            <ThemeToggle />
           </>
         )}
       >

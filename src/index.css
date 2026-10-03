@@ -15,9 +15,9 @@ html, body, #root {
   -webkit-font-smoothing: antialiased;
 }
 
-h1, h2, h3 { color: var(--navy); letter-spacing: -0.01em; }
+h1, h2, h3 { color: var(--text-strong); letter-spacing: -0.01em; }
 
-a { color: var(--navy-2); text-decoration: none; }
+a { color: var(--text-link); text-decoration: none; }
 a:hover { text-decoration: underline; }
 
 button { font: inherit; cursor: pointer; }

@@ -77,39 +77,92 @@
   --info-400: #5A9CCB; --info-200: #BCD9EE; --info-100: #DDEDF8; --info-050: #F1F7FC;
 
   /* ============================================================
-     SEMANTIC LAYER: what components reference
+     SEMANTIC LAYER: what components reference.
+     Light theme values here; the dark theme re-points the same
+     names below (D54). Page and component CSS must only use these
+     names, never the raw scales above, unless it is drawing the
+     fixed navy brand chrome (sidebar, auth panel, landing hero).
      ============================================================ */
+  color-scheme: light;
+
+  /* surfaces */
   --bg:            var(--cream);
   --bg-sunken:     var(--cream-2);
   --surface:       #FFFFFF;
   --surface-2:     #FCFBF8;          /* inset areas inside a card */
+  --surface-raised: #FFFFFF;         /* modals, drawers, menus, popovers */
   --surface-hover: var(--cream-2);
   --surface-selected: var(--navy-050);
+  --surface-warm:  var(--cream-2);   /* cream panels, grouped rows */
   --surface-inverse: var(--navy);
 
+  /* lines */
   --border:        var(--cream-3);
   --border-soft:   #F0EBE1;
   --border-strong: var(--navy-200);
-  --border-focus:  var(--gold);
+  --border-control: #7088A8;         /* input, select and textarea edges: 3:1 on surface */
+  --border-focus:  var(--gold-dark); /* focus ring: 3:1 on cream and white */
 
+  /* text */
   --text:          var(--n-900);
   --text-strong:   var(--navy);
   --text-soft:     var(--n-500);
-  --text-faint:    var(--n-400);
+  --text-faint:    #5F6A78;          /* AA 4.5:1 on surface, bg and bg-sunken */
   --text-on-brand: #FFFFFF;
   --text-on-gold:  var(--navy);
   --text-link:     var(--navy-2);
+  --text-accent:   var(--gold-700);  /* gold words (eyebrows, stars): AA on light */
+
+  /* brand fill: the solid navy of primary buttons, selected chips,
+     done steps, match segments. In dark it becomes cream on navy. */
+  --brand-fill:       var(--navy);
+  --brand-fill-hover: var(--navy-700);
+  --on-brand-fill:    #FFFFFF;
+  --brand-mid:        var(--navy-2);   /* medium-confidence marks */
+  --brand-muted:      var(--navy-300); /* low-confidence marks, quiet bars */
+  --brand-tint:       var(--navy-050); /* neutral badges, counters */
+  --on-brand-tint:    var(--navy-2);
 
   --accent:        var(--gold);
-  --accent-strong: var(--gold-dark);
+  --accent-hover:  var(--gold-400);
+  --accent-strong: var(--gold-dark);   /* gold marks (bars, dots); not small text */
   --accent-soft:   var(--gold-100);
+  --gold-tint:     var(--gold-100);
+  --on-gold-tint:  var(--gold-800);
+  --gold-wash:     var(--gold-050);
+  --gold-line:     var(--gold-300);
   --track:         var(--cream-2);   /* empty part of bars and rings */
 
+  /* status: bg (wash) · tint (badge fill) · border · fg (text on tint)
+     · fg-strong (text on wash) · solid (marks, fills) · on-solid */
+  --ok-bg: var(--ok-050);     --ok-tint: var(--ok-100);     --ok-border: var(--ok-200);
+  --ok-fg: var(--ok-700);     --ok-fg-strong: var(--ok-800); --ok-solid: var(--ok-600);   --on-ok-solid: #FFFFFF;
+  --warn-bg: var(--warn-050); --warn-tint: var(--warn-100); --warn-border: var(--warn-200);
+  --warn-fg: var(--warn-700); --warn-fg-strong: var(--warn-800); --warn-solid: var(--gold-dark); --on-warn-solid: var(--navy);
+  --bad-bg: var(--bad-050);   --bad-tint: var(--bad-100);   --bad-border: var(--bad-200);
+  --bad-fg: var(--bad-700);   --bad-fg-strong: var(--bad-800); --bad-solid: var(--bad-600); --on-bad-solid: #FFFFFF;
+  --bad-soft: var(--bad-400); /* "likely outside" dots and dashed rings */
+  --ok-soft: var(--ok-400);   /* second green in coverage bars */
+  --info-bg: var(--info-050); --info-tint: var(--info-100); --info-border: var(--info-200);
+  --info-fg: var(--info-700); --info-fg-strong: var(--info-800); --info-solid: var(--info-600); --on-info-solid: #FFFFFF;
+
   /* fit states: correctness-critical. Unknown is NEVER green. */
-  --fit-yes-fg: var(--ok-700);   --fit-yes-bg: var(--ok-100);   --fit-yes-mark: var(--ok-600);
+  --fit-yes-fg: var(--ok-700);   --fit-yes-bg: var(--ok-100);   --fit-yes-mark: var(--ok-600);  --fit-yes-on-mark: #FFFFFF;
   --fit-partial-fg: var(--warn-700); --fit-partial-bg: var(--warn-100); --fit-partial-mark: var(--gold-dark);
   --fit-no-fg: var(--bad-700);   --fit-no-bg: var(--bad-050);   --fit-no-mark: var(--bad-600);
   --fit-unknown-fg: var(--n-500); --fit-unknown-bg: transparent; --fit-unknown-mark: var(--n-400);
+
+  /* overlays and floating surfaces */
+  --scrim:            rgba(2, 16, 31, 0.52);
+  --scrim-soft:       rgba(2, 16, 31, 0.42);
+  --toast-bg:         var(--navy);
+  --toast-border:     rgba(255, 255, 255, 0.08);
+  --toast-fg:         #EEF2F7;
+  --toast-fg-strong:  #FFFFFF;
+  --toast-fg-soft:    var(--navy-200);
+  --tip-bg:           var(--navy);
+  --tip-fg:           #FFFFFF;
+  --chrome-border:    rgba(255, 255, 255, 0.04); /* edge of navy chrome against the page */
 
   /* readiness bands: the seven Conncct readiness bands from the
      Capital Readiness prototype (crit / vhigh / high / med / semi /
@@ -121,6 +174,7 @@
   --band-semi: #7FB2E0;
   --band-ready: #4CAF72;
   --band-exceptional: #2FCB7A;
+  --on-band: var(--navy-950);        /* words on a band colour: 5:1 or better on all seven */
 
   /* ---- legacy aliases (App.css and older screens) ----------- */
   --brand: var(--navy);
@@ -192,7 +246,7 @@
 
   /* ---- focus -------------------------------------------------- */
   --ring-offset: var(--surface);
-  --ring: 0 0 0 2px var(--ring-offset), 0 0 0 4px var(--gold);
+  --ring: 0 0 0 2px var(--ring-offset), 0 0 0 4px var(--border-focus);
   --ring-danger: 0 0 0 2px var(--ring-offset), 0 0 0 4px var(--bad-600);
 
   /* ---- motion ------------------------------------------------- */
@@ -223,37 +277,64 @@
 
 /* ============================================================
    NAVY SURFACE: re-points the semantic layer for anything placed
-   on a navy panel (sidebar, readiness dial, hero bands). Every
-   component inside reads correctly without its own dark variant.
-   Also used as the opt-in dark theme: <html data-theme="dark">.
-   Dark is opt-in only. Older screens hard-code white cards and
-   navy headings, so an automatic prefers-color-scheme switch
-   would break them.
+   on a navy panel (sidebar, readiness dial, auth panel, hero
+   bands). Every component inside reads correctly without its own
+   variant. This is the brand chrome and looks the same in both
+   themes; it is not the dark theme.
    ============================================================ */
-.ui-on-navy,
-:root[data-theme='dark'] {
+.ui-on-navy {
   --bg: var(--navy-900);
   --bg-sunken: var(--navy-950);
   --surface: var(--navy);
   --surface-2: var(--navy-800);
+  --surface-raised: var(--navy-700);
   --surface-hover: rgba(255, 255, 255, 0.06);
   --surface-selected: rgba(231, 168, 30, 0.12);
+  --surface-warm: var(--navy-800);
   --surface-inverse: #FFFFFF;
 
   --border: rgba(255, 255, 255, 0.10);
   --border-soft: rgba(255, 255, 255, 0.06);
   --border-strong: rgba(255, 255, 255, 0.22);
+  --border-control: rgba(255, 255, 255, 0.40);
 
   --text: #EEF2F7;
   --text-strong: #FFFFFF;
   --text-soft: var(--navy-300);
-  --text-faint: var(--navy-400);
+  --text-faint: var(--navy-300);
+  --text-on-brand: var(--navy);
   --text-link: var(--gold-300);
+  --text-accent: var(--gold-300);
 
+  --brand-fill: #FFFFFF;
+  --brand-fill-hover: var(--navy-050);
+  --on-brand-fill: var(--navy);
+  --brand-mid: var(--navy-200);
+  --brand-muted: var(--navy-400);
+  --brand-tint: rgba(255, 255, 255, 0.08);
+  --on-brand-tint: var(--navy-100);
+
+  --accent-strong: var(--gold-400);
   --accent-soft: rgba(231, 168, 30, 0.16);
+  --gold-tint: rgba(231, 168, 30, 0.16);
+  --on-gold-tint: var(--gold-300);
+  --gold-wash: rgba(231, 168, 30, 0.08);
+  --gold-line: rgba(231, 168, 30, 0.35);
   --track: rgba(255, 255, 255, 0.09);
 
-  --fit-yes-fg: #8EDBA9;   --fit-yes-bg: rgba(21, 128, 61, 0.22);  --fit-yes-mark: #4CAF72;
+  --ok-bg: rgba(76, 175, 114, 0.10);  --ok-tint: rgba(76, 175, 114, 0.18);  --ok-border: rgba(76, 175, 114, 0.45);
+  --ok-fg: #8EDBA9;  --ok-fg-strong: #B7E4C7;  --ok-solid: #4CAF72;  --on-ok-solid: var(--navy);
+  --warn-bg: rgba(231, 168, 30, 0.10); --warn-tint: rgba(231, 168, 30, 0.18); --warn-border: rgba(231, 168, 30, 0.45);
+  --warn-fg: var(--gold-300); --warn-fg-strong: var(--gold-200); --warn-solid: var(--gold); --on-warn-solid: var(--navy);
+  --bad-bg: rgba(224, 82, 82, 0.12);  --bad-tint: rgba(224, 82, 82, 0.20);  --bad-border: rgba(224, 82, 82, 0.50);
+  --bad-fg: #F6A8A8;  --bad-fg-strong: #F9C9C9;  --bad-solid: #E05252;  --on-bad-solid: var(--navy-950);
+  --bad-soft: #E86A6A;
+  --ok-soft: #2E8A57;
+  --on-band: var(--navy-950);
+  --info-bg: rgba(90, 156, 203, 0.12); --info-tint: rgba(90, 156, 203, 0.20); --info-border: rgba(90, 156, 203, 0.50);
+  --info-fg: #9CC8EA; --info-fg-strong: var(--info-200); --info-solid: var(--info-400); --on-info-solid: var(--navy);
+
+  --fit-yes-fg: #8EDBA9;   --fit-yes-bg: rgba(21, 128, 61, 0.22);  --fit-yes-mark: #4CAF72;  --fit-yes-on-mark: var(--navy);
   --fit-partial-fg: var(--gold-300); --fit-partial-bg: rgba(231, 168, 30, 0.16); --fit-partial-mark: var(--gold);
   --fit-no-fg: #F4A3A3;    --fit-no-bg: rgba(192, 0, 0, 0.20);     --fit-no-mark: #E05252;
   --fit-unknown-fg: var(--navy-300); --fit-unknown-mark: var(--navy-400);
@@ -270,6 +351,209 @@
   --shadow-md: 0 2px 4px rgba(0, 0, 0, 0.4), 0 8px 20px rgba(0, 0, 0, 0.4);
   --shadow-lg: 0 4px 8px rgba(0, 0, 0, 0.45), 0 20px 44px rgba(0, 0, 0, 0.5);
   color: var(--text);
+}
+
+/* ============================================================
+   DARK THEME (D54): Light / Dark / System.
+   - <html data-theme="dark">  explicit dark, or System resolved
+     to dark by the boot script in index.html (src/lib/theme.js).
+   - <html data-theme="light"> explicit light.
+   - No data-theme (script blocked or not yet run): follow
+     prefers-color-scheme. The media-query block repeats the
+     explicit block verbatim; src/lib/tokens.test.js fails if the
+     two ever drift apart.
+   Navy brand chrome (.ui-on-navy) keeps its own values above.
+   ============================================================ */
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  /* surfaces: deep navy, lifted in small steps so cards read
+     without heavy borders. Never an inversion of the light theme. */
+  --bg:            #04111F;
+  --bg-sunken:     #020B16;
+  --surface:       #0A1E36;
+  --surface-2:     #0D2440;
+  --surface-raised: #102846;
+  --surface-hover: #142E50;
+  --surface-selected: #1B2F3E;       /* gold-warmed navy */
+  --surface-warm:  #15283B;          /* the cream panel, at night */
+  --surface-inverse: var(--cream);
+
+  --border:        #1E3657;
+  --border-soft:   #172D4A;
+  --border-strong: #31507A;
+  --border-control: #5D7CA3;
+  --border-focus:  var(--gold);
+
+  /* cream-tinted text */
+  --text:          #EDE7DB;
+  --text-strong:   #FBF8F2;
+  --text-soft:     #B3BDCA;
+  --text-faint:    #8E9BB0;
+  --text-on-brand: var(--navy);
+  --text-on-gold:  var(--navy);
+  --text-link:     var(--gold-300);
+  --text-accent:   var(--gold-400);
+
+  --brand-fill:       var(--cream-2);
+  --brand-fill-hover: #FFFFFF;
+  --on-brand-fill:    var(--navy);
+  --brand-mid:        var(--navy-200);
+  --brand-muted:      var(--navy-400);
+  --brand-tint:       #17314F;
+  --on-brand-tint:    var(--navy-100);
+
+  --accent:        var(--gold);
+  --accent-hover:  var(--gold-400);
+  --accent-strong: var(--gold-400);
+  --accent-soft:   rgba(231, 168, 30, 0.16);
+  --gold-tint:     rgba(231, 168, 30, 0.16);
+  --on-gold-tint:  var(--gold-300);
+  --gold-wash:     rgba(231, 168, 30, 0.08);
+  --gold-line:     rgba(240, 188, 78, 0.55);
+  --track:         rgba(255, 255, 255, 0.09);
+
+  --ok-bg: rgba(76, 175, 114, 0.10);  --ok-tint: rgba(76, 175, 114, 0.18);  --ok-border: rgba(76, 175, 114, 0.45);
+  --ok-fg: #8EDBA9;  --ok-fg-strong: #B7E4C7;  --ok-solid: #4CAF72;  --on-ok-solid: var(--navy);
+  --warn-bg: rgba(231, 168, 30, 0.10); --warn-tint: rgba(231, 168, 30, 0.18); --warn-border: rgba(231, 168, 30, 0.45);
+  --warn-fg: var(--gold-300); --warn-fg-strong: var(--gold-200); --warn-solid: var(--gold); --on-warn-solid: var(--navy);
+  --bad-bg: rgba(224, 82, 82, 0.12);  --bad-tint: rgba(224, 82, 82, 0.20);  --bad-border: rgba(224, 82, 82, 0.50);
+  --bad-fg: #F6A8A8;  --bad-fg-strong: #F9C9C9;  --bad-solid: #E05252;  --on-bad-solid: var(--navy-950);
+  --bad-soft: #E86A6A;
+  --ok-soft: #2E8A57;
+  --on-band: var(--navy-950);
+  --info-bg: rgba(90, 156, 203, 0.12); --info-tint: rgba(90, 156, 203, 0.20); --info-border: rgba(90, 156, 203, 0.50);
+  --info-fg: #9CC8EA; --info-fg-strong: var(--info-200); --info-solid: var(--info-400); --on-info-solid: var(--navy);
+
+  --fit-yes-fg: #8EDBA9;   --fit-yes-bg: rgba(76, 175, 114, 0.18);  --fit-yes-mark: #4CAF72;  --fit-yes-on-mark: var(--navy);
+  --fit-partial-fg: var(--gold-300); --fit-partial-bg: rgba(231, 168, 30, 0.16); --fit-partial-mark: var(--gold);
+  --fit-no-fg: #F6A8A8;    --fit-no-bg: rgba(224, 82, 82, 0.16);     --fit-no-mark: #E86A6A;
+  --fit-unknown-fg: var(--navy-200); --fit-unknown-bg: transparent; --fit-unknown-mark: var(--navy-300);
+
+  --scrim:            rgba(0, 5, 12, 0.70);
+  --scrim-soft:       rgba(0, 5, 12, 0.60);
+  --toast-bg:         #17345A;
+  --toast-border:     rgba(255, 255, 255, 0.14);
+  --toast-fg:         #EDE7DB;
+  --toast-fg-strong:  #FFFFFF;
+  --toast-fg-soft:    var(--navy-100);
+  --tip-bg:           var(--cream-2);
+  --tip-fg:           var(--navy);
+  --chrome-border:    rgba(255, 255, 255, 0.09);
+
+  --brand-soft: rgba(255, 255, 255, 0.06);
+  --error: #E86A6A;
+  --success: #4CAF72;
+  --ring-offset: var(--surface);
+  /* custom properties resolve where they are declared, so the rings
+     are re-declared here to pick up the dark offset */
+  --ring: 0 0 0 2px var(--surface), 0 0 0 4px var(--gold);
+  --ring-danger: 0 0 0 2px var(--surface), 0 0 0 4px #E86A6A;
+
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.35);
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.45), 0 2px 6px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 2px 4px rgba(0, 0, 0, 0.4), 0 8px 20px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 4px 8px rgba(0, 0, 0, 0.45), 0 20px 44px rgba(0, 0, 0, 0.5);
+  --shadow-xl: 0 12px 24px rgba(0, 0, 0, 0.45), 0 40px 80px -12px rgba(0, 0, 0, 0.7);
+  --shadow-inset: inset 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    color-scheme: dark;
+
+    /* surfaces: deep navy, lifted in small steps so cards read
+       without heavy borders. Never an inversion of the light theme. */
+    --bg:            #04111F;
+    --bg-sunken:     #020B16;
+    --surface:       #0A1E36;
+    --surface-2:     #0D2440;
+    --surface-raised: #102846;
+    --surface-hover: #142E50;
+    --surface-selected: #1B2F3E;       /* gold-warmed navy */
+    --surface-warm:  #15283B;          /* the cream panel, at night */
+    --surface-inverse: var(--cream);
+
+    --border:        #1E3657;
+    --border-soft:   #172D4A;
+    --border-strong: #31507A;
+    --border-control: #5D7CA3;
+    --border-focus:  var(--gold);
+
+    /* cream-tinted text */
+    --text:          #EDE7DB;
+    --text-strong:   #FBF8F2;
+    --text-soft:     #B3BDCA;
+    --text-faint:    #8E9BB0;
+    --text-on-brand: var(--navy);
+    --text-on-gold:  var(--navy);
+    --text-link:     var(--gold-300);
+    --text-accent:   var(--gold-400);
+
+    --brand-fill:       var(--cream-2);
+    --brand-fill-hover: #FFFFFF;
+    --on-brand-fill:    var(--navy);
+    --brand-mid:        var(--navy-200);
+    --brand-muted:      var(--navy-400);
+    --brand-tint:       #17314F;
+    --on-brand-tint:    var(--navy-100);
+
+    --accent:        var(--gold);
+    --accent-hover:  var(--gold-400);
+    --accent-strong: var(--gold-400);
+    --accent-soft:   rgba(231, 168, 30, 0.16);
+    --gold-tint:     rgba(231, 168, 30, 0.16);
+    --on-gold-tint:  var(--gold-300);
+    --gold-wash:     rgba(231, 168, 30, 0.08);
+    --gold-line:     rgba(240, 188, 78, 0.55);
+    --track:         rgba(255, 255, 255, 0.09);
+
+    --ok-bg: rgba(76, 175, 114, 0.10);  --ok-tint: rgba(76, 175, 114, 0.18);  --ok-border: rgba(76, 175, 114, 0.45);
+    --ok-fg: #8EDBA9;  --ok-fg-strong: #B7E4C7;  --ok-solid: #4CAF72;  --on-ok-solid: var(--navy);
+    --warn-bg: rgba(231, 168, 30, 0.10); --warn-tint: rgba(231, 168, 30, 0.18); --warn-border: rgba(231, 168, 30, 0.45);
+    --warn-fg: var(--gold-300); --warn-fg-strong: var(--gold-200); --warn-solid: var(--gold); --on-warn-solid: var(--navy);
+    --bad-bg: rgba(224, 82, 82, 0.12);  --bad-tint: rgba(224, 82, 82, 0.20);  --bad-border: rgba(224, 82, 82, 0.50);
+    --bad-fg: #F6A8A8;  --bad-fg-strong: #F9C9C9;  --bad-solid: #E05252;  --on-bad-solid: var(--navy-950);
+    --bad-soft: #E86A6A;
+  --ok-soft: #2E8A57;
+  --on-band: var(--navy-950);
+    --info-bg: rgba(90, 156, 203, 0.12); --info-tint: rgba(90, 156, 203, 0.20); --info-border: rgba(90, 156, 203, 0.50);
+    --info-fg: #9CC8EA; --info-fg-strong: var(--info-200); --info-solid: var(--info-400); --on-info-solid: var(--navy);
+
+    --fit-yes-fg: #8EDBA9;   --fit-yes-bg: rgba(76, 175, 114, 0.18);  --fit-yes-mark: #4CAF72;  --fit-yes-on-mark: var(--navy);
+    --fit-partial-fg: var(--gold-300); --fit-partial-bg: rgba(231, 168, 30, 0.16); --fit-partial-mark: var(--gold);
+    --fit-no-fg: #F6A8A8;    --fit-no-bg: rgba(224, 82, 82, 0.16);     --fit-no-mark: #E86A6A;
+    --fit-unknown-fg: var(--navy-200); --fit-unknown-bg: transparent; --fit-unknown-mark: var(--navy-300);
+
+    --scrim:            rgba(0, 5, 12, 0.70);
+    --scrim-soft:       rgba(0, 5, 12, 0.60);
+    --toast-bg:         #17345A;
+    --toast-border:     rgba(255, 255, 255, 0.14);
+    --toast-fg:         #EDE7DB;
+    --toast-fg-strong:  #FFFFFF;
+    --toast-fg-soft:    var(--navy-100);
+    --tip-bg:           var(--cream-2);
+    --tip-fg:           var(--navy);
+    --chrome-border:    rgba(255, 255, 255, 0.09);
+
+    --brand-soft: rgba(255, 255, 255, 0.06);
+    --error: #E86A6A;
+    --success: #4CAF72;
+    --ring-offset: var(--surface);
+    /* custom properties resolve where they are declared, so the rings
+       are re-declared here to pick up the dark offset */
+    --ring: 0 0 0 2px var(--surface), 0 0 0 4px var(--gold);
+    --ring-danger: 0 0 0 2px var(--surface), 0 0 0 4px #E86A6A;
+
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.35);
+    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.45), 0 2px 6px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 2px 4px rgba(0, 0, 0, 0.4), 0 8px 20px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 4px 8px rgba(0, 0, 0, 0.45), 0 20px 44px rgba(0, 0, 0, 0.5);
+    --shadow-xl: 0 12px 24px rgba(0, 0, 0, 0.45), 0 40px 80px -12px rgba(0, 0, 0, 0.7);
+    --shadow-inset: inset 0 1px 2px rgba(0, 0, 0, 0.35);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
