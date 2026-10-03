@@ -90,4 +90,4 @@ export const POSITIONING = 'Understand your business. Become capital ready. Find
 
 // D28 (stealth): server provenance text may still say "Conncct Verified";
 // the founder UI shows "Research Verified". Applied wherever a server label is shown.
-export const stealthLabel = (s) => (typeof s === 'string' ? s.replace(/Conncct Verified/g, 'Research Verified').replace(/Conncct research/g, 'our research') : s);
+export const stealthLabel = (s) => (typeof s === 'string' ? s.replace(/Conncct Verified/g, 'Research Verified').replace(/Conncct research/g, 'our research team') : s);

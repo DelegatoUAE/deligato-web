@@ -34,7 +34,7 @@ export default function CapitalOverviewPage() {
         actions={<Button as={Link} to="/capital/find" variant="accent" size="lg">Find the right capital</Button>} />
       <section className="home-stats" aria-label="Capital at a glance">
         <StatTile as={Link} to="/capital/matches" label="Verified fits" loading={runLoading} value={run ? fmtInt(bucket('eligible')) : '–'} foot={run ? `${fmtInt(bucket('possible'))} possible · ${fmtInt(bucket('likely_outside'))} likely outside` : 'No match run yet'} />
-        <StatTile as={Link} to="/capital/matches" label="Eligible sources" loading={runLoading} value={run ? fmtInt(run.counts?.eligible) : '–'} foot={run?.counts?.considered ? `of ${fmtInt(run.counts.considered)} verified sources` : ''} />
+        <StatTile as={Link} to="/capital/matches" label="Eligible sources" loading={runLoading} value={run ? fmtInt(run.counts?.eligible) : '–'} foot={run?.counts?.considered ? `of ${fmtInt(run.counts.considered)} active sources` : ''} />
         <StatTile as={Link} to="/capital/pipeline" label="In your pipeline" value={gated ? '–' : pipeline ? pipeline.length : '–'} foot={gated ? 'Included from Investor-Ready' : 'saved and active'} />
         <StatTile as={Link} to="/capital/data-room" label="Data room" loading={drQ.loading && !drQ.data && !drQ.error} value={drQ.data ? `${drQ.data.completeness_pct}%` : '–'} foot={drQ.data ? `${drQ.data.done_count} of ${drQ.data.required_count} required items` : drQ.error ? 'Not available yet' : ''} />
       </section>

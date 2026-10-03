@@ -1,0 +1,74 @@
+// Pure helpers for the Matches table and compare view. No React, no network:
+// unit-tested in matchview.test.js (npm test).
+//
+// D24: evidence buckets come first. Whatever column the founder sorts by,
+// rows stay grouped by bucket (Verified eligible, then Possible, then Likely
+// outside), and the chosen sort applies inside each bucket. A sort never lifts
+// a "Possible" result above a verified one.
+
+export const BUCKET_RANK = { eligible: 0, possible: 1, likely_outside: 2 };
+const CONF_RANK = { high: 3, medium: 2, low: 1 };
+const FIT_RANK = { yes: 3, partial: 2, unknown: 1, no: 0 };
+const FIT_KEYS = ['stage', 'sector', 'geography', 'ticket', 'business_model'];
+
+const fitState = (s) => (s in FIT_RANK ? s : 'unknown');
+
+/** How many of the five decisive criteria fit (yes), and how many are unknown. */
+export function fitSummary(r) {
+  const states = FIT_KEYS.map((k) => fitState(r?.fits?.[k]));
+  return {
+    yes: states.filter((s) => s === 'yes').length,
+    partial: states.filter((s) => s === 'partial').length,
+    unknown: states.filter((s) => s === 'unknown').length,
+    no: states.filter((s) => s === 'no').length,
+    total: FIT_KEYS.length,
+  };
+}
+
+/** Sort value for one column. null means "not on record" and always sorts last. */
+export function sortValue(r, key) {
+  switch (key) {
+    case 'name': return r.name ? String(r.name).toLowerCase() : null;
+    case 'type': return r.type ? String(r.type).toLowerCase() : null;
+    case 'location': return [r.country, r.city].filter(Boolean).join(' ').toLowerCase() || null;
+    case 'score': return r.match_score ?? null;
+    case 'confidence': return CONF_RANK[String(r.data_confidence || '').toLowerCase()] ?? null;
+    case 'fits': { const f = fitSummary(r); return f.yes * 10 + f.partial * 3 - f.no * 20; }
+    case 'ticket_size': return r.ticket_max_usd ?? r.ticket_min_usd ?? null;
+    case 'deadline': return r.deadline ? new Date(r.deadline).getTime() : null;
+    default: return FIT_KEYS.includes(key) ? FIT_RANK[fitState(r?.fits?.[key])] : null;
+  }
+}
+
+/**
+ * Sort rows by column inside their evidence bucket. dir: 'asc' | 'desc'.
+ * Unknown values sort last in either direction. Stable on ties (original order).
+ */
+export function sortMatches(rows, key, dir = 'desc') {
+  const sign = dir === 'asc' ? 1 : -1;
+  return rows
+    .map((r, i) => ({ r, i }))
+    .sort((a, b) => {
+      const bk = (BUCKET_RANK[a.r.bucket] ?? 1) - (BUCKET_RANK[b.r.bucket] ?? 1);
+      if (bk) return bk;
+      if (!key) return a.i - b.i;
+      const va = sortValue(a.r, key);
+      const vb = sortValue(b.r, key);
+      if (va === null && vb === null) return a.i - b.i;
+      if (va === null) return 1;
+      if (vb === null) return -1;
+      if (va < vb) return -1 * sign;
+      if (va > vb) return 1 * sign;
+      return a.i - b.i;
+    })
+    .map((x) => x.r);
+}
+
+export const COMPARE_MAX = 3;
+
+/** Toggle a record in the compare selection, never exceeding COMPARE_MAX. */
+export function toggleCompare(selected, recordId) {
+  if (selected.includes(recordId)) return selected.filter((id) => id !== recordId);
+  if (selected.length >= COMPARE_MAX) return selected;
+  return [...selected, recordId];
+}

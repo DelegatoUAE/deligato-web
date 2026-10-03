@@ -71,7 +71,15 @@ export default function DashboardPage() {
   const [dismissed, setDismissed] = useState(readDismissed);
 
   const name = firstName(me?.profile?.full_name || me?.user?.user_metadata?.full_name);
-  if (companiesLoading) return <Skeleton h="320px" />;
+  if (companiesLoading) {
+    return (
+      <div className="dash-skel" aria-busy="true" aria-label="Loading your command centre">
+        <Skeleton w="55%" h="34px" /><Skeleton w="30%" h="14px" />
+        <div className="dash-skel-tiles">{[0, 1, 2, 3, 4].map((i) => <Skeleton key={i} h="118px" r="12px" />)}</div>
+        <Skeleton h="200px" r="12px" />
+      </div>
+    );
+  }
   if (!company) return <Waiting staff={staff} name={name} />;
 
   const r = readiness?.readiness || null;

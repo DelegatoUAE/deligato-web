@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import {
   Alert, Badge, Button, Card, ConfidenceBadge, EmptyState, FitList, FitRow, FormField, Input, Modal, Select, Skeleton, Tag, Textarea, useToast,
@@ -9,7 +9,7 @@ import AiOutput from '../components/AiOutput';
 import { FundraisingNotice, LoadError } from '../components/capital/bits';
 import useApi from '../lib/useApi';
 import {
-  getSource, getRunNormalised, listPipeline, addToPipeline, previewMatch, FIT_DIMENSIONS, confidenceLevel, stageLabel, fitReasonText, bucketHeadline, tierWithinBucket,
+  getSource, getRunNormalised, listPipeline, addToPipeline, previewMatch, FIT_DIMENSIONS, confidenceLevel, stageLabel, fitReasonText, bucketHeadline, tierWithinBucket, investorHref, ticketRange,
 } from '../lib/capital';
 import { submitCorrection, recordNotFit, CORRECTION_FIELDS, FEEDBACK_DOWN_REASONS } from '../lib/learning';
 import { recordOutcome, kindForRoute } from '../lib/fundraising';
@@ -68,8 +68,60 @@ function fitDetail(dim, m, company, result) {
 
 const SECTIONS = [
   ['overview', 'Overview'], ['fit', 'Why you match'], ['mismatch', 'Potential mismatches'], ['mandate', 'Mandate'],
-  ['portfolio', 'Portfolio'], ['contact', 'How to reach them'], ['activity', 'Activity'], ['sources', 'Sources'],
+  ['portfolio', 'Portfolio'], ['contact', 'How to reach them'], ['activity', 'Activity'], ['sources', 'Sources'], ['similar', 'Similar'],
 ];
+
+const COVERAGE_ORDER = [PROV.provider, PROV.conncct, PROV.licensed, PROV.public, PROV.ai, PROV.unknown];
+const COVERAGE_CLS = { [PROV.provider]: 'provider', [PROV.conncct]: 'research', [PROV.licensed]: 'licensed', [PROV.public]: 'public', [PROV.ai]: 'ai', [PROV.unknown]: 'unknown' };
+
+/** Evidence coverage of the mandate: how many fields carry which D16 label. Counts only what the page shows. */
+function Coverage({ profile, rows }) {
+  const labels = rows.map(([, field, raw]) => provenance(profile, field, raw));
+  const counts = COVERAGE_ORDER.map((l) => [l, labels.filter((x) => x === l).length]).filter(([, n]) => n > 0);
+  const known = labels.filter((l) => l !== PROV.unknown).length;
+  return (
+    <div className="inv-cov">
+      <p className="inv-cov-h"><strong>{known} of {labels.length}</strong> mandate fields on record</p>
+      <div className="inv-cov-bar" role="img" aria-label={counts.map(([l, n]) => `${n} ${l}`).join(', ')}>
+        {counts.map(([l, n]) => <i key={l} className={`cov-${COVERAGE_CLS[l]}`} style={{ flexGrow: n }} title={`${n} ${l}`} />)}
+      </div>
+      <ul className="inv-cov-legend">
+        {counts.map(([l, n]) => <li key={l}><span className={`cov-dot cov-${COVERAGE_CLS[l]}`} aria-hidden="true" />{l} <b>{n}</b></li>)}
+      </ul>
+    </div>
+  );
+}
+
+/** Highlights the section in view in the on-page nav. */
+function useActiveSection(ids, ready) {
+  const [active, setActive] = useState(ids[0]);
+  const [pinnedUntil, setPinnedUntil] = useState(0);
+  useEffect(() => {
+    if (!ready || typeof IntersectionObserver === 'undefined') return undefined;
+    const els = ids.map((i) => document.getElementById(i)).filter(Boolean);
+    const io = new IntersectionObserver((entries) => {
+      const vis = entries.filter((e) => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
+      if (vis && Date.now() > pinnedUntil) setActive(vis.target.id);
+    }, { rootMargin: '-80px 0px -60% 0px' });
+    els.forEach((el) => io.observe(el));
+    return () => io.disconnect();
+  }, [ids, ready, pinnedUntil]);
+  // A click on the nav wins over the observer while the page scrolls there
+  // (the last sections can't reach the top of the viewport).
+  const pick = (id) => { setPinnedUntil(Date.now() + 1200); setActive(id); };
+  return [active, pick];
+}
+const SECTION_IDS = SECTIONS.map(([k]) => k);
+
+function ProfileSkeleton() {
+  return (
+    <div className="inv" aria-busy="true" aria-label="Loading investor">
+      <Skeleton w="120px" h="14px" />
+      <div className="inv-skel-head"><div className="ui-stack"><Skeleton w="45%" h="30px" /><Skeleton w="30%" h="14px" /><Skeleton w="60%" h="36px" /></div><Skeleton w="96px" h="96px" r="16px" /></div>
+      <div className="inv-grid"><Skeleton h="260px" r="12px" /><Skeleton h="260px" r="12px" /><Skeleton h="320px" r="12px" /><Skeleton h="320px" r="12px" /></div>
+    </div>
+  );
+}
 
 export default function InvestorProfilePage() {
   const { recordId } = useParams();
@@ -90,6 +142,7 @@ export default function InvestorProfilePage() {
   const [corr, setCorr] = useState({ field: 'stages', proposed_value: '', evidence_url: '', note: '' });
   const [dismissReason, setDismissReason] = useState('wrong_geography');
   const [brief, setBrief] = useState({ loading: false, result: null, error: null });
+  const [activeSection, pickSection] = useActiveSection(SECTION_IDS, Boolean(srcQ.data?.profile));
 
   if (srcQ.error) {
     if (srcQ.error.status === 404) {
@@ -98,7 +151,7 @@ export default function InvestorProfilePage() {
     return <LoadError error={srcQ.error} onRetry={srcQ.reload} what="this investor" />;
   }
   const p = srcQ.data?.profile;
-  if (!p) return <div className="ui-stack"><Skeleton h="140px" /><Skeleton h="320px" /></div>;
+  if (!p) return <ProfileSkeleton />;
 
   const m = p.mandate || {};
   const app = p.application || {};
@@ -163,6 +216,23 @@ export default function InvestorProfilePage() {
     }
   }
 
+  const mandateRows = [
+    ['Stage', 'stages', m.stages, list(m.stages)],
+    ['Sector', 'sectors', m.sectors, list(m.sectors)],
+    ['Sector exclusions', 'sector_exclusions', m.sector_exclusions, list(m.sector_exclusions)],
+    ['Geography (accepts HQ)', 'accepts_hq', m.accepts_hq, list(m.accepts_hq)],
+    ['Target markets', 'target_markets', m.target_markets, list(m.target_markets)],
+    ['Ticket', 'ticket_min_usd', m.ticket?.label, m.ticket?.label],
+    ['Investment type', 'instruments', m.instruments, list(m.instruments)],
+    ['Investor types', 'investor_types', m.investor_types, list(m.investor_types)],
+    ['Business models', 'business_models', m.business_models, list(m.business_models)],
+    ['Lead preference', 'lead_preference', m.lead_preference, m.lead_preference !== 'Unknown' ? m.lead_preference : null],
+    ['Equity taken', 'equity_taken_pct', m.equity_taken_pct, m.equity_taken_pct != null ? `${m.equity_taken_pct}%` : null],
+    ['Revenue requirement', 'revenue_requirement', m.revenue_requirement, m.revenue_requirement !== 'Unknown' ? m.revenue_requirement : null],
+    ['Local presence', 'requires_local_presence', m.requires_local_presence, m.requires_local_presence == null ? null : m.requires_local_presence ? 'Required' : 'Not required'],
+    ['Thesis', 'thesis_keywords', m.thesis_keywords, list(m.thesis_keywords)],
+  ];
+  const runIds = new Set((runQ.data?.results || []).map((r) => r.record_id));
   const fitItems = FIT_DIMENSIONS.map((d) => ({ key: d.key, label: d.key === 'business_model' ? 'Business model' : d.label, state: result?.fits?.[d.key], detail: fitDetail(d.key, m, company, result) }));
   const mismatches = fitItems.filter((f) => f.state === 'no' || f.state === 'partial');
 
@@ -175,6 +245,7 @@ export default function InvestorProfilePage() {
           <h1>{id.name}</h1>
           <p className="inv-sub">{[id.type, [id.city, id.country].filter(Boolean).join(', ')].filter(Boolean).join(' · ')}</p>
           <p className="ui-muted">{fr.label || 'No dated evidence of activity'}</p>
+          <Coverage profile={p} rows={mandateRows} />
           <div className="inv-actions">
             {pipelineItem ? (
               pipelineItem.stage === 'shortlisted'
@@ -205,7 +276,7 @@ export default function InvestorProfilePage() {
       </Card>
 
       <nav className="inv-toc" aria-label="On this page">
-        {SECTIONS.map(([k, l]) => <a key={k} href={`#${k}`}>{l}</a>)}
+        {SECTIONS.filter(([k]) => k !== 'similar' || (p.similar || []).length).map(([k, l]) => <a key={k} href={`#${k}`} onClick={() => pickSection(k)} className={activeSection === k ? 'is-active' : undefined} aria-current={activeSection === k ? 'location' : undefined}>{l}</a>)}
       </nav>
 
       {notInRun && (
@@ -253,22 +324,7 @@ export default function InvestorProfilePage() {
 
         <Card id="mandate" title="Mandate">
           <dl className="facts facts-prov">
-            {[
-              ['Stage', 'stages', m.stages, list(m.stages)],
-              ['Sector', 'sectors', m.sectors, list(m.sectors)],
-              ['Sector exclusions', 'sector_exclusions', m.sector_exclusions, list(m.sector_exclusions)],
-              ['Geography (accepts HQ)', 'accepts_hq', m.accepts_hq, list(m.accepts_hq)],
-              ['Target markets', 'target_markets', m.target_markets, list(m.target_markets)],
-              ['Ticket', 'ticket_min_usd', m.ticket?.label, m.ticket?.label],
-              ['Investment type', 'instruments', m.instruments, list(m.instruments)],
-              ['Investor types', 'investor_types', m.investor_types, list(m.investor_types)],
-              ['Business models', 'business_models', m.business_models, list(m.business_models)],
-              ['Lead preference', 'lead_preference', m.lead_preference, m.lead_preference !== 'Unknown' ? m.lead_preference : null],
-              ['Equity taken', 'equity_taken_pct', m.equity_taken_pct, m.equity_taken_pct != null ? `${m.equity_taken_pct}%` : null],
-              ['Revenue requirement', 'revenue_requirement', m.revenue_requirement, m.revenue_requirement !== 'Unknown' ? m.revenue_requirement : null],
-              ['Local presence', 'requires_local_presence', m.requires_local_presence, m.requires_local_presence == null ? null : m.requires_local_presence ? 'Required' : 'Not required'],
-              ['Thesis', 'thesis_keywords', m.thesis_keywords, list(m.thesis_keywords)],
-            ].map(([label, field, raw, shown]) => (
+            {mandateRows.map(([label, field, raw, shown]) => (
               <div key={field}><dt>{label}</dt><dd>{shown || <span className="ui-faint">{NOT_ON_RECORD}</span>} <Prov profile={p} field={field} value={raw} /></dd></div>
             ))}
           </dl>
@@ -327,6 +383,24 @@ export default function InvestorProfilePage() {
           ) : <p className="ui-faint">No source links on record.</p>}
         </Card>
       </div>
+
+      {(p.similar || []).length > 0 && (
+        <Card id="similar" title="Similar capital providers" className="inv-similar"
+          action={<span className="ui-muted inv-similar-note">Compared on mandate overlap. Similar is not a match for you.</span>}>
+          <ul className="sim-list">
+            {p.similar.map((x) => (
+              <li key={x.record_id}>
+                <Link to={investorHref(x.record_id, runIds.has(x.record_id) ? runQ.data?.run_id : null)} className="sim-card">
+                  <span className="sim-top"><span className="sim-name">{x.name}</span><span className="sim-pct" title="Mandate overlap with this provider">{x.similarity}% overlap</span></span>
+                  <span className="sim-meta">{[x.type, x.country].filter(Boolean).join(' · ') || 'Type and country not on record'}{' · '}{ticketRange(x.ticket_min_usd, x.ticket_max_usd) || 'ticket not on record'}</span>
+                  <span className="sim-why">{x.why_similar}</span>
+                  {runIds.has(x.record_id) && <Badge tone="info" size="sm">In your matches</Badge>}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
 
       <FundraisingNotice />
 
