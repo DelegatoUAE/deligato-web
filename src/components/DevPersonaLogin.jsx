@@ -14,7 +14,7 @@ const PERSONAS = [
   { key: 'uk-climate-hardware-seed-lowready', id: '00000000-0000-4000-a000-000000000004', email: 'founder.uk@test.local', label: 'Thermadyne Loop · UK climate hardware · Seed' },
   { key: 'egypt-edtech-preseed-revenue', id: '00000000-0000-4000-a000-000000000005', email: 'founder.eg@test.local', label: 'Fasla · Egypt edtech · Pre-seed' },
   { key: 'india-healthtech-series-a-strong', id: '00000000-0000-4000-a000-000000000006', email: 'founder.in@test.local', label: 'PulseCare · India healthtech · Series A' },
-  { key: 'qa-staff', id: '00000000-0000-4000-a000-0000000000f1', email: 'staff@test.local', label: 'QA staff · Admin section' },
+  { key: 'qa-staff', id: '00000000-0000-4000-a000-0000000000f1', email: 'qa-staff@test.local', label: 'QA staff · Admin section' },
 ];
 
 async function probe() {
