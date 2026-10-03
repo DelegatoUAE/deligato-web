@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Alert, Badge, Button, Card, EmptyState, Icon, Tooltip } from '../../design/ui';
+import { upgradeHref } from '../../lib/plan';
 
 export const FUNDRAISING_LINE = 'We help you with fundraising. We never fundraise for you.';
 
@@ -17,7 +18,7 @@ export function ConncctSourceTag({ label = 'Imported' }) {
 }
 
 /** A locked feature: what it does, which package unlocks it, one CTA. */
-export function GateCard({ title, body, code = 'capital-raising', cta = 'See packages', compact = false }) {
+export function GateCard({ title, body, code = 'capital-raising', cta = 'See plans', compact = false }) {
   return (
     <Card tone="outline" className={`gate${compact ? ' gate-compact' : ''}`}>
       <div className="gate-icon" aria-hidden="true"><Icon name="lock" /></div>
@@ -25,7 +26,7 @@ export function GateCard({ title, body, code = 'capital-raising', cta = 'See pac
         <h3 className="gate-title">{title}</h3>
         {body && <p>{body}</p>}
       </div>
-      <Button as={Link} to={`/packages?highlight=${code}`} variant="secondary" size="sm">{cta}</Button>
+      <Button as={Link} to={upgradeHref(code)} variant="secondary" size="sm">{cta}</Button>
     </Card>
   );
 }

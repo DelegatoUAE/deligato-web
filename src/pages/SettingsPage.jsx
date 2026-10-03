@@ -1,13 +1,12 @@
 import { useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { Alert, Badge, Button, Card, EmptyState, FormField, Input, Modal, PageHeader, Skeleton, Table, Tabs, useToast } from '../design/ui';
+import { Alert, Button, Card, EmptyState, FormField, Input, Modal, PageHeader, Skeleton, Table, Tabs, useToast } from '../design/ui';
 import { useCompany } from '../components/company-context';
 import AppearanceSetting from '../components/AppearanceSetting';
 import useApi from '../lib/useApi';
 import { getConsents, getConsentTexts, grantConsent, revokeConsent, getAiLog, exportMyData, deleteMyAccount } from '../lib/privacy';
-import { setPocPlan, getCatalog } from '../lib/packages';
+import PlanBilling from '../components/billing/PlanBilling';
 import { getNotifications, isUnavailable } from '../lib/companyIntel';
-import { tierLabel, displayValue, upgradeHref } from '../lib/plan';
 import { SETTINGS_TABS, settingsTab } from '../lib/portal';
 import { isMissingEndpoint, logout } from '../lib/auth';
 import { fmtDateTime, humanise } from '../lib/format';
@@ -130,60 +129,6 @@ function Privacy({ companyId }) {
   );
 }
 
-const PLAN_ROWS = ['financial_health_history', 'company_intel_live', 'checkin', 'capital_timing', 'record_full', 'next_best_actions', 'notifications',
-  'max_results', 'investor_profile_depth', 'pipeline_items', 'crm', 'outreach_drafts_per_month', 'data_room'];
-
-function Plan({ companyId, entitlementsRaw, reloadEntitlements }) {
-  const toast = useToast();
-  const catQ = useApi(() => getCatalog(), []);
-  const [choice, setChoice] = useState(entitlementsRaw?.capital_plan || 'trial');
-  const [busy, setBusy] = useState(false);
-  const pocOn = import.meta.env.VITE_POC_PLAN_SWITCH === 'true';
-  const tier = tierLabel(entitlementsRaw?.ladder_tier) || 'Free';
-  const display = entitlementsRaw?.display || {};
-  const keys = catQ.data?.entitlement_keys || {};
-  const ladder = catQ.data?.tiers || [];
-  async function apply() {
-    setBusy(true);
-    try { await setPocPlan(companyId, choice); reloadEntitlements(); toast.success('Plan switched for testing. No payment taken.'); } catch (e) {
-      toast.error(isMissingEndpoint(e) ? "The test plan switch isn't available on this server." : e.message);
-    } finally { setBusy(false); }
-  }
-  return (
-    <div className="ui-stack">
-      <Card title="Your plan" action={<Badge tone="brand">{tier}</Badge>}>
-        <p className="ui-muted">Free → Company Intelligence → Capital Raising. Capital Raising includes everything in Company Intelligence.</p>
-        {entitlementsRaw ? (
-          <ul className="plan-ladder plan-rows">
-            {PLAN_ROWS.filter((k) => k in display).map((k) => (
-              <li key={k}><span>{keys[k]?.label || humanise(k)}</span><span className="ui-muted">{displayValue(display, k)}{k === 'data_room' && /shar/i.test(display[k] || '') ? ' (sharing opens with the Investor Deal Room)' : ''}</span></li>
-            ))}
-          </ul>
-        ) : <Skeleton variant="text" lines={4} />}
-        {entitlementsRaw?.data_consent && <p className="ui-faint">Your plan never implies consent to use your data. Data permissions are set separately under Privacy and data.</p>}
-        <div className="ui-row"><Button as={Link} to={upgradeHref()} variant="secondary">Compare plans</Button></div>
-      </Card>
-      <Card title="Billing">
-        <p>Subscription prices are to be announced. No payment is taken in this app, and nothing is charged.</p>
-        {ladder.length > 0 && (
-          <ul className="plan-ladder">
-            {ladder.map((t) => <li key={t.id}><span>{t.name}</span><span className="ui-muted">{t.price_usd === 0 ? '$0' : 'Price to be announced'}</span></li>)}
-            <li><span>Advisor</span><span className="ui-muted">Not available yet (optional)</span></li>
-          </ul>
-        )}
-      </Card>
-      {pocOn && (
-        <Card title="Test plan switch (development only)" subtitle="No payment is taken. The server refuses this unless its POC flag is on.">
-          <div className="ui-row">
-            {[['trial', 'Free'], ['concierge', 'Capital Raising']].map(([p, l]) => <label key={p} className="check"><input type="radio" name="poc" checked={choice === p} onChange={() => setChoice(p)} /> {l}</label>)}
-            <Button variant="primary" size="sm" onClick={apply} loading={busy}>Apply</Button>
-          </div>
-        </Card>
-      )}
-    </div>
-  );
-}
-
 const LEVEL = { monthly_digest: 'A monthly digest', events: 'A monthly digest, plus event and deadline alerts', raise: 'Event, deadline and raise alerts' };
 const EMAIL = { ready: 'Email is on for these alerts.', not_configured: 'Email isn\'t set up yet, so notifications appear in the app only.', disabled: 'Email is off, so notifications appear in the app only.' };
 const KIND = { digest: 'Monthly digest', alert: 'Alert' };
@@ -237,7 +182,7 @@ export default function SettingsPage() {
       <Tabs label="Settings" value={tab} onChange={(t) => navigate(`/settings/${t}`)} items={SETTINGS_TABS}>
         {(t) => ({
           account: <Account me={me} />,
-          plan: <Plan companyId={companyId} entitlementsRaw={entitlementsRaw} reloadEntitlements={reloadEntitlements} />,
+          plan: <PlanBilling companyId={companyId} entitlementsRaw={entitlementsRaw} reloadEntitlements={reloadEntitlements} />,
           notifications: <Notifications companyId={companyId} />,
           privacy: <Privacy companyId={companyId} />,
           security: <Security me={me} />,

@@ -14,6 +14,7 @@ import { listPipeline, updatePipelineItem, removeFromPipeline, PIPELINE_STAGES, 
 import { recordOutcome, createActivity, getTimeline, PASS_REASONS, passReasonLabel } from '../lib/fundraising';
 import { apiFetch } from '../lib/auth';
 import { daysSince, fmtDate, todayIso, humanise } from '../lib/format';
+import { gateFor } from '../lib/plan';
 
 const OUTCOME_STAGES = ['passed', 'not_now', 'term_sheet', 'closed_won'];
 const TONE = { shortlisted: 'neutral', researching: 'neutral', intro_requested: 'info', contacted: 'info', in_conversation: 'navy', diligence: 'navy', term_sheet: 'gold', closed_won: 'ok', passed: 'bad', not_now: 'neutral' };
@@ -163,7 +164,7 @@ export default function PipelinePage() {
       else await eventForMove(companyId, item, to).catch(() => null);
     } catch (e) {
       replace({ ...item, stage: prev });
-      toast.error(e.upgradeRequired ? 'Pipeline tracking is included in Capital Raising.' : "Couldn't move this. Try again.");
+      toast.error(e.upgradeRequired ? (e.code === 'fair_use_limit' ? gateFor(e).message : 'Pipeline tracking is included in Capital Raising.') : "Couldn't move this. Try again.");
     }
   }
 

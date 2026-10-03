@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Alert, Button, Icon, Skeleton } from '../../design/ui';
 import { runTask } from '../../lib/intelligence';
 import { wordsForCodes, stripEvidenceIds } from '../../lib/format';
+import { gateFor } from '../../lib/plan';
 import { AiPathLabel, Cite, NextStep, UpgradeNote } from './AiBlocks';
 
 /** The one-tap consent card. The full wording is one click away, never hidden. */
@@ -57,7 +58,7 @@ export default function WhyThisFits({ companyId, runId, match, consent, compact 
       });
       setState({ loading: false, result: out, error: null, gate: null });
     } catch (e) {
-      if (e.status === 402) setState({ loading: false, result: null, error: null, gate: e.message });
+      if (e.status === 402) setState({ loading: false, result: null, error: null, gate: gateFor(e) });
       else setState({ loading: false, result: null, error: e.status === 404 ? "AI explanations aren't connected in this environment yet." : e.message, gate: null });
     }
   }

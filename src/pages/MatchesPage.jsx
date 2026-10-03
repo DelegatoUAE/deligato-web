@@ -20,6 +20,7 @@ import { sendFeedback, listFeedback } from '../lib/learning';
 import { getRouting, normaliseRoute } from '../lib/routing';
 import { fmtUsd, fmtDateTime, fmtInt, countryName, plural } from '../lib/format';
 import { logEvent } from '../lib/events';
+import { gateFor } from '../lib/plan';
 
 function inRoutes(r, routes) {
   if (!routes.length) return true;
@@ -163,7 +164,7 @@ export default function MatchesPage() {
       reloadPipeline();
       toast.success(stage === 'shortlisted' ? `Saved ${r.name}.` : `${r.name} is in your pipeline.`);
     } catch (e) {
-      toast.error(e.upgradeRequired ? 'Pipeline tracking is included in Capital Raising.' : `Couldn't save ${r.name}: ${e.message}`);
+      toast.error(e.upgradeRequired ? (e.code === 'fair_use_limit' ? gateFor(e).message : 'Pipeline tracking is included in Capital Raising.') : `Couldn't save ${r.name}: ${e.message}`);
     } finally {
       setBusy((b) => ({ ...b, [r.record_id]: null }));
     }

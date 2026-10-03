@@ -6,6 +6,8 @@ import { runTask } from '../lib/intelligence';
 import { isMissingEndpoint } from '../lib/auth';
 import { humanise } from '../lib/format';
 import { ASK_EVENT } from '../lib/ask';
+import { gateFor } from '../lib/plan';
+import { UpgradeNote } from './capital/AiBlocks';
 
 // Page → assistant screen key and starter chips (ia.md §3.1). Screen ids follow
 // the assistant contract (api modules/intelligence _assistant_intent.js SCREENS):
@@ -72,6 +74,7 @@ export default function AssistantPanel({ open, onClose }) {
       setState({ busy: false, result: out, error: null, asked: text });
       setQuestion('');
     } catch (e) {
+      if (e.status === 402) { setState({ busy: false, result: null, asked: text, error: null, gate: gateFor(e) }); return; }
       setState({ busy: false, result: null, asked: text, error: isMissingEndpoint(e) || e.code === 'UNKNOWN_TASK' ? "The assistant isn't connected in this environment yet." : e.message });
     }
   }
@@ -99,6 +102,7 @@ export default function AssistantPanel({ open, onClose }) {
         </form>
         {state.busy && <Skeleton variant="text" lines={4} />}
         {state.error && <Alert tone="bad">{state.error}</Alert>}
+        {state.gate && <UpgradeNote message={state.gate} />}
         {out && (
           <div className="assist-result">
             {state.asked && <p className="assist-q">“{state.asked}”</p>}
