@@ -3,6 +3,7 @@ import { Button, Drawer, FitMark } from '../../design/ui';
 import MatchScore from './MatchScore';
 import { FIT_DIMENSIONS, fitProvenance, fitReasonText, investorHref, bucketHeadline, ticketRange, timingOf } from '../../lib/capital';
 import { fitSummary } from '../../lib/matchview';
+import { CompareSummary } from './AiBlocks';
 import { wordsForCodes, countryName } from '../../lib/format';
 
 const SPOKEN = { yes: 'Fits', partial: 'Partly fits', no: "Doesn't fit", unknown: 'Not on record' };
@@ -15,7 +16,7 @@ const NOR = <span className="ui-faint">Not on record</span>;
  * only fields the run already returned, each fit with its evidence label.
  * Nothing is computed or inferred here.
  */
-export default function CompareDrawer({ open, onClose, rows, runId, onRemove }) {
+export default function CompareDrawer({ open, onClose, rows, runId, onRemove, companyId }) {
   const cols = rows || [];
   const rowsSpec = [
     { label: 'Evidence tier', render: (r) => bucketHeadline(r) },
@@ -49,6 +50,8 @@ export default function CompareDrawer({ open, onClose, rows, runId, onRemove }) 
       {cols.length < 2 ? (
         <p className="ui-muted">Select two or three providers in the table to compare them.</p>
       ) : (
+        <>
+        <CompareSummary key={cols.map((r) => r.record_id).join(',')} companyId={companyId} runId={runId} recordIds={cols.map((r) => r.record_id)} />
         <div className="cmp-scroll">
           <table className="cmp" style={{ '--cmp-cols': cols.length }}>
             <thead>
@@ -78,6 +81,7 @@ export default function CompareDrawer({ open, onClose, rows, runId, onRemove }) 
             </tbody>
           </table>
         </div>
+        </>
       )}
     </Drawer>
   );

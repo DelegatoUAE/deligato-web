@@ -5,8 +5,8 @@ import {
 } from '../design/ui';
 import { useCompany } from '../components/company-context';
 import MatchScore from '../components/capital/MatchScore';
-import AiOutput from '../components/AiOutput';
 import WhyThisFits from '../components/capital/WhyThisFits';
+import { MeetingPrep } from '../components/capital/AiBlocks';
 import useAiConsent from '../lib/useAiConsent';
 import { FundraisingNotice, LoadError } from '../components/capital/bits';
 import useApi from '../lib/useApi';
@@ -15,7 +15,6 @@ import {
 } from '../lib/capital';
 import { submitCorrection, recordNotFit, CORRECTION_FIELDS, FEEDBACK_DOWN_REASONS } from '../lib/learning';
 import { recordOutcome, kindForRoute } from '../lib/fundraising';
-import { runTask } from '../lib/intelligence';
 import { fmtUsd, fmtDate, stealthLabel, countryName, wordsForCodes } from '../lib/format';
 
 // D16 provenance labels. Derived from the record's own evidence until the
@@ -143,7 +142,6 @@ export default function InvestorProfilePage() {
   const [dialog, setDialog] = useState(null); // 'correction' | 'dismiss' | 'brief'
   const [corr, setCorr] = useState({ field: 'stages', proposed_value: '', evidence_url: '', note: '' });
   const [dismissReason, setDismissReason] = useState('wrong_geography');
-  const [brief, setBrief] = useState({ loading: false, result: null, error: null });
   const consent = useAiConsent(companyId);
   const [activeSection, pickSection] = useActiveSection(SECTION_IDS, Boolean(srcQ.data?.profile));
 
@@ -208,17 +206,6 @@ export default function InvestorProfilePage() {
     } finally { setBusy(null); }
   }
 
-  async function prepareMeeting() {
-    setDialog('brief');
-    setBrief({ loading: true, result: null, error: null });
-    try {
-      const out = await runTask('investor_brief', { input: { investor: { ...p, ...m, name: id.name, type: id.type, country: id.country, record_id: recordId, contact_route: app.route } }, company_id: companyId });
-      setBrief({ loading: false, result: out, error: null });
-    } catch (e) {
-      setBrief({ loading: false, result: null, error: e.status === 404 ? "Meeting prep isn't connected in this environment yet." : e.message });
-    }
-  }
-
   const mandateRows = [
     ['Stage', 'stages', m.stages, list(m.stages)],
     ['Sector', 'sectors', m.sectors, list(m.sectors)],
@@ -263,7 +250,7 @@ export default function InvestorProfilePage() {
             {kind === null ? null : canDraft && !locked
               ? <Button as={Link} to={`/capital/outreach?record=${encodeURIComponent(recordId)}&kind=${kind}`} variant="secondary">Prepare outreach</Button>
               : <Button as={Link} to="/packages?highlight=investor-ready" variant="ghost" iconLeft="lock">Prepare outreach</Button>}
-            <Button variant="ghost" iconLeft="spark" onClick={prepareMeeting}>Prepare meeting</Button>
+            <Button variant="ghost" iconLeft="spark" onClick={() => setDialog('brief')}>Prepare for the call</Button>
             <Button variant="ghost" onClick={() => setDialog('dismiss')}>Not for us</Button>
           </div>
         </div>
@@ -424,10 +411,8 @@ export default function InvestorProfilePage() {
         <Select aria-label="Reason" value={dismissReason} onChange={(e) => setDismissReason(e.target.value)} options={FEEDBACK_DOWN_REASONS.map((x) => ({ value: x.key, label: x.label }))} />
       </Modal>
 
-      <Modal open={dialog === 'brief'} onClose={() => setDialog(null)} size="lg" title={`Meeting brief: ${id.name}`} description="Built only from this investor's record and your profile. Check facts before you rely on them.">
-        {brief.loading && <Skeleton variant="text" lines={6} />}
-        {brief.error && <Alert tone="bad">{brief.error}</Alert>}
-        {brief.result && <AiOutput result={brief.result} />}
+      <Modal open={dialog === 'brief'} onClose={() => setDialog(null)} size="lg" title={`Prepare for the call: ${id.name}`} description="Built only from this investor's record and your profile. Nothing here is sent.">
+        <MeetingPrep companyId={companyId} runId={runQ.data?.run_id} recordId={recordId} />
       </Modal>
     </div>
   );

@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Alert, Badge, Button, Icon, Skeleton } from '../../design/ui';
+import { Alert, Button, Icon, Skeleton } from '../../design/ui';
 import { runTask } from '../../lib/intelligence';
-import { fmtDate, stealthLabel, wordsForCodes, stripEvidenceIds } from '../../lib/format';
+import { wordsForCodes, stripEvidenceIds } from '../../lib/format';
+import { AiPathLabel, Cite, NextStep, UpgradeNote } from './AiBlocks';
 
 /** The one-tap consent card. The full wording is one click away, never hidden. */
 export function AiConsentCard({ consent, compact = false, onDecline }) {
@@ -36,19 +36,6 @@ export function AiConsentCard({ consent, compact = false, onDecline }) {
   );
 }
 
-function Cite({ c }) {
-  const date = c.as_of ? fmtDate(c.as_of) : null;
-  const label = stealthLabel(c.provenance) || 'Unknown';
-  const value = Array.isArray(c.value) ? c.value.join(', ') : c.value;
-  const tip = [c.field && `${c.field}: ${wordsForCodes(String(value ?? 'not on record'))}`, label, date && `checked ${date}`, c.source_name].filter(Boolean).join(' · ');
-  return (
-    <span className={`cite${c.verified ? ' is-verified' : ''}`} title={tip} tabIndex={0} aria-label={`Source: ${tip}`}>
-      <span className="cite-f">{c.field || 'field'}</span>
-      <span className="cite-p">{label}{date ? ` · ${date}` : ''}</span>
-    </span>
-  );
-}
-
 /**
  * "Why this fits": the match_explainer task (modules/intelligence, D25).
  * Each sentence carries citation chips to the field and provenance it rests
@@ -63,7 +50,10 @@ export default function WhyThisFits({ companyId, runId, match, consent, compact 
     try {
       const out = await runTask('match_explainer', {
         company_id: companyId,
-        input: { match: { record_id: match.record_id, fits: match.fits || {} }, ids: { run_id: runId, record_id: match.record_id } },
+        run_id: runId || undefined,
+        record_id: match.record_id,
+        // The server replaces these with the founder's stored row (owner-checked).
+        input: { match: { record_id: match.record_id, fits: match.fits || {} } },
       });
       setState({ loading: false, result: out, error: null, gate: null });
     } catch (e) {
@@ -87,21 +77,20 @@ export default function WhyThisFits({ companyId, runId, match, consent, compact 
       )}
       {state.loading && <Skeleton variant="text" lines={3} />}
       {state.gate && (
-        <p className="ui-muted whyfits-gate"><Icon name="lock" /> {state.gate} <Link to="/packages?highlight=investor-ready">See packages</Link></p>
+        <UpgradeNote message={state.gate} />
       )}
       {state.error && <Alert tone="bad">Couldn't explain this match. {state.error}</Alert>}
       {o && (
         <div className="whyfits-body">
           <div className="whyfits-top">
-            <Badge tone={ai ? 'gold' : 'outline'} size="sm">{ai ? 'AI-drafted' : 'Rules-based'}</Badge>
-            {o.headline && <strong className="whyfits-h">{wordsForCodes(stripEvidenceIds(o.headline))}</strong>}
+            <AiPathLabel result={r} />
+            {ai && o.headline && <strong className="whyfits-h">{wordsForCodes(stripEvidenceIds(o.headline))}</strong>}
           </div>
-          {r.notice && <p className="ui-faint whyfits-notice">{r.notice}</p>}
           {(o.why_this_fits || []).length > 0 && (
             <ul className="whyfits-list">
               {o.why_this_fits.map((w, i) => (
                 <li key={i}>
-                  <span>{wordsForCodes(stripEvidenceIds(w.text))}</span>
+                  <span>{wordsForCodes(stripEvidenceIds(w.text)).replace(/\s*\[[^\]]*\]\s*$/, '')}</span>
                   {(w.cites || []).length > 0 && <span className="cites">{w.cites.map((c, j) => <Cite key={j} c={c} />)}</span>}
                 </li>
               ))}
@@ -110,9 +99,10 @@ export default function WhyThisFits({ companyId, runId, match, consent, compact 
           {(o.unknowns || []).length > 0 && (
             <p className="whyfits-unknown"><span className="ui-fit ui-fit-unknown">Not on record</span> {o.unknowns.map((u) => (typeof u === 'string' ? u : u.label || u.title || u.dimension)).filter(Boolean).join(', ')}. Unknown never counts as a fit.</p>
           )}
-          {o.next_step?.label && (
-            <p className="whyfits-next">Next: {o.next_step.route ? <Link to={o.next_step.route}>{o.next_step.label}</Link> : o.next_step.label}</p>
+          {(o.strengthen || []).length > 0 && (
+            <ul className="ailist whyfits-strengthen">{o.strengthen.slice(0, 3).map((x, i) => <li key={x.id || i}>{wordsForCodes(x.action)}</li>)}</ul>
           )}
+          <NextStep step={o.next_step} />
         </div>
       )}
     </div>

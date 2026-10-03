@@ -11,6 +11,7 @@ import { listPipeline, updatePipelineItem, removeFromPipeline, investorHref, tie
 import { recordOutcome } from '../lib/fundraising';
 import { FEEDBACK_DOWN_REASONS } from '../lib/learning';
 import { fmtDate } from '../lib/format';
+import { ShortlistSummary } from '../components/capital/AiBlocks';
 
 const nameOf = (p) => p.capital_sources?.name || p.record_id;
 
@@ -72,6 +73,7 @@ export default function SavedPage() {
           <Select aria-label="Sort" value={sort} onChange={(e) => setSort(e.target.value)} options={[{ value: 'date', label: 'Saved date' }, { value: 'score', label: 'Match score at save' }, { value: 'deadline', label: 'Next deadline' }]} />
           <Button variant="secondary" size="sm" disabled={picked.length < 2} onClick={() => setComparing(true)}>Compare {picked.length || ''} selected</Button>
         </div>
+        {saved.length > 0 && <ShortlistSummary companyId={companyId} recordIds={saved.map((p) => p.record_id)} />}
         <ul className="saved">
           {saved.map((p) => (
             <li key={p.id} className="saved-row">

@@ -387,7 +387,9 @@ export default function MatchesPage() {
         </div>
       )}
       <CompareDrawer open={compareOpen} onClose={() => setCompareOpen(false)} runId={run.run_id}
-        rows={compare.map((id) => run.results.find((r) => r.record_id === id)).filter(Boolean)}
+        companyId={companyId}
+        // The engine's order, never the order of selection (match_compare keeps it too).
+        rows={run.results.filter((r) => compare.includes(r.record_id))}
         onRemove={(id) => setCompare((c) => { const next = c.filter((x) => x !== id); if (next.length < 2) setCompareOpen(false); return next; })} />
 
       {trial && (

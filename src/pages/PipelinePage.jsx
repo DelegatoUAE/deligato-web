@@ -5,6 +5,7 @@ import {
   PageHeader, Select, Skeleton, Tabs, Textarea, useToast,
 } from '../design/ui';
 import SubNav from '../components/SubNav';
+import { MeetingPrep } from '../components/capital/AiBlocks';
 import { useCompany } from '../components/company-context';
 import MatchScore from '../components/capital/MatchScore';
 import { GateCard, LoadError } from '../components/capital/bits';
@@ -110,6 +111,7 @@ function ItemDrawer({ item, companyId, onClose, onChanged, onMove, onRemove }) {
           <Button variant="secondary" size="sm" onClick={() => log('meeting')} loading={busy === 'meeting'}>Log a meeting</Button>
           <Button variant="secondary" size="sm" onClick={() => log('reply')} loading={busy === 'reply'}>Log a reply</Button>
         </div>
+        <MeetingPrep key={item.record_id} companyId={companyId} recordId={item.record_id} compact />
         <div className="ui-row">
           <Link to={investorHref(item.record_id)}>Open investor profile</Link>
           <Link to={`/capital/outreach?record=${encodeURIComponent(item.record_id)}`}>Drafts for this investor</Link>
