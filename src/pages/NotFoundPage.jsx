@@ -1,7 +1,9 @@
+import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Button, EmptyState } from '../design/ui';
 
 export default function NotFoundPage() {
+  useEffect(() => { document.title = 'Page not found · Deligato'; }, []);
   return (
     <div className="notfound">
       <EmptyState

@@ -14,7 +14,7 @@ import {
 import { submitCorrection, recordNotFit, CORRECTION_FIELDS, FEEDBACK_DOWN_REASONS } from '../lib/learning';
 import { recordOutcome, kindForRoute } from '../lib/fundraising';
 import { runTask } from '../lib/intelligence';
-import { fmtUsd, fmtDate } from '../lib/format';
+import { fmtUsd, fmtDate, stealthLabel } from '../lib/format';
 
 // D16 provenance labels. Derived from the record's own evidence until the
 // data module publishes per-field labels (it then wins: profile.field_provenance).
@@ -24,7 +24,7 @@ const PROV = {
 };
 function provenance(profile, field, value) {
   const server = profile.field_provenance?.[field];
-  if (server && typeof server === 'object') return server.label_text || PROV[server.label] || server.label || PROV.unknown;
+  if (server && typeof server === 'object') return stealthLabel(server.label_text) || PROV[server.label] || server.label || PROV.unknown;
   if (server) return PROV[server] || server;
   const empty = value === null || value === undefined || value === '' || (Array.isArray(value) && !value.length) || value === 'Unknown';
   if (empty) return PROV.unknown;
@@ -37,7 +37,7 @@ const provTone = (l) => (l === PROV.unknown ? 'outline' : l === PROV.ai ? 'warn'
 function Prov({ profile, field, value }) {
   const l = provenance(profile, field, value);
   const fp = profile.field_provenance?.[field];
-  const tip = fp && typeof fp === 'object' ? [fp.label_text, fp.basis, fp.source_name, fp.as_of && `as of ${fp.as_of}`].filter(Boolean).join(' · ') : l;
+  const tip = fp && typeof fp === 'object' ? [stealthLabel(fp.label_text), stealthLabel(fp.basis), fp.source_name, fp.as_of && `as of ${fp.as_of}`].filter(Boolean).join(' · ') : l;
   return <Badge tone={provTone(l)} size="sm" className="prov" title={tip}>{l}</Badge>;
 }
 

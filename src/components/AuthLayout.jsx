@@ -1,7 +1,9 @@
-import { POSITIONING } from '../lib/format';
+import { useEffect } from 'react';
+import { PAGE_SUFFIX, POSITIONING } from '../lib/format';
 
 /** Sign-in, sign-up and password screens: navy brand panel + form, Conncct design language. */
 export default function AuthLayout({ title, subtitle, children }) {
+  useEffect(() => { document.title = `${title} · ${PAGE_SUFFIX}`; }, [title]);
   return (
     <div className="login">
       <aside className="login-side ui-on-navy">
