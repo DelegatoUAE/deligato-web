@@ -16,6 +16,7 @@ import { AdminArea } from './components/AdminLayout';
 import './App.css';
 
 // Signed-in screens load on demand, so the public landing and auth pages stay light.
+const PricingPage = lazy(() => import('./pages/PricingPage'));
 const DashboardPage = lazy(() => import('./pages/DashboardPage'));
 const WelcomePage = lazy(() => import('./pages/WelcomePage'));
 const OnboardingPage = lazy(() => import('./pages/OnboardingPage'));
@@ -114,6 +115,7 @@ export default function App() {
       {Showcase && <Route path="/design" element={<Suspense fallback={null}><Showcase /></Suspense>} />}
 
       <Route path="/" element={<Home />} />
+      <Route path="/pricing" element={<PricingPage />} />
       <Route path="/welcome" element={<Protected gate="welcome"><WelcomePage /></Protected>} />
       <Route path="/onboarding" element={<Protected gate="open"><OnboardingPage /></Protected>} />
       {devImportOn && <Route path="/dev/import" element={<Protected gate="open" staffOnly><Suspense fallback={null}><DevImportPage /></Suspense></Protected>} />}

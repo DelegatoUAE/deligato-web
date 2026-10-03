@@ -99,6 +99,7 @@ export default function LandingPage() {
             <a href="#how" onClick={close}>How it works</a>
             <a href="#smes" onClick={close}>For SMEs</a>
             <a href="#trust" onClick={close}>Trust</a>
+            <Link to="/pricing" onClick={close}>Pricing</Link>
             <div className="lp-nav-cta">
               <Button as={Link} to="/login" variant="ghost" size="md" className="lp-signin">Sign in</Button>
               <Button as={Link} to="/signup" variant="primary" size="md">Create your account</Button>
@@ -244,6 +245,7 @@ export default function LandingPage() {
         <div className="lp-wrap lp-footer-row">
           <Wordmark />
           <nav aria-label="Footer" className="lp-footer-nav">
+            <Link to="/pricing">Pricing</Link>
             <Link to="/login">Sign in</Link>
           </nav>
         </div>

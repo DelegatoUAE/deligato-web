@@ -10,9 +10,15 @@ const NAMES = { 'readiness-free': 'Free', 'company-intelligence': 'Company Intel
 export const tierLabel = (tier) => TIER_LABELS[tier] || null;
 
 /** The id a 402 points to: the first `upgrade_to` entry, else Capital Raising. */
-export function upgradeTarget(err) {
+const upgradeList = (err) => {
   const b = err?.body;
-  const list = (b && (b.upgrade_to || b.error?.upgrade_to)) || [];
+  const e = b && typeof b.error === 'object' && b.error ? b.error : {};
+  const list = (b && (b.upgrade_to || e.upgrade_to || e.details?.upgrade_to)) || [];
+  return Array.isArray(list) ? list : [];
+};
+
+export function upgradeTarget(err) {
+  const list = upgradeList(err);
   const first = Array.isArray(list) ? list.find((id) => NAMES[id] && id !== 'readiness-free') : null;
   return first || 'capital-raising';
 }
@@ -25,9 +31,33 @@ export const packageName = (id) => NAMES[id] || null;
 /** The link an upgrade CTA opens. */
 export const upgradeHref = (id = 'capital-raising') => `/packages?highlight=${encodeURIComponent(id)}`;
 
+/** Customer copy never says "unlimited" (D46): replace it with the approved words. */
+export const fullAccess = (text) => String(text).replace(/\bunlimited\b/gi, 'Full access / plan limits');
+
 /** Customer-facing entitlement value: the API's `display`, never a raw null and never "unlimited" (D46). */
 export function displayValue(display, key) {
   const v = display && display[key];
   if (v === undefined || v === null || v === '') return '–';
   return /unlimited/i.test(String(v)) ? 'Full access / plan limits' : String(v);
+}
+
+const GATE_DEFAULT = {
+  fair_use_limit: "You've reached this plan's fair-use limit.",
+  seat_limit: 'Your plan has no free team seats.',
+  upgrade_required: 'This is part of a paid plan.',
+};
+
+/**
+ * One reading of every 402 (upgrade_required, fair_use_limit, seat_limit): a calm message and at
+ * most one link to the plans page. A fair-use or seat ceiling links only when the API names a plan
+ * above (never an upsell from Capital Raising, never to advisor/consulting: D50).
+ */
+export function gateFor(err) {
+  const e = err?.body && typeof err.body.error === 'object' && err.body.error ? err.body.error : {};
+  const code = err?.code || e.code || 'upgrade_required';
+  const ceiling = code === 'fair_use_limit' || code === 'seat_limit' || e.details?.fair_use === true;
+  const offers = upgradeList(err).some((id) => NAMES[id] && id !== 'readiness-free');
+  const link = !ceiling || offers;
+  const message = err?.message && !/^Request failed/.test(err.message) ? err.message : (GATE_DEFAULT[code] || GATE_DEFAULT.upgrade_required);
+  return { code, message, href: link ? upgradeHref(upgradeTarget(err)) : null, cta: link ? 'See plans' : null };
 }

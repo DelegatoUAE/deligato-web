@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { Alert, Badge, Button, Icon, Skeleton } from '../../design/ui';
 import useTask from '../../lib/useTask';
 import { fmtDate, stealthLabel, wordsForCodes, stripEvidenceIds } from '../../lib/format';
+import { upgradeHref } from '../../lib/plan';
 
 // Server text is already cleaned (api 2f2a75f); these stay as a fallback.
 const clean = (t) => wordsForCodes(stripEvidenceIds(t));
@@ -19,10 +20,14 @@ export function AiPathLabel({ result }) {
   );
 }
 
-/** 402 upgrade_required (D32): the gate is shown in place, never a dead click. */
+/**
+ * 402 (D32): the gate is shown in place, calm, with at most one link to the plans page.
+ * `message` is a gateFor() reading (lib/plan.js) or a plain string.
+ */
 export function UpgradeNote({ message }) {
+  const g = message && typeof message === 'object' ? message : { message, href: upgradeHref(), cta: 'See plans' };
   return (
-    <p className="ui-muted aigate"><Icon name="lock" /> {message || 'This needs a paid plan.'} <Link to="/packages?highlight=capital-raising">See packages</Link></p>
+    <p className="ui-muted aigate"><Icon name={g.href ? 'lock' : 'info'} /> {g.message || 'This is part of a paid plan.'}{g.href && <> <Link to={g.href}>{g.cta || 'See plans'}</Link></>}</p>
   );
 }
 

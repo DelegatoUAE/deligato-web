@@ -16,6 +16,7 @@ import {
 import { submitCorrection, recordNotFit, CORRECTION_FIELDS, FEEDBACK_DOWN_REASONS } from '../lib/learning';
 import { recordOutcome, kindForRoute } from '../lib/fundraising';
 import { fmtUsd, fmtDate, stealthLabel, countryName, wordsForCodes } from '../lib/format';
+import { gateFor } from '../lib/plan';
 
 // D16 provenance labels. Derived from the record's own evidence until the
 // data module publishes per-field labels (it then wins: profile.field_provenance).
@@ -174,7 +175,7 @@ export default function InvestorProfilePage() {
       reloadPipeline();
       toast.success(stage === 'shortlisted' ? `Saved ${id.name}.` : `${id.name} is in your pipeline.`);
     } catch (e) {
-      toast.error(e.upgradeRequired ? 'Pipeline tracking is included in Capital Raising.' : `Couldn't save: ${e.message}`);
+      toast.error(e.upgradeRequired ? (e.code === 'fair_use_limit' ? gateFor(e).message : 'Pipeline tracking is included in Capital Raising.') : `Couldn't save: ${e.message}`);
     } finally { setBusy(null); }
   }
 
