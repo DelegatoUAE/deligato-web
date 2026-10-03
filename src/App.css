@@ -534,3 +534,9 @@
 }
 .corr-from { font-weight: var(--fw-medium); font-size: var(--text-sm); white-space: nowrap; }
 .admin-table .ui-select, .admin-table select { min-width: 140px; }
+
+/* ==== PAGE SKELETON (lazy screen loading) ==== */
+.page-skel { display: grid; gap: var(--s-4); padding: var(--s-2) 0; animation: page-skel-in 200ms var(--ease) 120ms both; }
+.page-skel-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s-4); margin-top: var(--s-4); }
+@media (max-width: 640px) { .page-skel-grid { grid-template-columns: 1fr; } }
+@keyframes page-skel-in { from { opacity: 0; } }

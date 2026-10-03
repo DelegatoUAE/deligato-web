@@ -1,48 +1,53 @@
 import { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate, useParams, useLocation } from 'react-router-dom';
+import { getToken } from './lib/auth';
+import { Skeleton } from './design/ui';
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
-import DashboardPage from './pages/DashboardPage';
-import WelcomePage from './pages/WelcomePage';
-import OnboardingPage from './pages/OnboardingPage';
-import CapitalOverviewPage from './pages/CapitalOverviewPage';
-import ReadinessPage from './pages/ReadinessPage';
-import ReadinessAssessPage from './pages/ReadinessAssessPage';
-import FindCapitalPage from './pages/FindCapitalPage';
-import CapitalNeedPage from './pages/CapitalNeedPage';
-import MatchesPage from './pages/MatchesPage';
-import InvestorProfilePage from './pages/InvestorProfilePage';
-import SavedPage from './pages/SavedPage';
-import PipelinePage from './pages/PipelinePage';
-import DataRoomPage from './pages/DataRoomPage';
-import OutreachPage from './pages/OutreachPage';
-import InsightsPage from './pages/InsightsPage';
-import AdvicePage from './pages/AdvicePage';
-import PackagesPage from './pages/PackagesPage';
-import ExpertsPage from './pages/ExpertsPage';
-import MyExpertsPage from './pages/MyExpertsPage';
-import ExpertDetailPage from './pages/ExpertDetailPage';
-import ExpertShortlistPage from './pages/ExpertShortlistPage';
-import ExpertProjectsPage from './pages/ExpertProjectsPage';
-import CompanyPage from './pages/CompanyPage';
-import BusinessInfoPage from './pages/BusinessInfoPage';
-import SettingsPage from './pages/SettingsPage';
 import NotFoundPage from './pages/NotFoundPage';
-import AdminHomePage from './pages/admin/AdminHomePage';
-import AdminExpertsPage from './pages/admin/AdminExpertsPage';
-import AdminProjectsPage from './pages/admin/AdminProjectsPage';
-import AdminCorrectionsPage from './pages/admin/AdminCorrectionsPage';
-import AdminLearningPage from './pages/admin/AdminLearningPage';
-import AdminMatchPage from './pages/admin/AdminMatchPage';
-const DevImportPage = import.meta.env.DEV ? lazy(() => import('./pages/DevImportPage')) : null;
-const Showcase = import.meta.env.DEV ? lazy(() => import('./design/Showcase')) : null;
+import LandingPage from './pages/LandingPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import CompanyProvider from './components/CompanyProvider';
 import AppLayout from './components/AppLayout';
 import FirstRunGuard from './components/FirstRunGuard';
 import './App.css';
+
+// Signed-in screens load on demand, so the public landing and auth pages stay light.
+const DashboardPage = lazy(() => import('./pages/DashboardPage'));
+const WelcomePage = lazy(() => import('./pages/WelcomePage'));
+const OnboardingPage = lazy(() => import('./pages/OnboardingPage'));
+const CapitalOverviewPage = lazy(() => import('./pages/CapitalOverviewPage'));
+const ReadinessPage = lazy(() => import('./pages/ReadinessPage'));
+const ReadinessAssessPage = lazy(() => import('./pages/ReadinessAssessPage'));
+const FindCapitalPage = lazy(() => import('./pages/FindCapitalPage'));
+const CapitalNeedPage = lazy(() => import('./pages/CapitalNeedPage'));
+const MatchesPage = lazy(() => import('./pages/MatchesPage'));
+const InvestorProfilePage = lazy(() => import('./pages/InvestorProfilePage'));
+const SavedPage = lazy(() => import('./pages/SavedPage'));
+const PipelinePage = lazy(() => import('./pages/PipelinePage'));
+const DataRoomPage = lazy(() => import('./pages/DataRoomPage'));
+const OutreachPage = lazy(() => import('./pages/OutreachPage'));
+const InsightsPage = lazy(() => import('./pages/InsightsPage'));
+const AdvicePage = lazy(() => import('./pages/AdvicePage'));
+const PackagesPage = lazy(() => import('./pages/PackagesPage'));
+const ExpertsPage = lazy(() => import('./pages/ExpertsPage'));
+const MyExpertsPage = lazy(() => import('./pages/MyExpertsPage'));
+const ExpertDetailPage = lazy(() => import('./pages/ExpertDetailPage'));
+const ExpertShortlistPage = lazy(() => import('./pages/ExpertShortlistPage'));
+const ExpertProjectsPage = lazy(() => import('./pages/ExpertProjectsPage'));
+const CompanyPage = lazy(() => import('./pages/CompanyPage'));
+const BusinessInfoPage = lazy(() => import('./pages/BusinessInfoPage'));
+const SettingsPage = lazy(() => import('./pages/SettingsPage'));
+const AdminHomePage = lazy(() => import('./pages/admin/AdminHomePage'));
+const AdminExpertsPage = lazy(() => import('./pages/admin/AdminExpertsPage'));
+const AdminProjectsPage = lazy(() => import('./pages/admin/AdminProjectsPage'));
+const AdminCorrectionsPage = lazy(() => import('./pages/admin/AdminCorrectionsPage'));
+const AdminLearningPage = lazy(() => import('./pages/admin/AdminLearningPage'));
+const AdminMatchPage = lazy(() => import('./pages/admin/AdminMatchPage'));
+const DevImportPage = import.meta.env.DEV ? lazy(() => import('./pages/DevImportPage')) : null;
+const Showcase = import.meta.env.DEV ? lazy(() => import('./design/Showcase')) : null;
 
 /** Signed-in area: session → active company → shell → first-run rules. */
 function Protected({ children, gate = 'company', staffOnly = false }) {
@@ -51,12 +56,32 @@ function Protected({ children, gate = 'company', staffOnly = false }) {
       {(me) => (
         <CompanyProvider me={me}>
           <AppLayout>
-            <FirstRunGuard gate={gate} staffOnly={staffOnly}>{children}</FirstRunGuard>
+            <FirstRunGuard gate={gate} staffOnly={staffOnly}>
+              <Suspense fallback={<PageSkeleton />}>{children}</Suspense>
+            </FirstRunGuard>
           </AppLayout>
         </CompanyProvider>
       )}
     </ProtectedRoute>
   );
+}
+
+/** Content-area placeholder while a lazily loaded screen arrives. */
+function PageSkeleton() {
+  return (
+    <div className="page-skel" aria-busy="true" aria-label="Loading">
+      <Skeleton w="40%" h="28px" />
+      <Skeleton w="64%" h="14px" />
+      <div className="page-skel-grid"><Skeleton h="112px" r="12px" /><Skeleton h="112px" r="12px" /><Skeleton h="112px" r="12px" /></div>
+      <Skeleton h="220px" r="12px" />
+    </div>
+  );
+}
+
+/** "/": the public landing for signed-out visitors, the Command Center once signed in. */
+function Home() {
+  if (!getToken()) return <LandingPage />;
+  return <Protected gate="open"><DashboardPage /></Protected>;
 }
 
 function RedirectSearch({ to }) {
@@ -75,6 +100,7 @@ const devImportOn = (import.meta.env.DEV && import.meta.env.VITE_DEV_IMPORT === 
 
 export default function App() {
   return (
+    <Suspense fallback={null}>
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/signup" element={<SignupPage />} />
@@ -82,7 +108,7 @@ export default function App() {
       <Route path="/reset-password" element={<ResetPasswordPage />} />
       {Showcase && <Route path="/design" element={<Suspense fallback={null}><Showcase /></Suspense>} />}
 
-      <Route path="/" element={<Protected gate="open"><DashboardPage /></Protected>} />
+      <Route path="/" element={<Home />} />
       <Route path="/welcome" element={<Protected gate="welcome"><WelcomePage /></Protected>} />
       <Route path="/onboarding" element={<Protected gate="open"><OnboardingPage /></Protected>} />
       {devImportOn && <Route path="/dev/import" element={<Protected gate="open" staffOnly><Suspense fallback={null}><DevImportPage /></Suspense></Protected>} />}
@@ -152,5 +178,6 @@ export default function App() {
 
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
+    </Suspense>
   );
 }
