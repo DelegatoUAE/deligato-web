@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { countryName, wordsForCodes } from './format.js';
+import { countryName, wordsForCodes, plainIntel } from './format.js';
 
 test('country codes and region enums become words', () => {
   assert.equal(countryName('AE'), 'United Arab Emirates');
@@ -32,4 +32,15 @@ test('AI text loses echoed evidence ids and shouts', async () => {
   const { stripEvidenceIds } = await import('./format.js');
   assert.equal(stripEvidenceIds('Stage fits (evidence_id: ev_stage).'), 'Stage fits.');
   assert.equal(wordsForCodes('they list GLOBAL, MENA, North America'), 'they list Global, MENA, North America');
+});
+
+test('engine sentences show dates, periods and timing as words (D57)', () => {
+  assert.equal(plainIntel('On 2026-10-23.'), 'On 23 Oct 2026.');
+  assert.equal(plainIntel('Figures for 2026-09 added'), 'Figures for Sep 2026 added');
+  assert.equal(plainIntel('Target funding date: 2027-07-30 → 2027-06-30'), 'Target funding date: 30 Jul 2027 → 30 Jun 2027');
+  assert.equal(plainIntel('Raise timing: not set → 3_6m'), 'Raise timing: not set → 3–6 months');
+  assert.equal(plainIntel('Raise timing: 0_3m → now'), 'Raise timing: 0–3 months → actively raising now');
+  assert.equal(plainIntel('Based on answers from 2026-10-03T14:00:51.346Z'), 'Based on answers from 3 Oct 2026');
+  assert.equal(plainIntel('Runway is 11.4 months, $1.5M raise'), 'Runway is 11.4 months, $1.5M raise');
+  assert.equal(plainIntel(null), null);
 });

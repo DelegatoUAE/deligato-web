@@ -4,7 +4,7 @@ import SubNav from '../components/SubNav';
 import { useCompany } from '../components/company-context';
 import useApi from '../lib/useApi';
 import { getWhatChanged, getAttention, getReassessment, getCapitalTiming, isUnavailable } from '../lib/companyIntel';
-import { fmtDate, fmtUsd } from '../lib/format';
+import { fmtDate, fmtUsd, plainIntel } from '../lib/format';
 import { upgradeTarget } from '../lib/plan';
 import { LoadError } from '../components/capital/bits';
 import { ChangeList, AttentionList, UpgradeLine, TrustNote, AskPrompts } from '../components/intel/IntelBits';
@@ -89,8 +89,8 @@ function Timing({ q }) {
   if (t.status === 'no_target_date') {
     return (
       <div className="timing">
-        <p className="timing-none">{t.message}</p>
-        {t.condition?.text && <p className="ui-muted">{t.condition.text}</p>}
+        <p className="timing-none">{plainIntel(t.message)}</p>
+        {t.condition?.text && <p className="ui-muted">{plainIntel(t.condition.text)}</p>}
         {setTarget}
       </div>
     );
@@ -99,9 +99,9 @@ function Timing({ q }) {
     <div className="timing">
       <p className="timing-k">Start raising by</p>
       <p className="timing-date">{fmtDate(t.start_by)}</p>
-      {t.attention && <Badge tone={t.attention.code === 'start_passed' || t.attention.code === 'target_infeasible' ? 'bad' : 'warn'} dot>{t.attention.text}</Badge>}
-      <p className="timing-why">{t.reason}</p>
-      {t.note && <p className="ui-muted">{t.note}</p>}
+      {t.attention && <Badge tone={t.attention.code === 'start_passed' || t.attention.code === 'target_infeasible' ? 'bad' : 'warn'} dot>{plainIntel(t.attention.text)}</Badge>}
+      <p className="timing-why">{plainIntel(t.reason)}</p>
+      {t.note && <p className="ui-muted">{plainIntel(t.note)}</p>}
       <dl className="timing-facts">
         {need.raise_usd ? <div><dt>Raise</dt><dd>{fmtUsd(need.raise_usd)}{need.instrument ? ` · ${need.instrument}` : ''}</dd></div> : null}
         <div><dt>Target date</dt><dd>{need.target_funding_date ? fmtDate(need.target_funding_date) : 'Not set'}</dd></div>
@@ -125,11 +125,11 @@ function Reassessment({ q }) {
   const cs = d.current_score;
   return (
     <div className="reas">
-      {cs ? <p>Current score <strong>{cs.score}</strong>{cs.band ? ` · ${cs.band}` : ''} <span className="ui-faint">· {cs.label}</span></p> : <p className="ui-muted">No paid Capital Readiness assessment yet.</p>}
+      {cs ? <p>Current score <strong>{cs.score}</strong>{cs.band ? ` · ${cs.band}` : ''} <span className="ui-faint">· {plainIntel(cs.label)}</span></p> : <p className="ui-muted">No paid Capital Readiness assessment yet.</p>}
       {d.recommended ? (
         <>
           <p className="reas-rec"><Badge tone="warn" dot>Reassessment recommended</Badge></p>
-          <ul className="reas-list">{d.reassessment.contradictions.map((c) => <li key={c.question}>{c.text}</li>)}</ul>
+          <ul className="reas-list">{d.reassessment.contradictions.map((c) => <li key={c.question}>{plainIntel(c.text)}</li>)}</ul>
           <p className="ui-muted">Your current score stays until you re-take it. Nothing is re-run automatically, and no new score is predicted.</p>
           <Button as={Link} to="/capital/readiness" variant="secondary" size="sm">Review Capital Readiness</Button>
         </>

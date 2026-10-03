@@ -3,7 +3,7 @@ import { Badge, Button, Icon, Skeleton } from '../design/ui';
 import { useCompany } from '../components/company-context';
 import useApi from '../lib/useApi';
 import { getCommandCenter, isUnavailable } from '../lib/companyIntel';
-import { firstName, countryName, fmtUsd, fmtDate, fmtMonths, timingLabel, plural } from '../lib/format';
+import { firstName, countryName, fmtUsd, fmtDate, fmtMonths, timingLabel, plural, plainIntel } from '../lib/format';
 import { partOfDay } from '../lib/home';
 import { LoadError, FundraisingNotice } from '../components/capital/bits';
 import ClassicHome, { Waiting } from '../components/home/ClassicHome';
@@ -123,14 +123,14 @@ function NextBlock({ next }) {
     <section className="nextb" aria-labelledby="nextb-t">
       <p className="nextb-kicker">The most important thing to do next is</p>
       <h2 id="nextb-t" className="nextb-title">{top.label}</h2>
-      {top.why && <p className="nextb-why">{top.why}</p>}
+      {top.why && <p className="nextb-why">{plainIntel(top.why)}</p>}
       {internal(top.route) && <Button as={Link} to={top.route} variant="accent" iconRight="send" className="nextb-cta">{top.label}</Button>}
       {(next.priorities || []).length > 0 && (
         <ol className="prio">
           {next.priorities.slice(0, 3).map((p) => (
             <li key={p.id}>
               {internal(p.route) ? <Link to={p.route}>{p.label}</Link> : <span>{p.label}</span>}
-              {p.why && <span className="prio-why">{p.why}</span>}
+              {p.why && <span className="prio-why">{plainIntel(p.why)}</span>}
             </li>
           ))}
         </ol>
@@ -166,7 +166,8 @@ function Signal({ kind, s, high }) {
     foot = [s.source_label, s.runway_months != null ? `${fmtMonths(s.runway_months)} runway` : s.cash_buffer_months != null ? `${fmtMonths(s.cash_buffer_months)} cash buffer` : null, s.computed_at ? fmtDate(s.computed_at) : null].filter(Boolean).join(' · ');
   } else if (kind === 'capital_readiness') {
     if (s.status === 'scored') {
-      value = Math.round(Number(s.score) * 10) / 10;
+      // Same whole number as the topbar pill and the sidebar badge (the exact score lives on Readiness).
+      value = Math.round(Number(s.score));
       line = [s.band, s.provisional ? 'provisional' : null].filter(Boolean).join(' · ');
       foot = s.assessed_at ? `Assessed ${fmtDate(s.assessed_at)}` : s.label;
     } else { value = 'Not yet'; line = 'Not assessed'; foot = 'Take the assessment'; to = '/capital/readiness/assess'; }

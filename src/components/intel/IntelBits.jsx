@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Badge, Button, Icon } from '../../design/ui';
-import { fmtDate } from '../../lib/format';
+import { fmtDate, plainIntel } from '../../lib/format';
 import { askAi } from '../../lib/ask';
 import { upgradeHref } from '../../lib/plan';
 
@@ -51,8 +51,8 @@ export function ChangeList({ items, empty = 'Nothing material has changed recent
         <li key={c.id} className={`change change-${c.direction || 'none'}`}>
           <span className="change-mark" aria-hidden="true" />
           <div>
-            <p className="change-title">{c.title}</p>
-            {c.detail && <p className="change-detail">{c.detail}</p>}
+            <p className="change-title">{plainIntel(c.title)}</p>
+            {c.detail && <p className="change-detail">{plainIntel(c.detail)}</p>}
           </div>
           <time className="change-at" dateTime={c.at}>{fmtDate(c.at)}</time>
         </li>
@@ -74,8 +74,8 @@ export function AttentionList({ items, empty = 'Nothing needs your attention rig
           <li key={a.id} className="attn-item">
             <Badge tone={s.tone} size="sm" dot>{s.label}</Badge>
             <div className="attn-main">
-              <p className="attn-title">{a.title}</p>
-              {a.detail && <p className="attn-detail">{a.detail}</p>}
+              <p className="attn-title">{plainIntel(a.title)}</p>
+              {a.detail && <p className="attn-detail">{plainIntel(a.detail)}</p>}
             </div>
             {internal && <Button as={Link} to={a.route} variant="link" size="sm">Open</Button>}
           </li>
