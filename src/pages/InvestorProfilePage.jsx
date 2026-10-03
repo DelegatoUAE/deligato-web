@@ -321,7 +321,7 @@ export default function InvestorProfilePage() {
             <ul className="plain-list unknown-list">{p.what_we_dont_know.map((u) => <li key={u.field}>{u.label}: not on record</li>)}</ul>
           ) : <p className="ui-muted">The main mandate fields are on record.</p>}
           {(result?.caveats?.length ? result.caveats : p.caveats || []).map((c, i) => (
-            <Alert key={i} tone="warn">{typeof c === 'string' ? c : c.message || c.text}{' '}Check before applying.</Alert>
+            <Alert key={i} tone="warn">{wordsForCodes(typeof c === 'string' ? c : c.message || c.text)}{' '}{c?.detail || 'Check before applying.'}</Alert>
           ))}
           <p className="ui-muted">Something wrong here? <Button variant="link" size="sm" onClick={() => setDialog('correction')}>Suggest a correction</Button></p>
         </Card>

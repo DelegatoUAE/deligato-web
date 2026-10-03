@@ -41,7 +41,7 @@ export default function MatchCard({ r, runId, pipelineItem, canTrack, canDraft, 
         )}
         {r.caveats.length > 0 && (
           <ul className="mcard-caveats">
-            {r.caveats.map((c, i) => <li key={i}>{wordsForCodes(typeof c === 'string' ? c : c.message || c.text)}</li>)}
+            {r.caveats.map((c, i) => <li key={i}>{wordsForCodes(typeof c === 'string' ? c : c.message || c.text)}{c?.detail ? <span className="mcard-caveat-detail"> {c.detail}</span> : null}</li>)}
           </ul>
         )}
         <div className="mcard-foot">
