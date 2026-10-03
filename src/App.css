@@ -717,3 +717,23 @@
 .whyfits-unknown, .whyfits-next, .whyfits-gate { margin: 0; font-size: var(--text-sm); }
 .whyfits-gate { display: inline-flex; gap: 6px; align-items: center; }
 .whyfits-gate svg { width: 14px; height: 14px; }
+
+/* ==== I-05: routes — Start here card + one-line rows ==== */
+.rcard-start { border-color: var(--gold-300); box-shadow: 0 0 0 3px var(--gold-050), var(--shadow-sm); }
+.rcard-eyebrow { margin: 0 0 var(--s-1); font-size: var(--text-2xs); font-weight: var(--fw-semibold); letter-spacing: 0.1em; text-transform: uppercase; color: var(--gold-dark); }
+.rrow { margin: 0 0 var(--s-2); }
+.rrow-btn { all: unset; box-sizing: border-box; cursor: pointer; width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) auto auto 16px; gap: var(--s-3); align-items: center; padding: var(--s-3) var(--s-4); background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); transition: border-color var(--t-fast) var(--ease), box-shadow var(--t-base) var(--ease); }
+.rrow-btn:hover { border-color: var(--border-strong); box-shadow: var(--shadow-sm); }
+.rrow-btn:focus-visible { box-shadow: var(--ring); }
+.rrow-label { font-weight: var(--fw-semibold); color: var(--text-strong); font-size: var(--text-md); }
+.rrow-meta { font-size: var(--text-xs); color: var(--text-soft); white-space: nowrap; }
+.rrow-chev { color: var(--text-faint); }
+@media (max-width: 640px) { .rrow-btn { grid-template-columns: minmax(0, 1fr) auto; } .rrow-meta { grid-column: 1 / -1; } .rrow-chev { display: none; } }
+.rcard-reasons li { display: grid; grid-template-columns: 1.1em minmax(0, 1fr); column-gap: 6px; align-items: baseline; }
+.rcard-reasons li > .ui-badge { grid-column: 2; justify-self: start; margin-top: 2px; }
+@media (max-width: 640px) {
+  .rrow { margin-bottom: 6px; }
+  .rrow-btn { padding: 10px 14px; row-gap: 2px; }
+  .rrow-label { font-size: var(--text-sm); }
+  .rgroup .sec-h { margin: var(--s-4) 0 var(--s-2); }
+}

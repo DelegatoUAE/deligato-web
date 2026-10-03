@@ -18,7 +18,7 @@ import {
 } from '../lib/capital';
 import { sendFeedback, listFeedback } from '../lib/learning';
 import { getRouting, normaliseRoute } from '../lib/routing';
-import { fmtUsd, fmtDateTime, fmtInt, countryName } from '../lib/format';
+import { fmtUsd, fmtDateTime, fmtInt, countryName, plural } from '../lib/format';
 import { logEvent } from '../lib/events';
 
 function inRoutes(r, routes) {
@@ -263,7 +263,7 @@ export default function MatchesPage() {
           {routes.slice(0, routeParam === 'fits' ? 3 : routes.length).map((r) => <Badge key={r.key} tone="brand">{r.label}</Badge>)}
           {routeParam === 'fits' && routes.length > 3 && <span className="ui-muted">and {routes.length - 3} more</span>}
           {routes.length === 1 && routes[0].coverage && (routes[0].coverage.level === 'thin' || (routes[0].coverage.provider_count ?? 99) < 10) && (
-            <span className="rcard-thin">Thin coverage: only {routes[0].coverage.provider_count} providers on record for this route. Treat these as a starting point, not the whole market.</span>
+            <span className="rcard-thin">Thin coverage: only {plural(routes[0].coverage.provider_count, 'provider')} on record for this route. Treat these as a starting point, not the whole market.</span>
           )}
           <Button variant="link" size="sm" onClick={() => setParams((p) => { const q = new URLSearchParams(p); q.delete('routes'); q.delete('route'); return q; })}>Show every route</Button>
         </div>
