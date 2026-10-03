@@ -2,7 +2,9 @@ import { useState } from 'react';
 import { Alert, Badge, Button, ChipToggle, FormField, Input, Select, Tag } from '../../design/ui';
 import { useCompany } from '../company-context';
 import { saveCapitalNeed } from '../../lib/companies';
-import { TIMINGS, fmtUsd } from '../../lib/format';
+import { updateProfile } from '../../lib/capital';
+import { TIMINGS, fmtUsd, countryName } from '../../lib/format';
+import { COUNTRY_CODES, marketCode } from '../../lib/countries';
 import { logEvent } from '../../lib/events';
 
 const FALLBACK_INSTRUMENTS = ['Equity', 'SAFE', 'Convertible note', 'Venture debt', 'Revenue-based', 'Grant', 'Loan'];
@@ -29,6 +31,9 @@ export default function CapitalNeedForm({ firstRun = false, onSaved, submitLabel
     investor_types_sought: company?.investor_types_sought || [],
     target_markets: company?.target_markets || [],
     raise_timing: company?.raise_timing || '',
+    // capital/eligibility.js#checkLocalPresence: true clears, false excludes,
+    // null (not sure) keeps the "requires local presence" caveat.
+    willing_to_relocate: company?.willing_to_relocate === true ? 'yes' : company?.willing_to_relocate === false ? 'no' : 'unsure',
   }));
   const [edited, setEdited] = useState({});
   const [market, setMarket] = useState('');
@@ -44,10 +49,10 @@ export default function CapitalNeedForm({ firstRun = false, onSaved, submitLabel
   const debtEarly = EARLY.includes(company?.stage) && ['Venture debt', 'Revenue-based'].includes(form.instrument);
 
   function addMarket(raw) {
-    const v = String(raw || '').trim().toUpperCase().replace(/\s+/g, '_');
-    if (!v) return;
-    if (!/^[A-Z]{2}$/.test(v) && !blocs.includes(v)) {
-      setErrors((e) => ({ ...e, target_markets: 'Use a two-letter country code (AE, SA, GB) or a region from the list.' }));
+    if (!String(raw || '').trim()) return;
+    const v = marketCode(raw, blocs);
+    if (!v) {
+      setErrors((e) => ({ ...e, target_markets: 'Pick a country or a region from the list.' }));
       return;
     }
     if (!form.target_markets.includes(v)) set('target_markets', [...form.target_markets, v]);
@@ -79,6 +84,10 @@ export default function CapitalNeedForm({ firstRun = false, onSaved, submitLabel
         raise_timing: form.raise_timing,
       };
       const out = await saveCapitalNeed(company.id, need);
+      // Not part of the routing capital-need allow-list: saved on the profile
+      // (PATCH /capital/profiles/:id allows willing_to_relocate).
+      const relocate = { yes: true, no: false, unsure: null }[form.willing_to_relocate];
+      if (relocate !== (company?.willing_to_relocate ?? null) || edited.willing_to_relocate) await updateProfile(company.id, { willing_to_relocate: relocate });
       setTimingNote(!out.timingSaved);
       logEvent('capital_need.saved', { changed_fields: Object.keys(edited), raise_usd: n, instrument: need.instrument, raise_timing: need.raise_timing }, company.id);
       setEdited({});
@@ -111,21 +120,27 @@ export default function CapitalNeedForm({ firstRun = false, onSaved, submitLabel
       </FormField>
 
       <FormField wide label={<span className="need-label">Markets you'll serve {sourceTag(company, 'target_markets', edited.target_markets)}</span>} error={errors.target_markets}
-        hint="Two-letter country codes or regions, e.g. AE, SA, GCC.">
+        hint="Countries or regions, e.g. Saudi Arabia, GCC, Europe.">
         {(id, describedBy) => (
           <div className="need-markets">
             <div className="ui-tags">
-              {form.target_markets.map((m) => <Tag key={m} onRemove={() => set('target_markets', form.target_markets.filter((x) => x !== m))} removeLabel={`Remove ${m}`}>{m}</Tag>)}
+              {form.target_markets.map((m) => <Tag key={m} onRemove={() => set('target_markets', form.target_markets.filter((x) => x !== m))} removeLabel={`Remove ${countryName(m)}`}>{countryName(m)}</Tag>)}
               {!form.target_markets.length && <span className="ui-muted">No markets set</span>}
             </div>
             <div className="ui-row">
               <Input id={id} aria-describedby={describedBy} value={market} onChange={(e) => setMarket(e.target.value)} placeholder="Add country or region"
                 onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addMarket(market); } }} list="need-blocs" style={{ maxWidth: 220 }} />
-              <datalist id="need-blocs">{blocs.map((b) => <option key={b} value={b} />)}</datalist>
+              <datalist id="need-blocs">{[...blocs.map((b) => countryName(b)), ...COUNTRY_CODES.map((c) => countryName(c)).sort()].map((n) => <option key={n} value={n} />)}</datalist>
               <Button variant="secondary" size="sm" onClick={() => addMarket(market)}>Add</Button>
             </div>
           </div>
         )}
+      </FormField>
+
+      <FormField wide label="Would you relocate or incorporate locally for the right investor?"
+        hint="Some programmes and funds require a founder or entity in their country. 'Yes' keeps them in your matches, 'No' leaves them out, 'Not sure' shows them with a note.">
+        {() => <ChipToggle single label="Relocate or incorporate locally" options={[{ key: 'yes', label: 'Yes' }, { key: 'no', label: 'No' }, { key: 'unsure', label: 'Not sure' }]}
+          value={[form.willing_to_relocate]} onChange={(v) => set('willing_to_relocate', v[0] || 'unsure')} />}
       </FormField>
 
       <FormField wide label="When do you want to close?" required error={errors.raise_timing}>

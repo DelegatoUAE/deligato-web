@@ -4,14 +4,14 @@ import { useCompany } from '../components/company-context';
 import { ReadinessSnapshot } from '../components/capital/Readiness';
 import { ConncctSourceTag, FundraisingNotice } from '../components/capital/bits';
 import { completeness } from '../lib/capital';
-import { fmtUsd, firstName } from '../lib/format';
+import { fmtUsd, firstName, countryName } from '../lib/format';
 
 export default function WelcomePage() {
   const { me, company, readiness } = useCompany();
   const c = completeness(company);
   const r = readiness?.readiness;
   const name = firstName(me?.profile?.full_name) || firstName(company.founders?.[0]?.name) || 'there';
-  const line2 = [company.stage, company.sector, company.business_model, [company.hq_city, company.hq_country_iso2].filter(Boolean).join(', '), company.founded_year && `founded ${company.founded_year}`].filter(Boolean).join(' · ');
+  const line2 = [company.stage, company.sector, company.business_model, [company.hq_city, countryName(company.hq_country_iso2)].filter(Boolean).join(', '), company.founded_year && `founded ${company.founded_year}`].filter(Boolean).join(' · ');
   const line3 = [company.revenue_usd != null && `Revenue ${fmtUsd(company.revenue_usd)}/yr`, company.mrr_usd != null && `MRR ${fmtUsd(company.mrr_usd)}`, company.runway_months != null && `runway ${company.runway_months} months`, company.team_size && `team ${company.team_size}`].filter(Boolean).join(' · ');
   return (
     <div className="welcomep">

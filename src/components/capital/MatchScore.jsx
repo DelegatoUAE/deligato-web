@@ -17,7 +17,8 @@ export default function MatchScore({ score, confidence, size = 'md', label = 'Ma
     <div
       className={`ms ms-${size} ms-${level}`}
       role="img"
-      aria-label={known ? `${label} score ${n} out of 100, ${WORD[level]} confidence` : `${label} score not available`}
+      aria-label={known ? `${label} score ${n} out of 100: how strongly the evidence supports this fit. ${WORD[level]} confidence.` : `${label} score not available`}
+      title={known ? `Match score ${n}: how strongly the evidence supports this fit. Unknown facts lower it.` : undefined}
     >
       <div className="ms-tile">
         <span className="ms-num">{known ? n : '–'}</span>

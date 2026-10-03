@@ -1,20 +1,21 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import {
   Alert, Badge, Button, Card, ConfidenceBadge, EmptyState, FitList, FitRow, FormField, Input, Modal, Select, Skeleton, Tag, Textarea, useToast,
 } from '../design/ui';
 import { useCompany } from '../components/company-context';
 import MatchScore from '../components/capital/MatchScore';
-import AiOutput from '../components/AiOutput';
+import WhyThisFits from '../components/capital/WhyThisFits';
+import { MeetingPrep } from '../components/capital/AiBlocks';
+import useAiConsent from '../lib/useAiConsent';
 import { FundraisingNotice, LoadError } from '../components/capital/bits';
 import useApi from '../lib/useApi';
 import {
-  getSource, getRunNormalised, listPipeline, addToPipeline, previewMatch, FIT_DIMENSIONS, confidenceLevel, stageLabel, fitReasonText, bucketHeadline, tierWithinBucket,
+  getSource, getRunNormalised, listPipeline, addToPipeline, previewMatch, FIT_DIMENSIONS, confidenceLevel, stageLabel, fitReasonText, bucketHeadline, tierWithinBucket, investorHref, ticketRange,
 } from '../lib/capital';
 import { submitCorrection, recordNotFit, CORRECTION_FIELDS, FEEDBACK_DOWN_REASONS } from '../lib/learning';
 import { recordOutcome, kindForRoute } from '../lib/fundraising';
-import { runTask } from '../lib/intelligence';
-import { fmtUsd, fmtDate, stealthLabel } from '../lib/format';
+import { fmtUsd, fmtDate, stealthLabel, countryName, wordsForCodes } from '../lib/format';
 
 // D16 provenance labels. Derived from the record's own evidence until the
 // data module publishes per-field labels (it then wins: profile.field_provenance).
@@ -46,7 +47,7 @@ const NOT_ON_RECORD = 'Not on record';
 
 function fitDetail(dim, m, company, result) {
   const reason = fitReasonText(result, dim);
-  if (reason) return reason;
+  if (reason) return wordsForCodes(reason);
   const missingOwn = (result?.missing_from_your_profile || []);
   const state = result?.fits?.[dim];
   if (state === 'unknown') {
@@ -59,7 +60,7 @@ function fitDetail(dim, m, company, result) {
   switch (dim) {
     case 'stage': return `Backs ${list(m.stages) || 'stages not on record'}; you're ${company.stage || 'stage unknown'}.`;
     case 'sector': return `${list(m.sectors) || 'Sectors not on record'}; you're ${company.sector || 'sector unknown'}.`;
-    case 'geography': return `Accepts companies from ${list(m.accepts_hq) || 'markets not on record'}; you're ${company.hq_country_iso2 || 'HQ unknown'}.`;
+    case 'geography': return `Accepts companies from ${list((m.accepts_hq || []).map(countryName)) || 'markets not on record'}; you're in ${countryName(company.hq_country_iso2) || 'a country not set'}.`;
     case 'ticket': return `Writes ${m.ticket?.label || 'cheques of unknown size'}; you're raising ${fmtUsd(company.raise_usd) || 'an amount not set'}.`;
     case 'business_model': return `${list(m.business_models) || 'Business models not on record'}; you're ${company.business_model || 'model unknown'}.`;
     default: return null;
@@ -68,8 +69,60 @@ function fitDetail(dim, m, company, result) {
 
 const SECTIONS = [
   ['overview', 'Overview'], ['fit', 'Why you match'], ['mismatch', 'Potential mismatches'], ['mandate', 'Mandate'],
-  ['portfolio', 'Portfolio'], ['contact', 'How to reach them'], ['activity', 'Activity'], ['sources', 'Sources'],
+  ['portfolio', 'Portfolio'], ['contact', 'How to reach them'], ['activity', 'Activity'], ['sources', 'Sources'], ['similar', 'Similar'],
 ];
+
+const COVERAGE_ORDER = [PROV.provider, PROV.conncct, PROV.licensed, PROV.public, PROV.ai, PROV.unknown];
+const COVERAGE_CLS = { [PROV.provider]: 'provider', [PROV.conncct]: 'research', [PROV.licensed]: 'licensed', [PROV.public]: 'public', [PROV.ai]: 'ai', [PROV.unknown]: 'unknown' };
+
+/** Evidence coverage of the mandate: how many fields carry which D16 label. Counts only what the page shows. */
+function Coverage({ profile, rows }) {
+  const labels = rows.map(([, field, raw]) => provenance(profile, field, raw));
+  const counts = COVERAGE_ORDER.map((l) => [l, labels.filter((x) => x === l).length]).filter(([, n]) => n > 0);
+  const known = labels.filter((l) => l !== PROV.unknown).length;
+  return (
+    <div className="inv-cov">
+      <p className="inv-cov-h"><strong>{known} of {labels.length}</strong> mandate fields on record</p>
+      <div className="inv-cov-bar" role="img" aria-label={counts.map(([l, n]) => `${n} ${l}`).join(', ')}>
+        {counts.map(([l, n]) => <i key={l} className={`cov-${COVERAGE_CLS[l]}`} style={{ flexGrow: n }} title={`${n} ${l}`} />)}
+      </div>
+      <ul className="inv-cov-legend">
+        {counts.map(([l, n]) => <li key={l}><span className={`cov-dot cov-${COVERAGE_CLS[l]}`} aria-hidden="true" />{l} <b>{n}</b></li>)}
+      </ul>
+    </div>
+  );
+}
+
+/** Highlights the section in view in the on-page nav. */
+function useActiveSection(ids, ready) {
+  const [active, setActive] = useState(ids[0]);
+  const [pinnedUntil, setPinnedUntil] = useState(0);
+  useEffect(() => {
+    if (!ready || typeof IntersectionObserver === 'undefined') return undefined;
+    const els = ids.map((i) => document.getElementById(i)).filter(Boolean);
+    const io = new IntersectionObserver((entries) => {
+      const vis = entries.filter((e) => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
+      if (vis && Date.now() > pinnedUntil) setActive(vis.target.id);
+    }, { rootMargin: '-80px 0px -60% 0px' });
+    els.forEach((el) => io.observe(el));
+    return () => io.disconnect();
+  }, [ids, ready, pinnedUntil]);
+  // A click on the nav wins over the observer while the page scrolls there
+  // (the last sections can't reach the top of the viewport).
+  const pick = (id) => { setPinnedUntil(Date.now() + 1200); setActive(id); };
+  return [active, pick];
+}
+const SECTION_IDS = SECTIONS.map(([k]) => k);
+
+function ProfileSkeleton() {
+  return (
+    <div className="inv" aria-busy="true" aria-label="Loading investor">
+      <Skeleton w="120px" h="14px" />
+      <div className="inv-skel-head"><div className="ui-stack"><Skeleton w="45%" h="30px" /><Skeleton w="30%" h="14px" /><Skeleton w="60%" h="36px" /></div><Skeleton w="96px" h="96px" r="16px" /></div>
+      <div className="inv-grid"><Skeleton h="260px" r="12px" /><Skeleton h="260px" r="12px" /><Skeleton h="320px" r="12px" /><Skeleton h="320px" r="12px" /></div>
+    </div>
+  );
+}
 
 export default function InvestorProfilePage() {
   const { recordId } = useParams();
@@ -89,7 +142,8 @@ export default function InvestorProfilePage() {
   const [dialog, setDialog] = useState(null); // 'correction' | 'dismiss' | 'brief'
   const [corr, setCorr] = useState({ field: 'stages', proposed_value: '', evidence_url: '', note: '' });
   const [dismissReason, setDismissReason] = useState('wrong_geography');
-  const [brief, setBrief] = useState({ loading: false, result: null, error: null });
+  const consent = useAiConsent(companyId);
+  const [activeSection, pickSection] = useActiveSection(SECTION_IDS, Boolean(srcQ.data?.profile));
 
   if (srcQ.error) {
     if (srcQ.error.status === 404) {
@@ -98,7 +152,7 @@ export default function InvestorProfilePage() {
     return <LoadError error={srcQ.error} onRetry={srcQ.reload} what="this investor" />;
   }
   const p = srcQ.data?.profile;
-  if (!p) return <div className="ui-stack"><Skeleton h="140px" /><Skeleton h="320px" /></div>;
+  if (!p) return <ProfileSkeleton />;
 
   const m = p.mandate || {};
   const app = p.application || {};
@@ -152,17 +206,23 @@ export default function InvestorProfilePage() {
     } finally { setBusy(null); }
   }
 
-  async function prepareMeeting() {
-    setDialog('brief');
-    setBrief({ loading: true, result: null, error: null });
-    try {
-      const out = await runTask('investor_brief', { input: { investor: { ...p, ...m, name: id.name, type: id.type, country: id.country, record_id: recordId, contact_route: app.route } }, company_id: companyId });
-      setBrief({ loading: false, result: out, error: null });
-    } catch (e) {
-      setBrief({ loading: false, result: null, error: e.status === 404 ? "Meeting prep isn't connected in this environment yet." : e.message });
-    }
-  }
-
+  const mandateRows = [
+    ['Stage', 'stages', m.stages, list(m.stages)],
+    ['Sector', 'sectors', m.sectors, list(m.sectors)],
+    ['Sector exclusions', 'sector_exclusions', m.sector_exclusions, list(m.sector_exclusions)],
+    ['Geography (accepts HQ)', 'accepts_hq', m.accepts_hq, list((m.accepts_hq || []).map(countryName))],
+    ['Target markets', 'target_markets', m.target_markets, list((m.target_markets || []).map(countryName))],
+    ['Ticket', 'ticket_min_usd', m.ticket?.label, m.ticket?.label],
+    ['Investment type', 'instruments', m.instruments, list(m.instruments)],
+    ['Investor types', 'investor_types', m.investor_types, list(m.investor_types)],
+    ['Business models', 'business_models', m.business_models, list(m.business_models)],
+    ['Lead preference', 'lead_preference', m.lead_preference, m.lead_preference !== 'Unknown' ? m.lead_preference : null],
+    ['Equity taken', 'equity_taken_pct', m.equity_taken_pct, m.equity_taken_pct != null ? `${m.equity_taken_pct}%` : null],
+    ['Revenue requirement', 'revenue_requirement', m.revenue_requirement, m.revenue_requirement !== 'Unknown' ? m.revenue_requirement : null],
+    ['Local presence', 'requires_local_presence', m.requires_local_presence, m.requires_local_presence == null ? null : m.requires_local_presence ? 'Required' : 'Not required'],
+    ['Thesis', 'thesis_keywords', m.thesis_keywords, list(m.thesis_keywords)],
+  ];
+  const runIds = new Set((runQ.data?.results || []).map((r) => r.record_id));
   const fitItems = FIT_DIMENSIONS.map((d) => ({ key: d.key, label: d.key === 'business_model' ? 'Business model' : d.label, state: result?.fits?.[d.key], detail: fitDetail(d.key, m, company, result) }));
   const mismatches = fitItems.filter((f) => f.state === 'no' || f.state === 'partial');
 
@@ -175,6 +235,7 @@ export default function InvestorProfilePage() {
           <h1>{id.name}</h1>
           <p className="inv-sub">{[id.type, [id.city, id.country].filter(Boolean).join(', ')].filter(Boolean).join(' · ')}</p>
           <p className="ui-muted">{fr.label || 'No dated evidence of activity'}</p>
+          <Coverage profile={p} rows={mandateRows} />
           <div className="inv-actions">
             {pipelineItem ? (
               pipelineItem.stage === 'shortlisted'
@@ -189,7 +250,7 @@ export default function InvestorProfilePage() {
             {kind === null ? null : canDraft && !locked
               ? <Button as={Link} to={`/capital/outreach?record=${encodeURIComponent(recordId)}&kind=${kind}`} variant="secondary">Prepare outreach</Button>
               : <Button as={Link} to="/packages?highlight=investor-ready" variant="ghost" iconLeft="lock">Prepare outreach</Button>}
-            <Button variant="ghost" iconLeft="spark" onClick={prepareMeeting}>Prepare meeting</Button>
+            <Button variant="ghost" iconLeft="spark" onClick={() => setDialog('brief')}>Prepare for the call</Button>
             <Button variant="ghost" onClick={() => setDialog('dismiss')}>Not for us</Button>
           </div>
         </div>
@@ -205,7 +266,7 @@ export default function InvestorProfilePage() {
       </Card>
 
       <nav className="inv-toc" aria-label="On this page">
-        {SECTIONS.map(([k, l]) => <a key={k} href={`#${k}`}>{l}</a>)}
+        {SECTIONS.filter(([k]) => k !== 'similar' || (p.similar || []).length).map(([k, l]) => <a key={k} href={`#${k}`} onClick={() => pickSection(k)} className={activeSection === k ? 'is-active' : undefined} aria-current={activeSection === k ? 'location' : undefined}>{l}</a>)}
       </nav>
 
       {notInRun && (
@@ -231,9 +292,10 @@ export default function InvestorProfilePage() {
                     : <Link to="/company/business">Edit company details</Link>}
                 </p>
               )}
-              {result.why_matched && <div className="mcard-why"><span className="mcard-why-label">Why you match</span><p>{result.why_matched}</p></div>}
+              <WhyThisFits companyId={companyId} runId={runQ.data?.run_id} match={result} consent={consent} />
+              {result.why_matched && <div className="mcard-why"><span className="mcard-why-label">Why you match</span><p>{wordsForCodes(result.why_matched)}</p></div>}
               {result.ai_reasoning && <p className="mcard-ai"><Badge tone="gold" size="sm">AI-refined</Badge> {result.ai_reasoning}</p>}
-              <details className="explainer"><summary>How the Match score works</summary><p>Fit counts for most of the score. How much we know about the investor pulls it toward the middle. Unknown details never add points. This score is about fit, not your chance of raising.</p></details>
+              <details className="explainer"><summary>What the Match score means</summary><p>How strongly the evidence supports this fit, out of 100. Facts we can't confirm lower it, so a strong fit with gaps in our data can score lower. It is not your chance of raising.</p></details>
             </>
           ) : <p className="ui-muted">No Match score: this source isn't in your current matches.</p>}
         </Card>
@@ -246,29 +308,14 @@ export default function InvestorProfilePage() {
             <ul className="plain-list unknown-list">{p.what_we_dont_know.map((u) => <li key={u.field}>{u.label}: not on record</li>)}</ul>
           ) : <p className="ui-muted">The main mandate fields are on record.</p>}
           {(result?.caveats?.length ? result.caveats : p.caveats || []).map((c, i) => (
-            <Alert key={i} tone="warn">{typeof c === 'string' ? c : c.message || c.text}{' '}Check before applying.</Alert>
+            <Alert key={i} tone="warn">{wordsForCodes(typeof c === 'string' ? c : c.message || c.text)}{' '}{c?.detail || 'Check before applying.'}</Alert>
           ))}
           <p className="ui-muted">Something wrong here? <Button variant="link" size="sm" onClick={() => setDialog('correction')}>Suggest a correction</Button></p>
         </Card>
 
         <Card id="mandate" title="Mandate">
           <dl className="facts facts-prov">
-            {[
-              ['Stage', 'stages', m.stages, list(m.stages)],
-              ['Sector', 'sectors', m.sectors, list(m.sectors)],
-              ['Sector exclusions', 'sector_exclusions', m.sector_exclusions, list(m.sector_exclusions)],
-              ['Geography (accepts HQ)', 'accepts_hq', m.accepts_hq, list(m.accepts_hq)],
-              ['Target markets', 'target_markets', m.target_markets, list(m.target_markets)],
-              ['Ticket', 'ticket_min_usd', m.ticket?.label, m.ticket?.label],
-              ['Investment type', 'instruments', m.instruments, list(m.instruments)],
-              ['Investor types', 'investor_types', m.investor_types, list(m.investor_types)],
-              ['Business models', 'business_models', m.business_models, list(m.business_models)],
-              ['Lead preference', 'lead_preference', m.lead_preference, m.lead_preference !== 'Unknown' ? m.lead_preference : null],
-              ['Equity taken', 'equity_taken_pct', m.equity_taken_pct, m.equity_taken_pct != null ? `${m.equity_taken_pct}%` : null],
-              ['Revenue requirement', 'revenue_requirement', m.revenue_requirement, m.revenue_requirement !== 'Unknown' ? m.revenue_requirement : null],
-              ['Local presence', 'requires_local_presence', m.requires_local_presence, m.requires_local_presence == null ? null : m.requires_local_presence ? 'Required' : 'Not required'],
-              ['Thesis', 'thesis_keywords', m.thesis_keywords, list(m.thesis_keywords)],
-            ].map(([label, field, raw, shown]) => (
+            {mandateRows.map(([label, field, raw, shown]) => (
               <div key={field}><dt>{label}</dt><dd>{shown || <span className="ui-faint">{NOT_ON_RECORD}</span>} <Prov profile={p} field={field} value={raw} /></dd></div>
             ))}
           </dl>
@@ -328,6 +375,24 @@ export default function InvestorProfilePage() {
         </Card>
       </div>
 
+      {(p.similar || []).length > 0 && (
+        <Card id="similar" title="Similar capital providers" className="inv-similar"
+          action={<span className="ui-muted inv-similar-note">Compared on mandate overlap. Similar is not a match for you.</span>}>
+          <ul className="sim-list">
+            {p.similar.map((x) => (
+              <li key={x.record_id}>
+                <Link to={investorHref(x.record_id, runIds.has(x.record_id) ? runQ.data?.run_id : null)} className="sim-card">
+                  <span className="sim-top"><span className="sim-name">{x.name}</span><span className="sim-pct" title="Mandate overlap with this provider">{x.similarity}% overlap</span></span>
+                  <span className="sim-meta">{[x.type, countryName(x.country)].filter(Boolean).join(' · ') || 'Type and country not on record'}{' · '}{ticketRange(x.ticket_min_usd, x.ticket_max_usd) || 'ticket not on record'}</span>
+                  <span className="sim-why">{wordsForCodes(x.why_similar)}</span>
+                  {runIds.has(x.record_id) && <Badge tone="info" size="sm">In your matches</Badge>}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
+
       <FundraisingNotice />
 
       <Modal open={dialog === 'correction'} onClose={() => setDialog(null)} title="Suggest a correction"
@@ -346,10 +411,8 @@ export default function InvestorProfilePage() {
         <Select aria-label="Reason" value={dismissReason} onChange={(e) => setDismissReason(e.target.value)} options={FEEDBACK_DOWN_REASONS.map((x) => ({ value: x.key, label: x.label }))} />
       </Modal>
 
-      <Modal open={dialog === 'brief'} onClose={() => setDialog(null)} size="lg" title={`Meeting brief: ${id.name}`} description="Built only from this investor's record and your profile. Check facts before you rely on them.">
-        {brief.loading && <Skeleton variant="text" lines={6} />}
-        {brief.error && <Alert tone="bad">{brief.error}</Alert>}
-        {brief.result && <AiOutput result={brief.result} />}
+      <Modal open={dialog === 'brief'} onClose={() => setDialog(null)} size="lg" title={`Prepare for the call: ${id.name}`} description="Built only from this investor's record and your profile. Nothing here is sent.">
+        <MeetingPrep companyId={companyId} runId={runQ.data?.run_id} recordId={recordId} />
       </Modal>
     </div>
   );

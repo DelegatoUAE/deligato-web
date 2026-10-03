@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Alert, Badge, Button, Card, EmptyState, FormField, Input, Modal, PageHeader, Skeleton, Table, Tabs, useToast } from '../design/ui';
 import { useCompany } from '../components/company-context';
+import AppearanceSetting from '../components/AppearanceSetting';
 import useApi from '../lib/useApi';
 import { getConsents, getConsentTexts, grantConsent, revokeConsent, getAiLog, exportMyData, deleteMyAccount } from '../lib/privacy';
 import { setPocPlan } from '../lib/packages';
@@ -164,7 +165,7 @@ export default function SettingsPage() {
     <div>
       <PageHeader title="Settings" />
       <Tabs label="Settings" value={tab} onChange={(t) => setParams({ tab: t })} items={[{ id: 'account', label: 'Account' }, { id: 'privacy', label: 'Privacy and AI' }, { id: 'plan', label: 'Plan' }]}>
-        {(t) => (t === 'account' ? <Account me={me} /> : t === 'privacy' ? <Privacy companyId={companyId} /> : <Plan companyId={companyId} plan={plan} entitlements={entitlements} reloadEntitlements={reloadEntitlements} />)}
+        {(t) => (t === 'account' ? <><Account me={me} /><AppearanceSetting /></> : t === 'privacy' ? <Privacy companyId={companyId} /> : <Plan companyId={companyId} plan={plan} entitlements={entitlements} reloadEntitlements={reloadEntitlements} />)}
       </Tabs>
     </div>
   );

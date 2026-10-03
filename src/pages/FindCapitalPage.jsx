@@ -7,7 +7,7 @@ import { LoadError } from '../components/capital/bits';
 import useApi from '../lib/useApi';
 import { getRouting, normaliseRoute, selectRoutes, ROUTE_FIT } from '../lib/routing';
 import { runMatch } from '../lib/capital';
-import { fmtUsd, timingLabel } from '../lib/format';
+import { fmtUsd, timingLabel, countryName, plural } from '../lib/format';
 import { readinessSource } from '../lib/readiness';
 
 const CONF = { high: 'High confidence', medium: 'Medium confidence', low: 'Based on limited information' };
@@ -21,14 +21,33 @@ function coverageLevel(c) {
   return c.provider_count >= 10 && (c.verified_count ?? 0) >= 3 && (c.hq_accepting_count ?? c.provider_count) >= 3 ? 'good' : 'thin';
 }
 
-function RouteCard({ r, coverage, country, onSee, seeing }) {
+/**
+ * I-05: the top route is a full "Start here" card; every other route is a
+ * one-line row (label · fit · providers · Research Verified) that expands.
+ */
+function RouteCard({ r, coverage, country, onSee, seeing, start = false }) {
   const [open, setOpen] = useState(false);
+  const [expanded, setExpanded] = useState(start);
   const fit = ROUTE_FIT[r.fit] || ROUTE_FIT.possible;
   const level = coverageLevel(coverage);
   const n = coverage?.provider_count;
-  const thinN = coverage && (coverage.hq_accepting_count ?? n) < 3 ? (coverage.hq_accepting_count ?? n) : n;
+  const hqN = coverage?.hq_accepting_count;
+  const fitWord = r.fit === 'strong' ? 'Fits you' : r.fit === 'possible' ? 'Worth a look' : 'Unlikely for now';
+  if (!expanded) {
+    return (
+      <article className={`rrow rrow-${r.fit}`} aria-labelledby={`rt-${r.key}`}>
+        <button type="button" className="rrow-btn" aria-expanded="false" onClick={() => setExpanded(true)}>
+          <span id={`rt-${r.key}`} className="rrow-label">{r.label}</span>
+          <Badge tone={fit.tone} size="sm">{fitWord}</Badge>
+          <span className="rrow-meta">{n ? plural(n, 'provider') : 'No providers yet'}{coverage?.verified_count ? ` · ${coverage.verified_count} Research Verified` : ''}</span>
+          <span className="rrow-chev" aria-hidden="true">▸</span>
+        </button>
+      </article>
+    );
+  }
   return (
-    <article className={`rcard rcard-${r.fit}`} aria-labelledby={`rt-${r.key}`}>
+    <article className={`rcard rcard-${r.fit}${start ? ' rcard-start' : ''}`} aria-labelledby={`rt-${r.key}`}>
+      {start && <p className="rcard-eyebrow">Start here</p>}
       <header className="rcard-head">
         <h3 id={`rt-${r.key}`}>{r.label}</h3>
         <Badge tone={fit.tone}>{r.fit === 'strong' ? 'Fits you' : r.fit === 'possible' ? 'Worth a look' : 'Unlikely for now'}</Badge>
@@ -38,21 +57,26 @@ function RouteCard({ r, coverage, country, onSee, seeing }) {
       {r.fit !== 'unlikely' && r.reasons.length > 0 && (
         <ul className="rcard-reasons">
           {r.reasons.slice(0, 3).map((x, i) => (
-            <li key={i}><span aria-hidden="true">{x.state === 'partial' ? '◐' : '✓'}</span> {x.text}{x.source && <Badge tone="outline" size="sm">{x.source}</Badge>}</li>
+            <li key={i}><span aria-hidden="true">{x.state === 'partial' ? '◐' : '✓'}</span><span>{x.text}</span>{x.source && <Badge tone="outline" size="sm">{x.source}</Badge>}</li>
           ))}
         </ul>
       )}
       {r.fit === 'unlikely' && r.blockers[0] && <p className="rcard-block"><span aria-hidden="true">✕</span> {r.blockers[0].text}</p>}
       {r.cautions.map((c, i) => <p key={i} className="rcard-caution">⚠ {c.text}</p>)}
       {(r.dilution || r.time_to_cash) && <p className="ui-muted rcard-meta">{[r.dilution, r.time_to_cash].filter(Boolean).join(' · ')}</p>}
-      {level === 'good' && <p className="ui-muted rcard-meta">{n} providers on record · {coverage.verified_count} Research Verified</p>}
-      {level === 'thin' && <p className="rcard-thin">Thin coverage: only {thinN} providers on record for this route{coverage.hq_accepting_count != null && coverage.hq_accepting_count < 3 && country ? ` that accept ${country}` : ''}. Treat these as a starting point, not the whole market.</p>}
+      {level === 'good' && <p className="ui-muted rcard-meta">{plural(n, 'provider')} on record · {coverage.verified_count} Research Verified</p>}
+      {level === 'thin' && (
+        <p className="rcard-thin">Thin coverage: {hqN != null && hqN < 3 && country && n
+          ? `${plural(n, 'provider')} on record for this route, ${hqN} of them ${hqN === 1 ? 'accepts' : 'accept'} companies from ${countryName(country)}`
+          : `only ${plural(n || 0, 'provider')} on record for this route`}. Treat these as a starting point, not the whole market.</p>
+      )}
       {level === 'none' && <p className="rcard-thin">No providers on record for this route yet. This says more about our database than about your company.</p>}
       <div className="rcard-foot">
         <Button variant="link" size="sm" onClick={() => setOpen((v) => !v)} aria-expanded={open}>{open ? 'Hide detail' : 'Why?'}</Button>
+        {!start && <Button variant="link" size="sm" onClick={() => setExpanded(false)}>Collapse</Button>}
         {level !== 'none' && (r.fit === 'unlikely'
           ? <Button variant="link" size="sm" onClick={() => onSee(r.key)} loading={seeing}>See them anyway</Button>
-          : <Button variant="secondary" size="sm" onClick={() => onSee(r.key)} loading={seeing}>{n ? `See ${n} providers` : 'See providers'}</Button>)}
+          : <Button variant="secondary" size="sm" onClick={() => onSee(r.key)} loading={seeing}>{n ? `See ${plural(n, 'provider')}` : 'See providers'}</Button>)}
       </div>
       {open && (
         <div className="rcard-why">
@@ -128,8 +152,8 @@ export default function FindCapitalPage() {
       {q.error ? <LoadError error={q.error} onRetry={q.reload} what="your routes" /> : !q.data ? <SkeletonCards count={4} height={150} /> : (
         <>
           {q.data.ordering?.key === 'ownership_first' && <Alert tone="info">{q.data.ordering.text}</Alert>}
-          {groups.strong.length > 0 && <section className="rgroup"><h2 className="sec-h">Fits you</h2>{groups.strong.map((x) => <RouteCard key={x.key} r={x} coverage={x.coverage} country={company.hq_country_iso2} onSee={see} seeing={seeing === x.key} />)}</section>}
-          {groups.possible.length > 0 && <section className="rgroup"><h2 className="sec-h">Worth a look</h2>{groups.possible.map((x) => <RouteCard key={x.key} r={x} coverage={x.coverage} country={company.hq_country_iso2} onSee={see} seeing={seeing === x.key} />)}</section>}
+          {groups.strong.length > 0 && <section className="rgroup"><h2 className="sec-h">Fits you</h2>{groups.strong.map((x, i) => <RouteCard key={x.key} r={x} start={i === 0} coverage={x.coverage} country={company.hq_country_iso2} onSee={see} seeing={seeing === x.key} />)}</section>}
+          {groups.possible.length > 0 && <section className="rgroup"><h2 className="sec-h">Worth a look</h2>{groups.possible.map((x, i) => <RouteCard key={x.key} r={x} start={!groups.strong.length && i === 0} coverage={x.coverage} country={company.hq_country_iso2} onSee={see} seeing={seeing === x.key} />)}</section>}
           {groups.unlikely.length > 0 && (
             <section className="rgroup">
               <h2 className="sec-h"><button type="button" className="tier-toggle" aria-expanded={showUnlikely} onClick={() => setShowUnlikely((v) => !v)}>Unlikely for now <span className="ui-faint">({groups.unlikely.length})</span> {showUnlikely ? '▾' : '▸'}</button></h2>

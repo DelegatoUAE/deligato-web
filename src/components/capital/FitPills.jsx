@@ -1,6 +1,7 @@
 import { useId, useState } from 'react';
 import { FitMark } from '../../design/ui';
 import { FIT_DIMENSIONS, fitProvenance } from '../../lib/capital';
+import { wordsForCodes } from '../../lib/format';
 
 const norm = (s) => (['yes', 'partial', 'no', 'unknown'].includes(s) ? s : 'unknown');
 const SPOKEN = { yes: 'fits', partial: 'partial', no: 'does not fit', unknown: 'unknown' };
@@ -57,7 +58,7 @@ export default function FitPills({ fits = {}, result = null, instrumentUnknown =
           <>
             <strong>{openItem.label}</strong> · <span className={`prov-label prov-${openItem.prov.replace(/\s+/g, '-').toLowerCase()}`}>{openItem.prov}</span>
             {' '}{TIP[openItem.s](openItem.label)}
-            {openItem.reason && <> {openItem.reason.reason}{openItem.reason.evidence_quote ? ` ("${openItem.reason.evidence_quote}")` : ''}</>}
+            {openItem.reason && <> {wordsForCodes(openItem.reason.reason)}{openItem.reason.evidence_quote ? ` ("${openItem.reason.evidence_quote}")` : ''}</>}
           </>
         )}
       </p>

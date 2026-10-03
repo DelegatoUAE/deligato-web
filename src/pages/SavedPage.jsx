@@ -11,6 +11,7 @@ import { listPipeline, updatePipelineItem, removeFromPipeline, investorHref, tie
 import { recordOutcome } from '../lib/fundraising';
 import { FEEDBACK_DOWN_REASONS } from '../lib/learning';
 import { fmtDate } from '../lib/format';
+import { ShortlistSummary } from '../components/capital/AiBlocks';
 
 const nameOf = (p) => p.capital_sources?.name || p.record_id;
 
@@ -72,6 +73,7 @@ export default function SavedPage() {
           <Select aria-label="Sort" value={sort} onChange={(e) => setSort(e.target.value)} options={[{ value: 'date', label: 'Saved date' }, { value: 'score', label: 'Match score at save' }, { value: 'deadline', label: 'Next deadline' }]} />
           <Button variant="secondary" size="sm" disabled={picked.length < 2} onClick={() => setComparing(true)}>Compare {picked.length || ''} selected</Button>
         </div>
+        {saved.length > 0 && <ShortlistSummary companyId={companyId} recordIds={saved.map((p) => p.record_id)} />}
         <ul className="saved">
           {saved.map((p) => (
             <li key={p.id} className="saved-row">
@@ -79,7 +81,7 @@ export default function SavedPage() {
               <span title="Match score when you saved it"><MatchScore score={p.match_score_at_add} confidence={p.capital_sources?.data_confidence} size="sm" /></span>
               <div className="saved-main">
                 <Link to={investorHref(p.record_id)} className="mrow-name">{nameOf(p)}</Link>
-                <span className="mrow-meta">{[p.capital_sources?.type, p.capital_sources?.country, p.fit_tier_at_add && tierLabel(p.fit_tier_at_add), `saved ${fmtDate(p.created_at)}`].filter(Boolean).join(' · ')}</span>
+                <span className="mrow-meta">{[p.capital_sources?.type, p.capital_sources?.country, p.fit_tier_at_add && tierLabel(p.fit_tier_at_add), fmtDate(p.created_at) && `saved ${fmtDate(p.created_at)}`].filter(Boolean).join(' · ')}</span>
                 {byRecord.get(p.record_id) && <FitPills fits={byRecord.get(p.record_id).fits} result={byRecord.get(p.record_id)} />}
                 {p.capital_sources?.deadline && <span className="ui-muted">Next step: applications close {fmtDate(p.capital_sources.deadline)}.</span>}
               </div>

@@ -4,10 +4,29 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
+    <!-- D54: set the theme before the first paint (no flash). Mirrors src/lib/theme.js; theme.test.js checks they agree. -->
+    <script id="theme-boot">(function(){var d=document.documentElement,p='system',k=false;try{var v=window.localStorage.getItem('deligato.theme');if(v==='light'||v==='dark'||v==='system')p=v}catch(e){}if(p==='dark')k=true;else if(p==='system'){try{k=!!(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches)}catch(e){}}var t=k?'dark':'light';d.setAttribute('data-theme',t);d.setAttribute('data-theme-pref',p);d.style.colorScheme=t})();</script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
-    <title>Deligato</title>
+    <title>Deligato · Capital Access for founders</title>
+    <meta name="description" content="Check your capital readiness, find the kinds of capital that fit, and match with capital providers whose mandates fit yours, with the source of every fact. We help you with fundraising. We never fundraise for you." />
+    <meta name="theme-color" content="#051C38" />
+    <link rel="canonical" href="https://www.deligato.io/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Deligato" />
+    <meta property="og:url" content="https://www.deligato.io/" />
+    <meta property="og:title" content="Deligato · Capital Access for founders" />
+    <meta property="og:description" content="Find the capital that fits your company, and see the evidence behind every match. Readiness, routing, matching, outreach drafts and pipeline in one place." />
+    <meta property="og:image" content="https://www.deligato.io/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Deligato, Capital Access: find the capital that fits your company." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Deligato · Capital Access for founders" />
+    <meta name="twitter:description" content="Find the capital that fits your company, and see the evidence behind every match." />
+    <meta name="twitter:image" content="https://www.deligato.io/og-image.png" />
   </head>
   <body>
     <div id="root"></div>
