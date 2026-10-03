@@ -158,7 +158,7 @@ export default function OutreachPage() {
   if (quota === 0) {
     return (
       <div>{head}
-        <GateCard title="Outreach drafts are included from Investor-Ready." body="Draft a first message to an investor you chose, through the route they accept. You edit it and send it yourself." />
+        <GateCard title="Outreach drafts are included in Capital Raising." body="Draft a first message to an investor you chose, through the route they accept. You edit it and send it yourself." />
         <section className="composer composer-example" aria-label="Example draft">
           <Badge tone="outline">Example</Badge>
           <h2>To: an example fund</h2>

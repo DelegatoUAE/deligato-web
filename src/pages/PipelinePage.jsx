@@ -163,7 +163,7 @@ export default function PipelinePage() {
       else await eventForMove(companyId, item, to).catch(() => null);
     } catch (e) {
       replace({ ...item, stage: prev });
-      toast.error(e.upgradeRequired ? 'Pipeline tracking is included from Investor-Ready.' : "Couldn't move this. Try again.");
+      toast.error(e.upgradeRequired ? 'Pipeline tracking is included in Capital Raising.' : "Couldn't move this. Try again.");
     }
   }
 
@@ -209,7 +209,7 @@ export default function PipelinePage() {
     return (
       <div><SubNav section="capital" /><PageHeader title="Pipeline" />
         <div className="gated-blur" aria-hidden="true"><div className="ui-kanban">{ACTIVE_STAGES.slice(0, 4).map((s) => <div key={s} className="ui-kcol"><div className="ui-kcol-head"><h3 className="ui-kcol-title">{stageLabel(s)}</h3></div></div>)}</div></div>
-        <GateCard title="Track your raise in one place." body="Included from Investor-Ready." />
+        <GateCard title="Track your raise in one place." body="Included in Capital Raising." />
       </div>
     );
   }

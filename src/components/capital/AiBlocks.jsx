@@ -22,7 +22,7 @@ export function AiPathLabel({ result }) {
 /** 402 upgrade_required (D32): the gate is shown in place, never a dead click. */
 export function UpgradeNote({ message }) {
   return (
-    <p className="ui-muted aigate"><Icon name="lock" /> {message || 'This needs a paid plan.'} <Link to="/packages?highlight=investor-ready">See packages</Link></p>
+    <p className="ui-muted aigate"><Icon name="lock" /> {message || 'This needs a paid plan.'} <Link to="/packages?highlight=capital-raising">See packages</Link></p>
   );
 }
 

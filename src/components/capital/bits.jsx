@@ -17,7 +17,7 @@ export function ConncctSourceTag({ label = 'Imported' }) {
 }
 
 /** A locked feature: what it does, which package unlocks it, one CTA. */
-export function GateCard({ title, body, code = 'investor-ready', cta = 'See packages', compact = false }) {
+export function GateCard({ title, body, code = 'capital-raising', cta = 'See packages', compact = false }) {
   return (
     <Card tone="outline" className={`gate${compact ? ' gate-compact' : ''}`}>
       <div className="gate-icon" aria-hidden="true"><Icon name="lock" /></div>

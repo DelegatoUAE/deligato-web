@@ -47,7 +47,7 @@ export default function MatchCard({ r, runId, pipelineItem, canTrack, canDraft, 
         <div className="mcard-foot">
           {r.activity && <span className="mcard-activity">{r.activity}</span>}
           {timing && <Badge tone={timing.kind === 'deadline' ? 'gold' : timing.kind === 'open' ? 'ok' : 'neutral'} dot={timing.kind === 'deadline'} size="sm">{timing.text}</Badge>}
-          {r.locked && <span className="ui-faint">How to reach them is included from Investor-Ready.</span>}
+          {r.locked && <span className="ui-faint">How to reach them is included in Capital Raising.</span>}
         </div>
       </div>
       <div className="mcard-actions">
@@ -60,14 +60,14 @@ export default function MatchCard({ r, runId, pipelineItem, canTrack, canDraft, 
             <Button variant="ghost" size="sm" onClick={() => onTrack(r)} loading={busy === 'track'} disabled={Boolean(busy)}>Add to pipeline</Button>
           </>
         ) : (
-          <Tooltip text="Pipeline tracking is included from Investor-Ready.">
-            <Button variant="ghost" size="sm" iconLeft="lock" as={Link} to="/packages?highlight=investor-ready">Save</Button>
+          <Tooltip text="Pipeline tracking is included in Capital Raising.">
+            <Button variant="ghost" size="sm" iconLeft="lock" as={Link} to="/packages?highlight=capital-raising">Save</Button>
           </Tooltip>
         )}
         {canDraft ? (
           <Button as={Link} to={outreachHref} variant="ghost" size="sm">Prepare outreach</Button>
         ) : (
-          <Button as={Link} to="/packages?highlight=investor-ready" variant="ghost" size="sm" iconLeft="lock" title="Outreach drafts are included from Investor-Ready. Opens Packages.">Prepare outreach</Button>
+          <Button as={Link} to="/packages?highlight=capital-raising" variant="ghost" size="sm" iconLeft="lock" title="Outreach drafts are included in Capital Raising. Opens Packages.">Prepare outreach</Button>
         )}
         {onFeedback && (
           <div className="mcard-fb" role="group" aria-label="Is this a relevant match?">
