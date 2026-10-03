@@ -1,6 +1,11 @@
-import { useState } from 'react';
+import { lazy, Suspense, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { Alert, Button, FormField, Input } from '../design/ui';
+import AuthLayout from '../components/AuthLayout';
 import { login } from '../lib/auth';
+
+// Compiled out of production builds (Vite replaces import.meta.env.DEV with false).
+const DevPersonaLogin = import.meta.env.DEV ? lazy(() => import('../components/DevPersonaLogin')) : null;
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -17,53 +22,26 @@ export default function LoginPage() {
       await login(email, password);
       navigate('/');
     } catch (err) {
-      setError(err.message);
+      setError(err.status === 401 ? "That email and password don't match an account." : err.message);
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <div className="auth-shell">
-      <div className="auth-card">
-        <h1 className="brand">Deligato</h1>
-        <p className="tagline">AI-powered resource allocation for consultancies</p>
-
-        <h2>Sign in</h2>
-        <form onSubmit={onSubmit}>
-          <label>
-            Email
-            <input
-              type="email"
-              autoComplete="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </label>
-          <label>
-            Password
-            <input
-              type="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </label>
-          {error && <div className="error">{error}</div>}
-          <button type="submit" disabled={busy}>
-            {busy ? 'Signing in…' : 'Sign in'}
-          </button>
-        </form>
-
-        <p className="alt">
-          New to Deligato? <Link to="/signup">Create an account</Link>
-        </p>
-        <p className="alt" style={{ marginTop: '12px' }}>
-          <Link to="/forgot-password">Forgot password?</Link>
-        </p>
-      </div>
-    </div>
+    <AuthLayout title="Sign in">
+      <form className="ui-stack" onSubmit={onSubmit}>
+        <FormField label="Email"><Input type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} required /></FormField>
+        <FormField label="Password"><Input type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required /></FormField>
+        {error && <Alert tone="bad">{error}</Alert>}
+        <Button type="submit" variant="primary" block loading={busy}>Sign in</Button>
+        <p className="login-alt"><Link to="/forgot-password">Forgot password?</Link> · New here? <Link to="/signup">Create an account</Link></p>
+      </form>
+      {DevPersonaLogin && (
+        <Suspense fallback={null}>
+          <DevPersonaLogin onSignedIn={() => navigate('/')} />
+        </Suspense>
+      )}
+    </AuthLayout>
   );
 }

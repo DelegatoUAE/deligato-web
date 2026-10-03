@@ -1,28 +1,23 @@
-import { useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { getToken, fetchMe, logout } from '../lib/auth';
+import useApi from '../lib/useApi';
+import { Skeleton } from '../design/ui';
 
 export default function ProtectedRoute({ children }) {
-  const [state, setState] = useState({ status: 'checking', me: null });
+  const token = getToken();
+  const meQ = useApi(() => (token ? fetchMe() : null), [token]);
 
-  useEffect(() => {
-    if (!getToken()) {
-      setState({ status: 'no-token', me: null });
-      return;
-    }
-    fetchMe()
-      .then((me) => setState({ status: 'authed', me }))
-      .catch(() => {
-        logout();
-        setState({ status: 'invalid', me: null });
-      });
-  }, []);
-
-  if (state.status === 'checking') {
-    return <div className="centered">Checking your session…</div>;
-  }
-  if (state.status !== 'authed') {
+  if (!token) return <Navigate to="/login" replace />;
+  if (meQ.error) {
+    logout();
     return <Navigate to="/login" replace />;
   }
-  return typeof children === 'function' ? children(state.me) : children;
+  if (meQ.loading || !meQ.data) {
+    return (
+      <div className="centered" aria-busy="true">
+        <div style={{ width: 240 }}><Skeleton variant="text" lines={3} /></div>
+      </div>
+    );
+  }
+  return typeof children === 'function' ? children(meQ.data) : children;
 }

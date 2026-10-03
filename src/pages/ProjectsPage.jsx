@@ -1,109 +1,43 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Badge, Button, EmptyState, PageHeader, Table, Tabs } from '../design/ui';
+import SubNav from '../components/SubNav';
+import { useCompany } from '../components/company-context';
+import { LoadError } from '../components/capital/bits';
+import useApi from '../lib/useApi';
 import { apiFetch } from '../lib/auth';
 
 const STATUSES = ['all', 'draft', 'active', 'on_hold', 'completed', 'cancelled'];
-
-const STATUS_LABEL = {
-  draft: 'Draft',
-  active: 'Active',
-  on_hold: 'On hold',
-  completed: 'Completed',
-  cancelled: 'Cancelled',
+const STATUS = {
+  draft: { label: 'Draft', tone: 'neutral' }, active: { label: 'Active', tone: 'ok' }, on_hold: { label: 'On hold', tone: 'warn' },
+  completed: { label: 'Completed', tone: 'brand' }, cancelled: { label: 'Cancelled', tone: 'bad' },
 };
+const fmtGBP = (n) => (n == null ? '–' : `£${Number(n).toLocaleString('en-GB')}`);
 
-const fmtGBP = (n) =>
-  n == null ? '—' : '£' + Number(n).toLocaleString('en-GB');
-
+/** Expert projects (the existing projects and allocations, D13). Budgets and AI Match are staff-only. */
 export default function ProjectsPage() {
-  const [projects, setProjects] = useState(null);
+  const { staff } = useCompany();
   const [filter, setFilter] = useState('all');
-  const [error, setError] = useState(null);
+  const q = useApi(() => apiFetch(filter === 'all' ? '/projects' : `/projects?status=${filter}`).then((d) => d.projects || []), [filter]);
 
-  useEffect(() => {
-    setProjects(null);
-    setError(null);
-    const path = filter === 'all' ? '/projects' : `/projects?status=${filter}`;
-    apiFetch(path)
-      .then((d) => setProjects(d.projects))
-      .catch((e) => setError(e.message));
-  }, [filter]);
+  const columns = [
+    { key: 'name', header: 'Project', render: (p) => <><strong>{p.name}</strong>{p.required_seniority && <span className="ui-muted"> · {p.required_seniority}</span>}</> },
+    { key: 'client_name', header: 'Client' },
+    { key: 'status', header: 'Status', render: (p) => <Badge tone={STATUS[p.status]?.tone || 'neutral'} dot>{STATUS[p.status]?.label || p.status}</Badge> },
+    ...(staff ? [{ key: 'budget_gbp', header: 'Budget', numeric: true, render: (p) => fmtGBP(p.budget_gbp) }] : []),
+    { key: 'skills', header: 'Skills needed', render: (p) => <div className="ui-tags">{(p.required_skills || []).slice(0, 4).map((s) => <span key={s} className="ui-tag">{s}</span>)}</div> },
+    ...(staff ? [{ key: 'm', header: '', render: (p) => <Button as={Link} to={`/admin/match?project_id=${p.id}`} variant="secondary" size="sm">Match advisors</Button> }] : []),
+  ];
 
   return (
-    <section>
-      <div className="page-header">
-        <h1>Projects</h1>
-        <div className="filters">
-          {STATUSES.map((s) => (
-            <button
-              key={s}
-              className={`chip ${filter === s ? 'is-active' : ''}`}
-              onClick={() => setFilter(s)}
-            >
-              {s === 'all' ? 'All' : STATUS_LABEL[s]}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {error && <div className="error">{error}</div>}
-
-      {!projects ? (
-        <div className="empty">Loading projects…</div>
-      ) : projects.length === 0 ? (
-        <div className="empty">No projects in this view yet.</div>
-      ) : (
-        <div className="table-card">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Project</th>
-                <th>Client</th>
-                <th>Status</th>
-                <th>Budget</th>
-                <th>Required skills</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {projects.map((p) => (
-                <tr key={p.id}>
-                  <td>
-                    <strong>{p.name}</strong>
-                    {p.required_seniority && (
-                      <span className="muted"> · {p.required_seniority}</span>
-                    )}
-                  </td>
-                  <td>{p.client_name}</td>
-                  <td>
-                    <span className={`status-pill status-${p.status}`}>
-                      {STATUS_LABEL[p.status] || p.status}
-                    </span>
-                  </td>
-                  <td>{fmtGBP(p.budget_gbp)}</td>
-                  <td>
-                    <div className="tag-row">
-                      {(p.required_skills || []).slice(0, 4).map((s) => (
-                        <span key={s} className="tag">{s}</span>
-                      ))}
-                      {(p.required_skills || []).length > 4 && (
-                        <span className="muted">
-                          +{p.required_skills.length - 4}
-                        </span>
-                      )}
-                    </div>
-                  </td>
-                  <td>
-                    <Link to={`/match?project_id=${p.id}`} className="btn-secondary">
-                      Match →
-                    </Link>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+    <div>
+      <SubNav section="experts" />
+      <PageHeader title="Projects" subtitle="Work with advisors: each project, who is on it, and where it stands." />
+      <Tabs variant="pill" label="Status" value={filter} onChange={setFilter} items={STATUSES.map((s) => ({ id: s, label: s === 'all' ? 'All' : STATUS[s].label }))} />
+      {q.error ? <LoadError error={q.error} onRetry={q.reload} what="projects" /> : (
+        <Table columns={columns} rows={q.data || []} loading={!q.data} rowKey="id"
+          empty={<EmptyState compact icon="file" title="No projects in this view yet." body="Start one from an advisor you've matched." action={<Button as={Link} to="/experts" variant="secondary" size="sm">Find an expert</Button>} />} />
       )}
-    </section>
+    </div>
   );
 }
