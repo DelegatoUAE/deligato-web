@@ -26,7 +26,7 @@ export default function ProjectsPage() {
     { key: 'status', header: 'Status', render: (p) => <Badge tone={STATUS[p.status]?.tone || 'neutral'} dot>{STATUS[p.status]?.label || p.status}</Badge> },
     ...(staff ? [{ key: 'budget_gbp', header: 'Budget', numeric: true, render: (p) => fmtGBP(p.budget_gbp) }] : []),
     { key: 'skills', header: 'Skills needed', render: (p) => <div className="ui-tags">{(p.required_skills || []).slice(0, 4).map((s) => <span key={s} className="ui-tag">{s}</span>)}</div> },
-    ...(staff ? [{ key: 'm', header: '', render: (p) => <Button as={Link} to={`/workspace/match?project_id=${p.id}`} variant="secondary" size="sm">Match advisors</Button> }] : []),
+    ...(staff ? [{ key: 'm', header: '', render: (p) => <Button as={Link} to={`/admin/match?project_id=${p.id}`} variant="secondary" size="sm">Match advisors</Button> }] : []),
   ];
 
   return (

@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Alert, Avatar, Badge, Button, Card, EmptyState, FormField, PageHeader, Select, SkeletonCards, useToast } from '../design/ui';
-import { apiFetch } from '../lib/auth';
-import useApi from '../lib/useApi';
-import { AVAILABILITY, SENIORITY } from '../lib/experts';
+import { Alert, Avatar, Badge, Button, Card, EmptyState, FormField, PageHeader, Select, SkeletonCards, useToast } from '../../design/ui';
+import { apiFetch } from '../../lib/auth';
+import useApi from '../../lib/useApi';
+import { AVAILABILITY, SENIORITY } from '../../lib/experts';
 
 /** Staff · AI Match: rank the expert network against one project brief, then propose an allocation. */
 export default function MatchPage() {
@@ -36,7 +36,7 @@ export default function MatchPage() {
 
   return (
     <div>
-      <PageHeader eyebrow="Workspace" title="AI Match" subtitle="Pick a project to see experts ranked by fit, then propose an allocation." />
+      <PageHeader eyebrow="Admin" title="AI Match" subtitle="Pick a project to see experts ranked by fit, then propose an allocation." />
       <FormField label="Project">
         <Select value={selectedId} placeholder="Choose a project" onChange={(e) => { const n = new URLSearchParams(params); if (e.target.value) n.set('project_id', e.target.value); else n.delete('project_id'); setParams(n); }}
           options={projects.map((p) => ({ value: p.id, label: `${p.name} · ${p.client_name}` }))} />

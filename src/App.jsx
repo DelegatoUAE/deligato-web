@@ -26,14 +26,16 @@ import MyExpertsPage from './pages/MyExpertsPage';
 import ExpertDetailPage from './pages/ExpertDetailPage';
 import ExpertShortlistPage from './pages/ExpertShortlistPage';
 import ExpertProjectsPage from './pages/ExpertProjectsPage';
-import ProjectsPage from './pages/ProjectsPage';
 import CompanyPage from './pages/CompanyPage';
 import BusinessInfoPage from './pages/BusinessInfoPage';
 import SettingsPage from './pages/SettingsPage';
 import NotFoundPage from './pages/NotFoundPage';
-import ConsultantsPage from './pages/ConsultantsPage';
-import ConsultantDetailPage from './pages/ConsultantDetailPage';
-import MatchPage from './pages/MatchPage';
+import AdminHomePage from './pages/admin/AdminHomePage';
+import AdminExpertsPage from './pages/admin/AdminExpertsPage';
+import AdminProjectsPage from './pages/admin/AdminProjectsPage';
+import AdminCorrectionsPage from './pages/admin/AdminCorrectionsPage';
+import AdminLearningPage from './pages/admin/AdminLearningPage';
+import AdminMatchPage from './pages/admin/AdminMatchPage';
 const DevImportPage = import.meta.env.DEV ? lazy(() => import('./pages/DevImportPage')) : null;
 const Showcase = import.meta.env.DEV ? lazy(() => import('./design/Showcase')) : null;
 import ProtectedRoute from './components/ProtectedRoute';
@@ -55,6 +57,11 @@ function Protected({ children, gate = 'company', staffOnly = false }) {
       )}
     </ProtectedRoute>
   );
+}
+
+function RedirectSearch({ to }) {
+  const { search } = useLocation();
+  return <Navigate to={`${to}${search}`} replace />;
 }
 
 function RedirectParam({ to }) {
@@ -111,12 +118,19 @@ export default function App() {
 
       <Route path="/settings" element={<Protected gate="open"><SettingsPage /></Protected>} />
 
-      {/* Staff workspace (legacy consultant tools) */}
-      <Route path="/workspace/experts" element={<Protected gate="open" staffOnly><ConsultantsPage /></Protected>} />
-      <Route path="/workspace/experts/:id" element={<Protected gate="open" staffOnly><ConsultantDetailPage /></Protected>} />
-      <Route path="/workspace/consultants" element={<Protected gate="open" staffOnly><ConsultantsPage /></Protected>} />
-      <Route path="/workspace/match" element={<Protected gate="open" staffOnly><MatchPage /></Protected>} />
-      <Route path="/workspace/projects" element={<Protected gate="open" staffOnly><ProjectsPage /></Protected>} />
+      {/* Admin (staff only; the API enforces every call) */}
+      <Route path="/admin" element={<Protected gate="open" staffOnly><AdminHomePage /></Protected>} />
+      <Route path="/admin/experts" element={<Protected gate="open" staffOnly><AdminExpertsPage /></Protected>} />
+      <Route path="/admin/projects" element={<Protected gate="open" staffOnly><AdminProjectsPage /></Protected>} />
+      <Route path="/admin/corrections" element={<Protected gate="open" staffOnly><AdminCorrectionsPage /></Protected>} />
+      <Route path="/admin/learning" element={<Protected gate="open" staffOnly><AdminLearningPage /></Protected>} />
+      <Route path="/admin/match" element={<Protected gate="open" staffOnly><AdminMatchPage /></Protected>} />
+      <Route path="/workspace" element={<Navigate to="/admin" replace />} />
+      <Route path="/workspace/experts" element={<Navigate to="/admin/experts" replace />} />
+      <Route path="/workspace/experts/:id" element={<Navigate to="/admin/experts" replace />} />
+      <Route path="/workspace/consultants" element={<Navigate to="/admin/experts" replace />} />
+      <Route path="/workspace/match" element={<RedirectSearch to="/admin/match" />} />
+      <Route path="/workspace/projects" element={<Navigate to="/admin/projects" replace />} />
 
       {/* Legacy and spec-v1 links keep working */}
       <Route path="/matches" element={<Navigate to="/capital/matches" replace />} />
@@ -134,7 +148,7 @@ export default function App() {
       <Route path="/consultants" element={<Navigate to="/experts" replace />} />
       <Route path="/consultants/:id" element={<RedirectParam to="/experts/:id" />} />
       <Route path="/projects" element={<Navigate to="/experts/projects" replace />} />
-      <Route path="/match" element={<Navigate to="/workspace/match" replace />} />
+      <Route path="/match" element={<RedirectSearch to="/admin/match" />} />
 
       <Route path="*" element={<NotFoundPage />} />
     </Routes>

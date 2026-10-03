@@ -34,7 +34,12 @@ const TITLES = [
   [/^\/welcome/, 'Welcome'],
   [/^\/onboarding/, 'Set up your company'],
   [/^\/dev/, 'Import a company (dev)'],
-  [/^\/workspace/, 'Workspace'],
+  [/^\/admin\/experts/, 'Admin · Experts'],
+  [/^\/admin\/projects/, 'Admin · Projects'],
+  [/^\/admin\/corrections/, 'Admin · Corrections'],
+  [/^\/admin\/learning/, 'Admin · Learning'],
+  [/^\/admin\/match/, 'Admin · AI Match'],
+  [/^\/admin/, 'Admin'],
 ];
 const titleFor = (path) => TITLES.find(([re]) => re.test(path))?.[1] || 'Capital Access';
 
@@ -72,11 +77,14 @@ export default function AppLayout({ children }) {
   ];
   if (staff) {
     nav.push({
-      title: 'Workspace',
+      title: 'Admin',
       items: [
-        { id: 'ws-experts', label: 'Expert admin', icon: 'users', href: '/workspace/experts' },
-        { id: 'ws-projects', label: 'All projects', icon: 'file', href: '/experts/projects' },
-        { id: 'ws-match', label: 'AI Match', icon: 'spark', href: '/workspace/match' },
+        { id: 'adm-home', label: 'Overview', icon: 'gauge', href: '/admin', end: true },
+        { id: 'adm-corrections', label: 'Corrections', icon: 'check', href: '/admin/corrections' },
+        { id: 'adm-projects', label: 'Projects', icon: 'file', href: '/admin/projects' },
+        { id: 'adm-experts', label: 'Experts', icon: 'users', href: '/admin/experts' },
+        { id: 'adm-match', label: 'AI Match', icon: 'spark', href: '/admin/match' },
+        { id: 'adm-learning', label: 'Learning', icon: 'chart', href: '/admin/learning' },
         ...((import.meta.env.DEV && import.meta.env.VITE_DEV_IMPORT === 'true') ? [{ id: 'ws-import', label: 'Import (dev)', icon: 'download', href: '/dev/import' }] : []),
       ],
     });

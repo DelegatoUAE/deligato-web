@@ -92,7 +92,9 @@ export function logout() {
   setToken(null);
 }
 
-export const STAFF_ROLES = ['project_manager', 'employee', 'finance', 'executive_hr'];
+// Same list the API trusts (api/modules/experts/access.js). `is_admin` comes
+// from GET /auth/me (S2), computed server-side with isAdmin(req).
+export const STAFF_ROLES = ['project_manager', 'executive_hr', 'finance', 'admin'];
 export function isStaff(me) {
-  return STAFF_ROLES.includes(me?.profile?.role);
+  return me?.is_admin === true || STAFF_ROLES.includes(me?.profile?.role);
 }
