@@ -31,8 +31,8 @@ function inRoutes(r, routes) {
 function ScoreExplainer() {
   return (
     <details className="explainer">
-      <summary>How the Match score works</summary>
-      <p>Fit counts for most of the score. How much we know about the investor pulls it toward the middle. Unknown details never add points. This score is about fit, not your chance of raising.</p>
+      <summary>What the Match score means</summary>
+      <p>How strongly the evidence supports this fit, out of 100. Facts we can't confirm lower it, so a strong fit with gaps in our data can score lower. It is not your chance of raising.</p>
     </details>
   );
 }
@@ -317,7 +317,6 @@ export default function MatchesPage() {
               options={[{ value: 'high', label: 'High confidence' }, { value: 'medium', label: 'Medium confidence' }, { value: 'low', label: 'Low confidence' }]} />
             <Select aria-label="Tier" value={filters.tier} onChange={(e) => setFilters({ ...filters, tier: e.target.value })} placeholder="All fit levels" options={TIERS.map((t) => ({ value: t.key, label: t.label }))} />
             <label className="check"><input type="checkbox" checked={filters.open} onChange={(e) => setFilters({ ...filters, open: e.target.checked })} /> Open now</label>
-            <ScoreExplainer />
           </div>
           {activeFilters.length > 0 && (
             <div className="mactive" aria-label="Active filters">
@@ -330,7 +329,8 @@ export default function MatchesPage() {
           {view === 'cards' && !consent.loading && !consent.granted && !aiDeclined && (
             <AiConsentCard consent={consent} compact onDecline={() => setAiDeclined(true)} />
           )}
-          <p className="tier-order">Proven fits first. Higher scores further down rest on details we can't confirm yet.</p>
+          <p className="tier-order">Grouped by evidence: verified fits first, then possible, then likely outside. A higher score in a later group rests on facts we can't confirm yet.</p>
+          <ScoreExplainer />
           <p className="bucket-summary">
             <strong>{fmtInt(bucketCount('eligible'))} verified {bucketCount('eligible') === 1 ? 'fit' : 'fits'}</strong>
             {' · '}{fmtInt(bucketCount('possible'))} possible{bucketCount('possible') > 0 ? ': our data on these investors is still being verified' : ''}
@@ -357,7 +357,7 @@ export default function MatchesPage() {
           </section>}
           {(!bucketFilter || bucketFilter === 'possible') && <section className="tier" aria-labelledby="b-possible">
             <h2 id="b-possible" className="tier-h">Possible: insufficient evidence <span>({byBucket.possible.length}{bucketCount('possible') > byBucket.possible.length ? ` shown of ${fmtInt(bucketCount('possible'))}` : ''})</span></h2>
-            <p className="ui-muted">Nothing on record rules them out, but at least one decisive fact is unknown. Unknown never counts as a fit.</p>
+            <p className="ui-muted">Nothing on record rules them out, but at least one decisive fact is unknown. Unknown never counts as a fit, and it lowers the score.</p>
             {byBucket.possible.length > 12 && !showLeads ? (
               <>
                 {byBucket.possible.slice(0, 12).map(card)}

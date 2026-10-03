@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { Fragment, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { FitMark, Icon } from '../../design/ui';
 import MatchScore from './MatchScore';
@@ -8,7 +8,10 @@ import { countryName } from '../../lib/format';
 
 const SPOKEN = { yes: 'fits', partial: 'partly fits', no: 'does not fit', unknown: 'not on record' };
 const norm = (s) => (['yes', 'partial', 'no', 'unknown'].includes(s) ? s : 'unknown');
+const COLS = 7 + FIT_DIMENSIONS.length;
 const BUCKET_TONE = { eligible: 'ok', possible: 'warn', likely_outside: 'bad' };
+const BUCKET_HEAD = { eligible: 'Verified eligible', possible: 'Possible: insufficient evidence', likely_outside: 'Likely outside their mandate' };
+const BUCKET_NOTE = { eligible: 'Every decisive fit rests on verified evidence.', possible: 'At least one decisive fact is unknown, which lowers the score.', likely_outside: "Their own criteria suggest they don't back companies like yours." };
 const BUCKET_SHORT = { eligible: 'Verified eligible', possible: 'Possible', likely_outside: 'Likely outside' };
 const CONF = { high: 'High', medium: 'Medium', low: 'Low' };
 
@@ -51,7 +54,7 @@ export default function MatchTable({ rows, runId, selected = [], onToggle }) {
   return (
     <div className="ui-table-wrap mt-wrap">
       <table className="ui-table ui-table-dense mt">
-        <caption className="ui-sr">Capital matches. Sorting applies inside each evidence tier.</caption>
+        <caption className="ui-sr">Capital matches, grouped by evidence tier. Sorting applies inside each group.</caption>
         <thead>
           <tr>
             <th scope="col" className="mt-check"><span className="ui-sr">Compare</span></th>
@@ -69,8 +72,19 @@ export default function MatchTable({ rows, runId, selected = [], onToggle }) {
             const on = selected.includes(r.record_id);
             const newBucket = i === 0 || sorted[i - 1].bucket !== r.bucket;
             const conf = confidenceLevel(r.data_confidence);
+            const groupN = newBucket ? sorted.filter((x) => x.bucket === r.bucket).length : 0;
             return (
-              <tr key={r.record_id} className={`${on ? 'is-selected ' : ''}${newBucket && i > 0 ? 'mt-bucket-start' : ''}`}>
+              <Fragment key={r.record_id}>
+              {newBucket && (
+                <tr className="mt-group">
+                  <th scope="rowgroup" colSpan={COLS}>
+                    <span className={`mt-group-dot mt-tier-${BUCKET_TONE[r.bucket] || 'warn'}`} aria-hidden="true" />
+                    {BUCKET_HEAD[r.bucket] || BUCKET_HEAD.possible} <span className="mt-group-n">{groupN}</span>
+                    <span className="mt-group-note">{BUCKET_NOTE[r.bucket] || BUCKET_NOTE.possible}</span>
+                  </th>
+                </tr>
+              )}
+              <tr className={on ? 'is-selected' : undefined}>
                 <td className="mt-check">
                   <input type="checkbox" checked={on} disabled={!on && full} onChange={() => onToggle?.(r.record_id)}
                     aria-label={on ? `Remove ${r.name} from compare` : `Add ${r.name} to compare`} title={!on && full ? `Compare up to ${COMPARE_MAX} at a time` : undefined} />
@@ -88,6 +102,7 @@ export default function MatchTable({ rows, runId, selected = [], onToggle }) {
                   {(() => { const t = timingOf(r); return !t ? <span className="ui-faint">None on record</span> : t.kind === 'open' ? <span className="mt-open"><Icon name="dot" />Open now</span> : t.text; })()}
                 </td>
               </tr>
+              </Fragment>
             );
           })}
         </tbody>

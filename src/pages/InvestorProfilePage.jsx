@@ -308,7 +308,7 @@ export default function InvestorProfilePage() {
               <WhyThisFits companyId={companyId} runId={runQ.data?.run_id} match={result} consent={consent} />
               {result.why_matched && <div className="mcard-why"><span className="mcard-why-label">Why you match</span><p>{wordsForCodes(result.why_matched)}</p></div>}
               {result.ai_reasoning && <p className="mcard-ai"><Badge tone="gold" size="sm">AI-refined</Badge> {result.ai_reasoning}</p>}
-              <details className="explainer"><summary>How the Match score works</summary><p>Fit counts for most of the score. How much we know about the investor pulls it toward the middle. Unknown details never add points. This score is about fit, not your chance of raising.</p></details>
+              <details className="explainer"><summary>What the Match score means</summary><p>How strongly the evidence supports this fit, out of 100. Facts we can't confirm lower it, so a strong fit with gaps in our data can score lower. It is not your chance of raising.</p></details>
             </>
           ) : <p className="ui-muted">No Match score: this source isn't in your current matches.</p>}
         </Card>
