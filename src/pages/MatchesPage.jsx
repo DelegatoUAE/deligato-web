@@ -18,7 +18,7 @@ import {
 } from '../lib/capital';
 import { sendFeedback, listFeedback } from '../lib/learning';
 import { getRouting, normaliseRoute } from '../lib/routing';
-import { fmtUsd, fmtDateTime, fmtInt, countryName, plural } from '../lib/format';
+import { fmtUsd, fmtDate, fmtDateTime, fmtInt, countryName, plural, plainExclusion } from '../lib/format';
 import { logEvent } from '../lib/events';
 import { gateFor } from '../lib/plan';
 
@@ -453,14 +453,20 @@ export default function MatchesPage() {
         {excluded.error && <Alert tone="bad">Couldn't load excluded sources. {excluded.error}</Alert>}
         {!excluded.rows && !excluded.error && <SkeletonCards count={4} height={56} />}
         {excluded.rows && (
+          <>
+          <p className="ui-muted">Showing {excluded.rows.length > 100 ? 'the first 100' : fmtInt(excluded.rows.length)} of {fmtInt(run?.counts?.excluded ?? excluded.rows.length)} excluded sources.</p>
           <ul className="excluded">
             {excluded.rows.slice(0, 100).map((x) => (
               <li key={x.record_id || x.name}>
                 <strong>{x.name}</strong> <span className="ui-muted">{[x.type, x.country].filter(Boolean).join(', ')}</span>
-                <ul>{(x.why_not || []).map((w, i) => <li key={i}>{w}</li>)}</ul>
+                {/* R-CI-F2: each reason with its source label and date when the API sends them (R-CI-4). */}
+                <ul>{(x.why_not_detail?.length ? x.why_not_detail : (x.why_not || []).map((w) => ({ reason: w }))).map((w, i) => (
+                  <li key={i}>{plainExclusion(w.reason)}{w.label ? <> <Badge tone="outline" size="sm">{w.label}{w.as_of ? ` · ${fmtDate(w.as_of)}` : ''}</Badge></> : null}</li>
+                ))}</ul>
               </li>
             ))}
           </ul>
+          </>
         )}
       </Drawer>
       <p className="ui-faint">Missing something? <Button variant="link" size="sm" onClick={() => navigate('/capital/improve')}>See what would open more investors</Button></p>

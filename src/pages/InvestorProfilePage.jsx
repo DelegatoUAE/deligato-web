@@ -15,7 +15,7 @@ import {
 } from '../lib/capital';
 import { submitCorrection, recordNotFit, CORRECTION_FIELDS, FEEDBACK_DOWN_REASONS } from '../lib/learning';
 import { recordOutcome, kindForRoute } from '../lib/fundraising';
-import { fmtUsd, fmtDate, stealthLabel, countryName, wordsForCodes } from '../lib/format';
+import { fmtUsd, fmtDate, stealthLabel, countryName, wordsForCodes, plainExclusion } from '../lib/format';
 import { MATCH_SCORE_EXPLAINER } from '../lib/matchview';
 import { gateFor } from '../lib/plan';
 
@@ -276,7 +276,7 @@ export default function InvestorProfilePage() {
       {notInRun && (
         <Alert tone="warn" title="Not eligible for your profile">
           {ineligQ.loading && !ineligQ.data ? 'Checking why…' : nonMatch?.why_not?.length ? (
-            <ul className="plain-list">{nonMatch.why_not.map((w, i) => <li key={i}>{w}</li>)}</ul>
+            <ul className="plain-list">{nonMatch.why_not.map((w, i) => <li key={i}>{plainExclusion(w)}</li>)}</ul>
           ) : 'This source is outside your current matches. No Match score is shown.'}
         </Alert>
       )}

@@ -51,3 +51,10 @@ test('founder-typed revenue, burn and runway carry the "You told us" label (R-F1
   for (const f of ['revenue_usd', 'burn_usd', 'runway_months']) assert.equal(isDeclaredFigure(f), true);
   assert.equal(isDeclaredFigure('stage'), false);
 });
+
+test('exclusion reasons read country names and the right article', async () => {
+  const { plainExclusion } = await import('./format.js');
+  assert.equal(plainExclusion('No AE mandate — invests in GB'), 'No mandate for United Arab Emirates — invests in United Kingdom');
+  assert.equal(plainExclusion('Is a Incubator; you asked for VC'), 'Is an Incubator; you asked for VC');
+  assert.equal(plainExclusion('Invests at Growth, not Seed'), 'Invests at Growth, not Seed');
+});

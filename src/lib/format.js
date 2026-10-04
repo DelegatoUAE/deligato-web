@@ -155,3 +155,16 @@ export function plainIntel(text) {
 export const DECLARED_LABEL = 'You told us';
 export const DECLARED_PROFILE_FIGURES = ['revenue_usd', 'burn_usd', 'runway_months'];
 export const isDeclaredFigure = (field) => DECLARED_PROFILE_FIGURES.includes(field);
+
+/**
+ * Exclusion reasons arrive as engine sentences with ISO country codes
+ * ("No AE mandate — invests in GB, US") and a fixed article ("Is a Incubator").
+ * Founders read country names and correct articles; the reason is unchanged.
+ */
+export function plainExclusion(text) {
+  if (typeof text !== 'string') return text;
+  return wordsForCodes(text)
+    .replace(/\bNo ([A-Z]{2}) mandate\b/g, (m, cc) => `No mandate for ${countryName(cc)}`)
+    .replace(/\binvests in ((?:[A-Z]{2})(?:, [A-Z]{2})*)\b/g, (m, list) => `invests in ${joinWords(list.split(', ').map((c) => countryName(c)))}`)
+    .replace(/\bIs a ([AEIOU])/g, 'Is an $1');
+}
