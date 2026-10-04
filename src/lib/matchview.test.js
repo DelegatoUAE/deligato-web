@@ -50,3 +50,8 @@ test('the Ticket fit column sorts by fit state, not by ticket size', () => {
   assert.deepEqual(ids(sortMatches(rs, 'ticket', 'desc')), ['b', 'a']);
   assert.deepEqual(ids(sortMatches(rs, 'ticket_size', 'desc')), ['a', 'b']);
 });
+
+test('the Match score explainer is the approved phrase, verbatim (positioning §4)', async () => {
+  const { MATCH_SCORE_EXPLAINER } = await import('./matchview.js');
+  assert.equal(MATCH_SCORE_EXPLAINER, 'Fit counts for most of the score. How much we know about the investor pulls it toward the middle. Unknown details never add points. This score is about fit, not your chance of raising.');
+});

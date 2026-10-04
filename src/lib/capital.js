@@ -243,7 +243,7 @@ export function normaliseResult(r) {
 // eligible: fits on verified or asserted evidence · possible: unknown or
 // soft · likely_outside: their own published text suggests no (collapsed).
 export const BUCKETS = [
-  { key: 'eligible', label: 'Verified eligible', short: 'verified fits' },
+  { key: 'eligible', label: 'Verified fit', short: 'verified fits' },
   { key: 'possible', label: 'Possible: insufficient evidence', short: 'possible' },
   { key: 'likely_outside', label: 'Likely outside their mandate', short: 'likely outside mandate' },
 ];
@@ -261,7 +261,7 @@ const DIM_WORD = { stage: 'stage', sector: 'sector', geography: 'geography', tic
 
 /** One concept per screen (D24): the evidence bucket first, the fit tier only inside it. */
 export function bucketHeadline(r) {
-  if (r?.bucket === 'eligible') return 'Verified eligible';
+  if (r?.bucket === 'eligible') return 'Verified fit';
   if (r?.bucket === 'likely_outside') return 'Likely outside their mandate';
   const unknown = FIT_DIMENSIONS.map((d) => d.key).filter((k) => normState(r?.fits?.[k]) === 'unknown').map((k) => DIM_WORD[k]);
   return unknown.length ? `Possible: ${unknown.join(', ')} unknown` : 'Possible: insufficient evidence';

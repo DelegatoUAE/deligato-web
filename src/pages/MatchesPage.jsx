@@ -8,7 +8,7 @@ import MatchTable from '../components/capital/MatchTable';
 import CompareDrawer from '../components/capital/CompareDrawer';
 import WhyThisFits, { AiConsentCard } from '../components/capital/WhyThisFits';
 import useAiConsent from '../lib/useAiConsent';
-import { toggleCompare, COMPARE_MAX, sortMatches } from '../lib/matchview';
+import { toggleCompare, COMPARE_MAX, sortMatches, MATCH_SCORE_EXPLAINER } from '../lib/matchview';
 const sortByEvidence = (rows) => sortMatches(rows, null);
 import { GateCard, ProviderBadge, LoadError } from '../components/capital/bits';
 import useApi from '../lib/useApi';
@@ -33,7 +33,7 @@ function ScoreExplainer() {
   return (
     <details className="explainer">
       <summary>What the Match score means</summary>
-      <p>How strongly the evidence supports this fit, out of 100. Facts we can't confirm lower it, so a strong fit with gaps in our data can score lower. It is not your chance of raising.</p>
+      <p>{MATCH_SCORE_EXPLAINER}</p>
     </details>
   );
 }
@@ -377,8 +377,8 @@ export default function MatchesPage() {
           ) : (
           <>
           {(!bucketFilter || bucketFilter === 'eligible') && <section className="tier" aria-labelledby="b-eligible">
-            <h2 id="b-eligible" className="tier-h tier-h-strong">Verified eligible <span>({byBucket.eligible.length}{bucketCount('eligible') > byBucket.eligible.length ? ` shown of ${fmtInt(bucketCount('eligible'))}` : ''})</span></h2>
-            <p className="ui-muted">Every decisive fit (stage, sector, geography, ticket) rests on researched evidence.</p>
+            <h2 id="b-eligible" className="tier-h tier-h-strong">Verified fit <span>({byBucket.eligible.length}{bucketCount('eligible') > byBucket.eligible.length ? ` shown of ${fmtInt(bucketCount('eligible'))}` : ''})</span></h2>
+            <p className="ui-muted">Every decisive fact (stage, sector, geography, ticket) is on record and nothing on record rules them out. Check each fact's evidence label: some are AI-inferred, not verified.</p>
             {byBucket.eligible.length ? byBucket.eligible.map(card) : (
               bucketCount('eligible') > 0 ? (
                 <p className="tier-empty">{fmtInt(bucketCount('eligible'))} verified {bucketCount('eligible') === 1 ? 'fit is' : 'fits are'} outside the top {run.results.length} your plan shows. <Link to="/packages?highlight=capital-raising">See every match with Capital Raising</Link>.</p>

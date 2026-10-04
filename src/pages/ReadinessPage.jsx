@@ -44,7 +44,7 @@ export default function ReadinessPage() {
               <Button as={Link} to="/capital/readiness/assess" variant="accent">Get your score</Button>
             </div>
           )} />
-        <p className="ui-faint" style={{ textAlign: 'center' }}>Investors read this before they read your deck. It also decides which help we suggest.</p>
+        <p className="ui-faint" style={{ textAlign: 'center' }}>Investors look for the same things this checks. It also decides which help we suggest.</p>
       </div>
     );
   }
@@ -85,7 +85,7 @@ export default function ReadinessPage() {
           <p className="ui-muted ready-history">History: {readiness.history.slice().reverse().map((h) => `${fmtDate(h.computed_at)} ${h.score}`).join(' · ')}</p>
         )}
       </Card>
-      <p className="ui-faint">Investors read this before they read your deck. It also decides which help we suggest.</p>
+      <p className="ui-faint">Investors look for the same things this checks. It also decides which help we suggest.</p>
     </div>
   );
 }

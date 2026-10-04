@@ -16,6 +16,7 @@ import {
 import { submitCorrection, recordNotFit, CORRECTION_FIELDS, FEEDBACK_DOWN_REASONS } from '../lib/learning';
 import { recordOutcome, kindForRoute } from '../lib/fundraising';
 import { fmtUsd, fmtDate, stealthLabel, countryName, wordsForCodes } from '../lib/format';
+import { MATCH_SCORE_EXPLAINER } from '../lib/matchview';
 import { gateFor } from '../lib/plan';
 
 // D16 provenance labels. Derived from the record's own evidence until the
@@ -40,7 +41,9 @@ function Prov({ profile, field, value }) {
   const l = provenance(profile, field, value);
   const fp = profile.field_provenance?.[field];
   const tip = fp && typeof fp === 'object' ? [stealthLabel(fp.label_text), stealthLabel(fp.basis), fp.source_name, fp.as_of && `as of ${fp.as_of}`].filter(Boolean).join(' · ') : l;
-  return <Badge tone={provTone(l)} size="sm" className="prov" title={tip}>{l}</Badge>;
+  // R-CI-F2: the date is visible text, not only a hover title (touch users can't hover).
+  const asOf = fp && typeof fp === 'object' && fp.as_of && l !== PROV.unknown ? fmtDate(fp.as_of) : null;
+  return <Badge tone={provTone(l)} size="sm" className="prov" title={tip}>{l}{asOf ? ` · ${asOf}` : ''}</Badge>;
 }
 
 const list = (a) => (Array.isArray(a) && a.length ? a.join(', ') : null);
@@ -296,7 +299,7 @@ export default function InvestorProfilePage() {
               <WhyThisFits companyId={companyId} runId={runQ.data?.run_id} match={result} consent={consent} />
               {result.why_matched && <div className="mcard-why"><span className="mcard-why-label">Why you match</span><p>{wordsForCodes(result.why_matched)}</p></div>}
               {result.ai_reasoning && <p className="mcard-ai"><Badge tone="gold" size="sm">AI-refined</Badge> {result.ai_reasoning}</p>}
-              <details className="explainer"><summary>What the Match score means</summary><p>How strongly the evidence supports this fit, out of 100. Facts we can't confirm lower it, so a strong fit with gaps in our data can score lower. It is not your chance of raising.</p></details>
+              <details className="explainer"><summary>What the Match score means</summary><p>{MATCH_SCORE_EXPLAINER}</p></details>
             </>
           ) : <p className="ui-muted">No Match score: this source isn't in your current matches.</p>}
         </Card>
@@ -342,7 +345,7 @@ export default function InvestorProfilePage() {
           ) : (
             <>
               <dl className="facts">
-                <div><dt>Route</dt><dd>{app.route || 'Unknown'} <Prov profile={p} field="contact_route" value={app.route} /></dd></div>
+                <div><dt>Route</dt><dd>{app.route && app.route !== 'Unknown' ? <>{app.route} <Prov profile={p} field="contact_route" value={app.route} /></> : NOT_ON_RECORD}</dd></div>
                 <div><dt>Applications</dt><dd>{app.status === 'open' ? 'Open' : app.status === 'closed' ? 'Closed' : 'Not on record'}</dd></div>
                 {app.deadline && <div><dt>Deadline</dt><dd>{fmtDate(app.deadline)}</dd></div>}
                 {app.next_intake && <div><dt>Next intake</dt><dd>{app.next_intake}</dd></div>}

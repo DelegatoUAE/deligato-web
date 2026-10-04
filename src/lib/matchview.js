@@ -2,7 +2,7 @@
 // unit-tested in matchview.test.js (npm test).
 //
 // D24: evidence buckets come first. Whatever column the founder sorts by,
-// rows stay grouped by bucket (Verified eligible, then Possible, then Likely
+// rows stay grouped by bucket (Verified fit, then Possible, then Likely
 // outside), and the chosen sort applies inside each bucket. A sort never lifts
 // a "Possible" result above a verified one.
 
@@ -72,3 +72,6 @@ export function toggleCompare(selected, recordId) {
   if (selected.length >= COMPARE_MAX) return selected;
   return [...selected, recordId];
 }
+
+/** The approved Match score explainer (positioning.md §4), verbatim. UAT F28. */
+export const MATCH_SCORE_EXPLAINER = 'Fit counts for most of the score. How much we know about the investor pulls it toward the middle. Unknown details never add points. This score is about fit, not your chance of raising.';

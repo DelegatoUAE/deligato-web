@@ -101,7 +101,7 @@ export function rankActions(inputs = {}) {
 
   if (inputs.newStrong && inputs.newStrong.n > 0) {
     const n = inputs.newStrong.n;
-    cands.push({ pool: 'M', key: 'new-strong', raw: n, score: 55 + Math.min(20, 5 * n), title: `${n} new verified ${n === 1 ? 'fit' : 'fits'}${inputs.newStrong.since ? ` since ${inputs.newStrong.since}` : ''}`, why: 'Verified eligible providers from your latest run that weren\'t in the one before.', cta: 'See matches', to: '/capital/matches?evidence=eligible' });
+    cands.push({ pool: 'M', key: 'new-strong', raw: n, score: 55 + Math.min(20, 5 * n), title: `${n} new verified ${n === 1 ? 'fit' : 'fits'}${inputs.newStrong.since ? ` since ${inputs.newStrong.since}` : ''}`, why: 'Verified fits from your latest run that weren\'t in the one before.', cta: 'See matches', to: '/capital/matches?evidence=eligible' });
   }
 
   const live = cands.filter((c) => !dismissed.has(`${c.pool}:${c.key}`));

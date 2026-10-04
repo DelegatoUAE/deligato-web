@@ -24,7 +24,7 @@ export default function CapitalOverviewPage() {
     { label: 'Company', description: 'Done', status: 'done', href: '/company' },
     { label: 'Readiness', description: r ? bandLabel(r) : 'Not scored', status: r ? 'done' : 'current', href: '/capital/readiness' },
     { label: 'Capital need', description: capitalNeedConfirmed ? `${fmtUsd(company.raise_usd) || ''} ${company.instrument || ''}` : 'To confirm', status: capitalNeedConfirmed ? 'done' : 'current', href: '/capital/find?step=need' },
-    { label: 'Routes and matches', description: run ? `${fmtInt(run.counts?.eligible)} eligible` : 'Not run yet', status: run ? 'done' : capitalNeedConfirmed ? 'current' : 'upcoming', href: '/capital/find?step=routing' },
+    { label: 'Routes and matches', description: run ? `${fmtInt(run.counts?.eligible)} pass your filters` : 'Not run yet', status: run ? 'done' : capitalNeedConfirmed ? 'current' : 'upcoming', href: '/capital/find?step=routing' },
     { label: 'Saved and pipeline', description: gated ? 'In Capital Raising' : pipeline ? `${pc.saved} saved · ${pc.inPipeline} in pipeline` : '', status: pipeline?.length ? 'done' : 'upcoming', href: '/capital/pipeline' },
     { label: 'Data room', description: drQ.data ? `${drQ.data.completeness_pct}% ready` : '', status: drQ.data?.completeness_pct >= 100 ? 'done' : 'upcoming', href: '/capital/data-room' },
   ];
