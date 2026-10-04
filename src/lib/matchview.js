@@ -75,3 +75,22 @@ export function toggleCompare(selected, recordId) {
 
 /** The approved Match score explainer (positioning.md §4), verbatim. UAT F28. */
 export const MATCH_SCORE_EXPLAINER = 'Fit counts for most of the score. How much we know about the investor pulls it toward the middle. Unknown details never add points. This score is about fit, not your chance of raising.';
+
+// R-CI-F3: order and tier come from the server (api capital/tier.js and the
+// engine's rank). The web never recomputes either: its old rule differed from
+// tier.js and diverged further once AI re-ranking was on.
+/** Server order: stored runs by `rank`; a live engine response in array order. */
+export function serverOrder(results) {
+  if (results.length && results.every((r) => Number.isFinite(r.rank))) return results.slice().sort((a, b) => a.rank - b.rank);
+  return results.slice();
+}
+
+/** The server's tier. A missing one is never promoted by the client: it reads as a research lead. */
+export function serverTier(r) {
+  if (r?.fit_tier) return r.fit_tier;
+  if (typeof console !== 'undefined') console.warn('[capital] result without fit_tier', r?.record_id);
+  return 'lead';
+}
+
+/** A run the founder scoped to chosen capital routes (R-CI-F1): its counts are route-scoped. */
+export const isRouteScoped = (run) => Number(run?.counts?.filtered_out_by_route) > 0;

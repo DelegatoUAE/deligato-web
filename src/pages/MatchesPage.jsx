@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Alert, Badge, Button, Card, Drawer, EmptyState, Icon, PageHeader, Select, SkeletonCards, Tag, useToast } from '../design/ui';
 import SubNav from '../components/SubNav';
@@ -13,7 +13,7 @@ const sortByEvidence = (rows) => sortMatches(rows, null);
 import { GateCard, ProviderBadge, LoadError } from '../components/capital/bits';
 import useApi from '../lib/useApi';
 import {
-  getRunNormalised, getLatestRun, runMatch, getUnlocks, listPipeline, addToPipeline, previewMatch,
+  getRunNormalised, getLatestRun, runMatch, isRouteScoped, getUnlocks, listPipeline, addToPipeline, previewMatch,
   completeness, TIERS, BUCKETS, filterLabel, AI_ERROR_TEXT,
 } from '../lib/capital';
 import { sendFeedback, listFeedback } from '../lib/learning';
@@ -21,13 +21,6 @@ import { getRouting, normaliseRoute } from '../lib/routing';
 import { fmtUsd, fmtDateTime, fmtInt, countryName, plural } from '../lib/format';
 import { logEvent } from '../lib/events';
 import { gateFor } from '../lib/plan';
-
-function inRoutes(r, routes) {
-  if (!routes.length) return true;
-  if (Array.isArray(r.route_keys) && r.route_keys.length) return routes.some((rt) => r.route_keys.includes(rt.key));
-  const types = new Set([r.type, ...(r.investor_types || [])].filter(Boolean).map((t) => t.toLowerCase()));
-  return routes.some((rt) => !rt.investor_types.length || rt.investor_types.some((t) => types.has(String(t).toLowerCase())));
-}
 
 function ScoreExplainer() {
   return (
@@ -144,7 +137,31 @@ export default function MatchesPage() {
   }, [routingQ.data, routeParam]);
   const tierParam = params.get('tier');
 
-  const runQ = useApi(() => (runId ? getRunNormalised(runId) : getLatestRun(companyId)), [runId, companyId]);
+  // R-CI-F1: a route view is a server-scoped run (POST …/match { routes }), so the
+  // cards, headline counts and buckets all describe the same scoped set. The web
+  // never filters a plan-truncated list by route on its own.
+  const routeKeys = useMemo(() => routes.map((r) => r.key), [routes]);
+  // An unknown route key, or routing that can't load, falls back to the whole market.
+  const routeView = Boolean(routeParam) && !routingQ.error && !(routingQ.data && routes.length === 0);
+  const runQ = useApi(() => (runId ? getRunNormalised(runId) : routeView ? null : getLatestRun(companyId)), [runId, companyId, routeView]);
+  const [scoping, setScoping] = useState(null);
+  const [scopeTry, setScopeTry] = useState(0);
+  const scopedFor = useRef('');
+  useEffect(() => {
+    if (!routeView || !routeKeys.length) return;
+    const loaded = runId ? runQ.data : null;
+    if (runId && (!loaded || isRouteScoped(loaded))) return;
+    const want = `${companyId}|${routeKeys.join(',')}|${scopeTry}`;
+    if (scopedFor.current === want) return;
+    scopedFor.current = want;
+    setScoping({ busy: true, error: null });
+    runMatch(companyId, { routes: routeKeys })
+      .then((res) => {
+        setScoping(null);
+        if (res?.run_id) setParams((p) => { const q = new URLSearchParams(p); q.set('run', res.run_id); return q; }, { replace: true });
+      })
+      .catch((e) => setScoping({ busy: false, error: e }));
+  }, [routeView, routeKeys, runId, runQ.data, companyId, setParams, scopeTry]);
   const unlocksQ = useApi(() => getUnlocks(companyId), [companyId, runQ.data?.run_id]);
   const pipeQ = useApi(() => listPipeline(companyId).then((x) => x.pipeline || []), [companyId]);
   const fbQ = useApi(() => listFeedback(companyId).then((x) => x.feedback || []).catch(() => []), [companyId]);
@@ -176,7 +193,7 @@ export default function MatchesPage() {
   async function rerun() {
     setRunning(true);
     try {
-      const res = await runMatch(companyId);
+      const res = await runMatch(companyId, routeKeys.length ? { routes: routeKeys } : {});
       reloadRun();
       setParams((p) => { const q = new URLSearchParams(p); if (res.run_id) q.set('run', res.run_id); return q; });
       toast.success('Matches updated.');
@@ -242,7 +259,10 @@ export default function MatchesPage() {
   if (runQ.error && runQ.error.status !== 404) {
     return <div><SubNav section="capital" />{header}<LoadError error={runQ.error} onRetry={runQ.reload} what="your matches" /></div>;
   }
-  if (!run && runQ.loading) {
+  if (scoping?.error) {
+    return <div><SubNav section="capital" />{header}<LoadError error={scoping.error} onRetry={() => { setScopeTry((n) => n + 1); setScoping(null); setParams((p) => { const q = new URLSearchParams(p); q.delete('run'); return q; }, { replace: true }); }} what="matches for these routes" /></div>;
+  }
+  if (!run && (runQ.loading || (routeView && !runId))) {
     return <div><SubNav section="capital" />{header}<p className="ui-muted">Checking capital sources…</p><SkeletonCards count={5} height={150} /></div>;
   }
   if (!run) {
@@ -255,8 +275,7 @@ export default function MatchesPage() {
   }
 
   const types = [...new Set(run.results.map((r) => r.type).filter(Boolean))].sort();
-  const shown = run.results.filter((r) => inRoutes(r, routes)
-    && (!filters.type || r.type === filters.type)
+  const shown = run.results.filter((r) => (!filters.type || r.type === filters.type)
     && (!filters.confidence || String(r.data_confidence).toLowerCase() === filters.confidence)
     && (!filters.tier || r.fit_tier === filters.tier)
     && (!tierParam || r.fit_tier === tierParam)
@@ -297,14 +316,15 @@ export default function MatchesPage() {
           {routes.length === 1 && routes[0].coverage && (routes[0].coverage.level === 'thin' || (routes[0].coverage.provider_count ?? 99) < 10) && (
             <span className="rcard-thin">Thin coverage: only {plural(routes[0].coverage.provider_count, 'provider')} on record for this route. Treat these as a starting point, not the whole market.</span>
           )}
-          <Button variant="link" size="sm" onClick={() => setParams((p) => { const q = new URLSearchParams(p); q.delete('routes'); q.delete('route'); return q; })}>Show every route</Button>
+          <Button variant="link" size="sm" onClick={() => setParams((p) => { const q = new URLSearchParams(p); q.delete('routes'); q.delete('route'); q.delete('run'); return q; })}>Show every route</Button>
         </div>
       )}
 
       {/* I-07: investors first. One summary line; the statistics open on demand. */}
       <div className="msummary">
         <p>
-          <strong>{fmtInt(eligible)}</strong> open to you
+          <strong>{fmtInt(eligible)}</strong> open to you{isRouteScoped(run) ? ' on these routes' : ''}
+          {isRouteScoped(run) && <> · {fmtInt(run.counts.filtered_out_by_route)} on other routes</>}
           {run.counts?.excluded != null && <> · {fmtInt(run.counts.excluded)} excluded by a hard filter</>}
           {' · '}
           <button type="button" className="msummary-toggle" aria-expanded={showStats} aria-controls="mstats" onClick={() => setShowStats((v) => !v)}>
