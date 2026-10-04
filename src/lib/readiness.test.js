@@ -13,3 +13,10 @@ test('a factor never asked still reads "Not asked yet"', () => {
   assert.equal(notAsked({ key: 'x', status: 'met', points: 4, max: 4, answer: 'y' }), false);
   assert.equal(notAsked(null), false);
 });
+
+test('the API answered/level fields win when present (R-BE-F1)', () => {
+  assert.equal(notAsked({ status: 'missing', level: 'low', answered: true, points: 0, max: 4 }), false);
+  assert.equal(notAsked({ status: 'missing', level: 'not_asked', answered: false, points: 0, max: 4 }), true);
+  assert.equal(notAsked({ status: 'missing', level: 'low', points: 0, max: 4 }), false);
+  assert.equal(notAsked({ status: 'unknown', level: 'unknown' }), true);
+});

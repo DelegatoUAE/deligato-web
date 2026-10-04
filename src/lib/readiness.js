@@ -68,6 +68,9 @@ export function factorName(f) {
  * scored any points, shows its points (UAT F01, 5 Oct).
  */
 export const notAsked = (f) => Boolean(f) && (
-  f.status === 'unknown'
+  // R-BE-F1: the API now says it directly (answered / level); older payloads fall back below.
+  typeof f.answered === 'boolean' ? !f.answered
+  : f.level ? ['not_asked', 'unknown'].includes(f.level)
+  : f.status === 'unknown'
   || (f.status === 'missing' && (f.answer === null || f.answer === undefined) && !(f.points > 0))
 );
