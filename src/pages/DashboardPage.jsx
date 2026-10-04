@@ -3,7 +3,7 @@ import { Badge, Button, Icon, Skeleton } from '../design/ui';
 import { useCompany } from '../components/company-context';
 import useApi from '../lib/useApi';
 import { getCommandCenter, isUnavailable } from '../lib/companyIntel';
-import { firstName, countryName, fmtUsd, fmtDate, fmtMonths, timingLabel, plural, plainIntel, todayIso } from '../lib/format';
+import { firstName, countryName, fmtUsd, fmtDate, fmtMonths, timingLabel, plural, plainIntel, todayIso, companyWord } from '../lib/format';
 import { partOfDay } from '../lib/home';
 import { LoadError, FundraisingNotice } from '../components/capital/bits';
 import ClassicHome, { Waiting } from '../components/home/ClassicHome';
@@ -41,7 +41,7 @@ export default function DashboardPage() {
 
       <NextBlock next={cc.next} />
 
-      <section aria-label="Your company's signals" className="cc-signals">
+      <section aria-label={`Your ${companyWord(company)}'s signals`} className="cc-signals">
         <h2 className="cc-h">Where you stand <span className="cc-h-note">Each signal is measured on its own. There is no combined score.</span></h2>
         <div className="sig-grid">
           {order.filter((k) => k !== 'raise').map((k) => <Signal key={k} kind={k} s={cc.signals?.[k]} high={emphasis[k] === 'high'} />)}
@@ -65,7 +65,7 @@ export default function DashboardPage() {
 
       {showRoom && <DealRoomLine dataRoom={dataRoom} />}
 
-      <AskPrompts prompts={cc.ask_ai?.prompts} title="Ask about your company" />
+      <AskPrompts prompts={cc.ask_ai?.prompts} title={`Ask about your ${companyWord(company)}`} />
       <FundraisingNotice />
     </div>
   );
@@ -185,6 +185,7 @@ function Signal({ kind, s, high }) {
     // passed target date is the founder's own date and is always said.
     const passed = s.target_funding_date && s.target_funding_date < todayIso();
     foot = passed ? `Target date ${fmtDate(s.target_funding_date)} has passed`
+      : t?.start_by_label ? t.start_by_label // R-BE-F3: the API's own wording, "Start now (date passed)" | "Start by 31 Aug 2026"
       : t?.start_by && t.start_by < todayIso() ? `Start now: the ${fmtDate(t.start_by)} start date has passed`
       : t?.start_by ? `Start raising by ${fmtDate(t.start_by)}` : t?.status === 'no_target_date' ? 'Set a target date'
         : timingLabel(s.raise_timing) || (!s.confirmed ? "Confirm what you're raising" : '');

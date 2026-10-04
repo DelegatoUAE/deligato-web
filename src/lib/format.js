@@ -182,3 +182,6 @@ export function changeTitle(c) {
   const i = t.indexOf(':');
   return i > 0 ? `${CHANGE_FIELD[f]}${t.slice(i)}` : t;
 }
+
+/** Positioning §2.9: SME accounts read "your business"; startups "your company". API `company_kind` (R-FE-4). */
+export const companyWord = (company) => (company?.company_kind === 'sme' ? 'business' : 'company');

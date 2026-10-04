@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Badge, Button, EmptyState, PageHeader, Skeleton } from '../design/ui';
+import { Alert, Badge, Button, EmptyState, PageHeader, Skeleton } from '../design/ui';
 import SubNav from '../components/SubNav';
 import { useCompany } from '../components/company-context';
 import useApi from '../lib/useApi';
@@ -104,7 +104,7 @@ function Timing({ q, company }) {
   const need = q.data.capital_need || {};
   const setTarget = <Button as={Link} to="/capital/need#target-date" variant={t.status === 'no_target_date' ? 'accent' : 'link'} size="sm">{need.target_funding_date ? 'Change target date' : 'Set a target date'}</Button>;
   // UAT F03: a start date behind today reads "Now", never a past date on its own.
-  const startPassed = Boolean(t.start_by) && (t.days_until_start < 0 || t.start_by < todayIso());
+  const startPassed = typeof t.start_passed === 'boolean' ? t.start_passed : Boolean(t.start_by) && (t.days_until_start < 0 || t.start_by < todayIso());
   if (t.status === 'no_target_date') {
     return (
       <div className="timing">
@@ -128,7 +128,7 @@ function Timing({ q, company }) {
           <p className="timing-date">{fmtDate(t.start_by)}</p>
         </>
       )}
-      {t.attention && <Badge tone={['start_passed', 'target_infeasible', 'target_passed'].includes(t.attention.code) ? 'bad' : 'warn'} dot>{plainIntel(t.attention.text)}</Badge>}
+      {t.attention && <Alert tone={['start_passed', 'target_infeasible', 'target_passed'].includes(t.attention.code) || t.attention.start_passed ? 'bad' : 'warn'}>{plainIntel(t.attention.text)}</Alert>}
       <p className="timing-why">{plainIntel(t.reason)}</p>
       {t.note && <p className="ui-muted">{plainIntel(t.note)}</p>}
       <dl className="timing-facts">

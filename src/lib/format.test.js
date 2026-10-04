@@ -64,3 +64,11 @@ test('capital-need changes are titled by the field name founders know', async ()
   assert.equal(changeTitle({ type: 'capital_need', title: 'Raise usd: not set → $1.5M', cite: { field: 'raise_usd' } }), 'Raise amount: not set → $1.5M');
   assert.equal(changeTitle({ type: 'pipeline', title: 'X moved to contacted', cite: { field: 'stage' } }), 'X moved to contacted');
 });
+
+test('SMEs read "your business", everyone else "your company" (positioning §2.9)', async () => {
+  const { companyWord } = await import('./format.js');
+  assert.equal(companyWord({ company_kind: 'sme' }), 'business');
+  assert.equal(companyWord({ company_kind: 'startup' }), 'company');
+  assert.equal(companyWord({}), 'company');
+  assert.equal(companyWord(null), 'company');
+});
