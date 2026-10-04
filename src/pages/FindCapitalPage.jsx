@@ -134,7 +134,9 @@ export default function FindCapitalPage() {
   const unknowns = q.data?.unknown_fields || [];
   const filterRoutes = q.data?.capital_filter?.routes || [];
 
-  const unknownLink = (field) => (NEED_FIELDS.includes(field)
+  const unknownLink = (field) => (field === 'purposes'
+    ? <Button as={Link} to="/capital/need#purpose" variant="link" size="sm">Say what the money is for</Button>
+    : NEED_FIELDS.includes(field)
     ? <Button as={Link} to="/capital/need" variant="link" size="sm">Edit your raise</Button>
     : READINESS_FIELDS.includes(field) && !(r && readinessSource(readiness).key === 'conncct')
       ? <Button as={Link} to="/capital/readiness/assess" variant="link" size="sm">Update your readiness answers</Button>

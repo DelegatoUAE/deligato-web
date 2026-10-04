@@ -10,6 +10,15 @@ import { logEvent } from '../../lib/events';
 const FALLBACK_INSTRUMENTS = ['Equity', 'SAFE', 'Convertible note', 'Venture debt', 'Revenue-based', 'Grant', 'Loan'];
 const NOT_SURE = '__not_sure__';
 const EARLY = ['Idea', 'Pre-seed'];
+// The routing engine's purpose vocabulary (api modules/routing/facts.js PURPOSES).
+// It drives which capital routes fit (D46); Find capital asks for it by name.
+const PURPOSES = [
+  { key: 'working_capital', label: 'Working capital' }, { key: 'product', label: 'Product and engineering' },
+  { key: 'hiring', label: 'Hiring' }, { key: 'marketing', label: 'Sales and marketing' },
+  { key: 'expansion', label: 'Expansion to new markets' }, { key: 'capex', label: 'Equipment or facilities' },
+  { key: 'rnd', label: 'R&D, pilots, certification' }, { key: 'refinancing', label: 'Refinancing debt' },
+  { key: 'acquisition', label: 'An acquisition' },
+];
 
 function sourceTag(company, field, edited) {
   if (edited) return <Badge tone="info" size="sm">Edited here</Badge>;
@@ -31,6 +40,7 @@ export default function CapitalNeedForm({ firstRun = false, onSaved, submitLabel
     investor_types_sought: company?.investor_types_sought || [],
     target_markets: company?.target_markets || [],
     raise_timing: company?.raise_timing || '',
+    purpose: Array.isArray(company?.purpose) ? company.purpose : [],
     // capital/eligibility.js#checkLocalPresence: true clears, false excludes,
     // null (not sure) keeps the "requires local presence" caveat.
     // D46: the date the money must be in the bank (capital timing = target − route duration − 1 month).
@@ -71,6 +81,8 @@ export default function CapitalNeedForm({ firstRun = false, onSaved, submitLabel
     if (!form.raise_timing) e.raise_timing = 'Choose when you want to close.';
     if (form.target_funding_date && form.target_funding_date < new Date().toISOString().slice(0, 10)) e.target_funding_date = 'Pick today or a later date.';
     setErrors(e);
+    // UAT F29: on an invalid submit, focus moves to the first field to fix.
+    if (Object.keys(e).length) requestAnimationFrame(() => document.querySelector('form.need [aria-invalid="true"], form.need .has-error input, form.need .has-error select, form.need .has-error button')?.focus());
     return Object.keys(e).length === 0 ? n : null;
   }
 
@@ -88,6 +100,7 @@ export default function CapitalNeedForm({ firstRun = false, onSaved, submitLabel
         raise_timing: form.raise_timing,
         // Sent only when changed here, so a save never fails on a field the founder didn't touch.
         ...(edited.target_funding_date ? { target_funding_date: form.target_funding_date || null } : {}),
+        ...(edited.purpose ? { purpose: form.purpose.length ? form.purpose : null } : {}),
       };
       const out = await saveCapitalNeed(company.id, need);
       // Not part of the routing capital-need allow-list: saved on the profile
@@ -121,6 +134,11 @@ export default function CapitalNeedForm({ firstRun = false, onSaved, submitLabel
           options={[...instruments.map((i) => ({ value: i, label: i })), { value: NOT_SURE, label: 'Not sure yet' }]} />
       </FormField>
       {debtEarly && <Alert tone="warn">Few investors offer venture debt at {company.stage}. Expect few matches.</Alert>}
+
+      <FormField wide label={<span className="need-label" id="purpose">What will the money be used for? {sourceTag(company, 'purpose', edited.purpose)}</span>}
+        hint="Pick all that apply. It decides which kinds of capital fit, for example working capital lines or equipment finance.">
+        {() => <ChipToggle label="Use of the money" options={PURPOSES} value={form.purpose} onChange={(v) => set('purpose', v)} />}
+      </FormField>
 
       <FormField wide label={<span className="need-label">Investor types you want {sourceTag(company, 'investor_types_sought', edited.investor_types_sought)}</span>} hint="Leave all off to see every type.">
         {() => <ChipToggle label="Investor types" options={types} value={form.investor_types_sought} onChange={(v) => set('investor_types_sought', v)} />}
