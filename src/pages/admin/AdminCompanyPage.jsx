@@ -7,6 +7,7 @@ import { ago, day, fmtUsd, words } from '../../lib/adminFormat';
 
 const FIT_TONE = { strong: 'ok', possible: 'info', lead: 'neutral', unlikely: 'neutral' };
 const STATE_WORD = { burning: 'Burning', break_even: 'Break-even', profitable: 'Profitable', dormant: 'Dormant' };
+const SOURCE_WORD = { derived: 'profile figures', capital_need: "founder's stated answer", conncct_readiness: 'readiness answer', company_profile: 'company profile' };
 const TIMING_WORD = { now: 'Now', '0_3m': 'Within 3 months', '3_6m': 'In 3–6 months', '6_12m': 'In 6–12 months', exploring: 'Exploring' };
 
 // The log, one row per staff member (newest first): who has been looking matters more than each click.
@@ -68,7 +69,7 @@ export default function AdminCompanyPage() {
 
       {/* The journey, left to right, with where it is stuck. */}
       <ol className="admin-journey" aria-label="Capital journey">
-        <Station label="Financial Health" value={fh.status === 'not_computed' ? 'Not computed' : fh.score != null ? `${Math.round(fh.score)} · ${fh.band}` : words(fh.status)}
+        <Station label="Financial Health" value={fh.status === 'not_computed' ? 'Not assessed' : fh.score != null ? `${Math.round(fh.score)} · ${fh.band}` : words(fh.status)}
           sub={fh.state ? STATE_WORD[fh.state] : null} state={fh.status === 'not_computed' ? 'missing' : ['Critical', 'Warning'].includes(fh.band) ? 'bad' : 'ok'} />
         <Station label="Capital Readiness" value={rd.paid ? `${Math.round(rd.paid.score)} · ${rd.paid.band || ''}` : 'Not assessed'}
           sub={rd.paid ? day(rd.paid.assessed_at) : null} state={rd.paid ? 'ok' : 'missing'} />
@@ -89,7 +90,7 @@ export default function AdminCompanyPage() {
       <div className="ui-grid ui-grid-3 admin-360-grid">
         <Card title="Financial Health" subtitle={fh.methodology_version ? `${fh.methodology} · ${fh.methodology_version}` : fh.methodology}>
           {fh.status === 'not_computed'
-            ? <p className="ui-muted">{ci.available ? 'No figures have produced a result yet.' : ci.note}</p>
+            ? <p className="ui-muted">{ci.available ? 'Not assessed. No Financial Health result exists for this company yet.' : ci.note}</p>
             : <KV rows={[
               ['Score', fh.score != null ? `${Math.round(fh.score)} · ${fh.band}` : null, words(fh.status)],
               ['State', fh.state ? STATE_WORD[fh.state] : null],
@@ -147,7 +148,9 @@ export default function AdminCompanyPage() {
                   </li>
                 ))}
               </ul>
-              {routes.financial_state_used && <p className="ui-faint admin-note">Financial state used: {STATE_WORD[routes.financial_state_used.value] || '—'} ({routes.financial_state_used.source}).</p>}
+              {routes.financial_state_used && (routes.financial_state_used.from_financial_health
+                ? <p className="ui-faint admin-note">Operating state from Financial Health: {STATE_WORD[routes.financial_state_used.value]}.</p>
+                : <p className="ui-faint admin-note">Derived operating state (routing assumption, not Financial Health): {STATE_WORD[routes.financial_state_used.value]}{routes.financial_state_used.detail ? `, ${routes.financial_state_used.detail}` : ''} · source: {SOURCE_WORD[routes.financial_state_used.source] || routes.financial_state_used.source}.</p>)}
               {routes.unknown_fields.length > 0 && <p className="ui-faint admin-note">Unknown: {routes.unknown_fields.map(words).join(', ')}.</p>}
             </>
           )}
