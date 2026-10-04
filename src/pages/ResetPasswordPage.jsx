@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { Alert, Button, FormField, Input, useToast } from '../design/ui';
+import { Alert, Button, FormField, useToast } from '../design/ui';
 import AuthLayout from '../components/AuthLayout';
+import PasswordInput from '../components/PasswordInput';
 import { apiFetch } from '../lib/auth';
 
 export default function ResetPasswordPage() {
@@ -40,8 +41,8 @@ export default function ResetPasswordPage() {
         </div>
       ) : (
         <form className="ui-stack" onSubmit={onSubmit}>
-          <FormField label="New password" hint="At least 8 characters."><Input type="password" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} required /></FormField>
-          <FormField label="Repeat it"><Input type="password" autoComplete="new-password" value={confirm} onChange={(e) => setConfirm(e.target.value)} required /></FormField>
+          <FormField label="New password" hint="At least 8 characters."><PasswordInput autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} required /></FormField>
+          <FormField label="Repeat it"><PasswordInput autoComplete="new-password" value={confirm} onChange={(e) => setConfirm(e.target.value)} required /></FormField>
           {error && <Alert tone="bad">{error}</Alert>}
           <Button type="submit" variant="primary" block loading={busy}>Update password</Button>
         </form>

@@ -2,6 +2,7 @@ import { lazy, Suspense, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Alert, Button, ChipToggle, FormField, Input } from '../design/ui';
 import AuthLayout from '../components/AuthLayout';
+import PasswordInput from '../components/PasswordInput';
 import { apiFetch, setSession } from '../lib/auth';
 
 const DevRegister = import.meta.env.DEV ? lazy(() => import('../components/DevRegister')) : null;
@@ -48,11 +49,11 @@ export default function SignupPage() {
   }
 
   return (
-    <AuthLayout title="Create your account" subtitle="Then tell us about your company. It takes about three minutes.">
+    <AuthLayout title="Create your account" subtitle="Free to start. Then tell us about your company; it takes about three minutes.">
       <form className="ui-stack" onSubmit={onSubmit}>
         <FormField label="Your name" required><Input autoComplete="name" value={form.full_name} onChange={set('full_name')} required /></FormField>
         <FormField label="Work email" required><Input type="email" autoComplete="email" value={form.email} onChange={set('email')} required /></FormField>
-        <FormField label="Password" required hint="At least 8 characters."><Input type="password" autoComplete="new-password" value={form.password} onChange={set('password')} required /></FormField>
+        <FormField label="Password" required hint="At least 8 characters."><PasswordInput autoComplete="new-password" value={form.password} onChange={set('password')} required /></FormField>
         <FormField label="Company name" optional><Input autoComplete="organization" value={form.organization} onChange={set('organization')} /></FormField>
         <FormField label="Which describes you?">
           {() => <ChipToggle single label="Account type" value={[form.account_type]} onChange={(v) => setForm({ ...form, account_type: v[0] || 'founder' })}
