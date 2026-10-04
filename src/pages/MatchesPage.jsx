@@ -210,7 +210,7 @@ export default function MatchesPage() {
       const { item } = await addToPipeline({ profile_id: companyId, record_id: r.record_id, match_score_at_add: r.match_score, stage, fit_tier_at_add: r.fit_tier, run_id: run?.run_id });
       pipeQ.setData((list) => [...(list || []), item]);
       reloadPipeline();
-      toast.success(stage === 'shortlisted' ? `Saved ${r.name}.` : `${r.name} is in your pipeline.`);
+      toast.success(stage === 'shortlisted' ? `${r.name} is on your shortlist.` : `${r.name} is in your pipeline.`);
     } catch (e) {
       toast.error(e.upgradeRequired ? (e.code === 'fair_use_limit' ? gateFor(e).message : 'Pipeline tracking is included in Capital Raising.') : `Couldn't save ${r.name}: ${e.message}`);
     } finally {

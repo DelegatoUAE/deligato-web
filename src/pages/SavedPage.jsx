@@ -52,7 +52,7 @@ export default function SavedPage() {
 
   const head = <><SubNav section="capital" /><PageHeader title="Shortlist" subtitle="Providers you shortlisted from your matches, to compare and decide who to approach first." /></>;
   if (q.error?.status === 402) return <div>{head}<GateCard title="Save investors and track your raise." body="Included in Capital Raising." /></div>;
-  if (q.error) return <div>{head}<LoadError error={q.error} onRetry={q.reload} what="your saved investors" /></div>;
+  if (q.error) return <div>{head}<LoadError error={q.error} onRetry={q.reload} what="your shortlist" /></div>;
   if (!q.data) return <div>{head}<SkeletonCards count={3} height={72} /></div>;
   const saved = q.data.filter((p) => p.stage === 'shortlisted').slice().sort((a, b) => (sort === 'score'
     ? (b.match_score_at_add ?? -1) - (a.match_score_at_add ?? -1)
@@ -65,12 +65,12 @@ export default function SavedPage() {
     <div>
       {head}
       {saved.length === 0 ? (
-        <EmptyState icon="bell" title="Nothing saved yet." body="Save investors from your matches to keep them here." action={<Button as={Link} to="/capital/matches" variant="primary">Open matches</Button>} />
+        <EmptyState icon="bell" title="Nothing shortlisted yet." body="Shortlist investors from your matches to keep them here." action={<Button as={Link} to="/capital/matches" variant="primary">Open matches</Button>} />
       ) : (
         <>
         <div className="ui-row saved-tools">
           <span className="ui-muted">{saved.length} saved. Move one to your pipeline when you start working it.</span>
-          <Select aria-label="Sort" value={sort} onChange={(e) => setSort(e.target.value)} options={[{ value: 'date', label: 'Saved date' }, { value: 'score', label: 'Match score at save' }, { value: 'deadline', label: 'Next deadline' }]} />
+          <Select aria-label="Sort" value={sort} onChange={(e) => setSort(e.target.value)} options={[{ value: 'date', label: 'Date shortlisted' }, { value: 'score', label: 'Match score when shortlisted' }, { value: 'deadline', label: 'Next deadline' }]} />
           <Button variant="secondary" size="sm" disabled={picked.length < 2} onClick={() => setComparing(true)}>Compare {picked.length || ''} selected</Button>
         </div>
         {saved.length > 0 && <ShortlistSummary companyId={companyId} recordIds={saved.map((p) => p.record_id)} />}
@@ -78,10 +78,10 @@ export default function SavedPage() {
           {saved.map((p) => (
             <li key={p.id} className="saved-row">
               <label className="saved-pick"><input type="checkbox" checked={picked.includes(p.id)} onChange={() => toggle(p.id)} aria-label={`Compare ${nameOf(p)}`} /></label>
-              <span title="Match score when you saved it"><MatchScore score={p.match_score_at_add} confidence={p.capital_sources?.data_confidence} size="sm" /></span>
+              <span title="Match score when you shortlisted it"><MatchScore score={p.match_score_at_add} confidence={p.capital_sources?.data_confidence} size="sm" /></span>
               <div className="saved-main">
                 <Link to={investorHref(p.record_id)} className="mrow-name">{nameOf(p)}</Link>
-                <span className="mrow-meta">{[p.capital_sources?.type, p.capital_sources?.country, p.fit_tier_at_add && tierLabel(p.fit_tier_at_add), fmtDate(p.created_at) && `saved ${fmtDate(p.created_at)}`].filter(Boolean).join(' · ')}</span>
+                <span className="mrow-meta">{[p.capital_sources?.type, p.capital_sources?.country, p.fit_tier_at_add && tierLabel(p.fit_tier_at_add), fmtDate(p.created_at) && `shortlisted ${fmtDate(p.created_at)}`].filter(Boolean).join(' · ')}</span>
                 {byRecord.get(p.record_id) && <FitPills fits={byRecord.get(p.record_id).fits} result={byRecord.get(p.record_id)} />}
                 {p.capital_sources?.deadline && <span className="ui-muted">Next step: applications close {fmtDate(p.capital_sources.deadline)}.</span>}
               </div>
@@ -95,11 +95,11 @@ export default function SavedPage() {
         </ul>
         </>
       )}
-      <Modal open={Boolean(removing)} onClose={() => setRemoving(null)} size="sm" title="Remove from saved?" description="Tell us why. It improves your future matches. You can save it again from your matches."
+      <Modal open={Boolean(removing)} onClose={() => setRemoving(null)} size="sm" title="Remove from your shortlist?" description="Tell us why. It improves your future matches. You can shortlist it again from your matches."
         footer={<><Button variant="ghost" onClick={() => setRemoving(null)}>Cancel</Button><Button variant="danger" loading={Boolean(busy)} onClick={remove}>Remove</Button></>}>
         <Select aria-label="Reason" value={reason} onChange={(e) => setReason(e.target.value)} options={FEEDBACK_DOWN_REASONS.map((x) => ({ value: x.key, label: x.label }))} />
       </Modal>
-      <Drawer open={comparing} onClose={() => setComparing(false)} title="Compare saved providers" width="760px">
+      <Drawer open={comparing} onClose={() => setComparing(false)} title="Compare shortlisted providers" width="760px">
         <Table dense rowKey="key" columns={[{ key: 'label', header: '' }, ...compareRows.map((p) => ({ key: p.id, header: nameOf(p) }))]}
           rows={[
             ['Match at save', (p) => p.match_score_at_add ?? 'Not on record'],

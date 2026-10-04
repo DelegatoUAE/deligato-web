@@ -60,7 +60,7 @@ export default function MatchCard({ r, runId, pipelineItem, canTrack, canDraft, 
           <Button as={Link} to={pipelineItem.stage === 'shortlisted' ? '/capital/saved' : '/capital/pipeline'} variant="ghost" size="sm" iconLeft="check">{PIPELINE_WORD[pipelineItem.stage] || 'In your pipeline'}</Button>
         ) : canTrack ? (
           <>
-            <Button variant="primary" size="sm" onClick={() => onSave(r)} loading={busy === 'save'} disabled={Boolean(busy)}>Save</Button>
+            <Button variant="primary" size="sm" onClick={() => onSave(r)} loading={busy === 'save'} disabled={Boolean(busy)}>Shortlist</Button>
             <Button variant="ghost" size="sm" onClick={() => onTrack(r)} loading={busy === 'track'} disabled={Boolean(busy)}>Add to pipeline</Button>
           </>
         ) : (

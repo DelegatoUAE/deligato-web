@@ -254,10 +254,10 @@ export default function PipelinePage() {
     <div className="pipeline">
       <SubNav section="capital" />
       <PageHeader title="Pipeline" subtitle={headline}
-        meta={savedN > 0 && <Link to="/capital/saved">{savedN} saved, not in your pipeline yet</Link>}
+        meta={savedN > 0 && <Link to="/capital/saved">{savedN} shortlisted, not in your pipeline yet</Link>}
         actions={<Tabs variant="pill" label="View" value={view} onChange={setView} items={[{ id: 'board', label: 'Board' }, { id: 'list', label: 'List' }]} />} />
       {q.data === undefined ? <Skeleton h="300px" /> : tracked.length === 0 ? (
-        <EmptyState icon="kanban" title="Nothing tracked yet." body={savedN ? "Move a saved provider into your pipeline when you start working on it." : "Shortlist investors from your matches to start."} action={<Button as={Link} to={savedN ? "/capital/saved" : "/capital/matches"} variant="primary">{savedN ? "Open saved" : "Open matches"}</Button>} />
+        <EmptyState icon="kanban" title="Nothing tracked yet." body={savedN ? "Move a shortlisted provider into your pipeline when you start working on it." : "Shortlist investors from your matches to start."} action={<Button as={Link} to={savedN ? "/capital/saved" : "/capital/matches"} variant="primary">{savedN ? "Open your shortlist" : "Open matches"}</Button>} />
       ) : view === 'board' ? (
         <>
           <div ref={boardRef}><KanbanBoard label="Fundraising pipeline">

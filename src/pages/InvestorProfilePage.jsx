@@ -176,7 +176,7 @@ export default function InvestorProfilePage() {
       const { item } = await addToPipeline({ profile_id: companyId, record_id: recordId, match_score_at_add: result?.match_score ?? null, stage, fit_tier_at_add: result?.fit_tier, run_id: runQ.data?.run_id });
       pipeQ.setData((l) => [...(l || []), item]);
       reloadPipeline();
-      toast.success(stage === 'shortlisted' ? `Saved ${id.name}.` : `${id.name} is in your pipeline.`);
+      toast.success(stage === 'shortlisted' ? `${id.name} is on your shortlist.` : `${id.name} is in your pipeline.`);
     } catch (e) {
       toast.error(e.upgradeRequired ? (e.code === 'fair_use_limit' ? gateFor(e).message : 'Pipeline tracking is included in Capital Raising.') : `Couldn't save: ${e.message}`);
     } finally { setBusy(null); }
@@ -243,14 +243,14 @@ export default function InvestorProfilePage() {
           <div className="inv-actions">
             {pipelineItem ? (
               pipelineItem.stage === 'shortlisted'
-                ? <Button as={Link} to="/capital/saved" variant="secondary" iconLeft="check">Saved</Button>
+                ? <Button as={Link} to="/capital/saved" variant="secondary" iconLeft="check">Shortlisted</Button>
                 : <Button as={Link} to="/capital/pipeline" variant="secondary" iconLeft="check">In pipeline · {stageLabel(pipelineItem.stage)}</Button>
             ) : canTrack ? (
               <>
-                <Button variant="primary" onClick={() => track('shortlisted')} loading={busy === 'shortlisted'}>Save</Button>
+                <Button variant="primary" onClick={() => track('shortlisted')} loading={busy === 'shortlisted'}>Shortlist</Button>
                 <Button variant="secondary" onClick={() => track('researching')} loading={busy === 'researching'}>Add to pipeline</Button>
               </>
-            ) : <Button as={Link} to="/packages?highlight=capital-raising" variant="secondary" iconLeft="lock">Save</Button>}
+            ) : <Button as={Link} to="/packages?highlight=capital-raising" variant="secondary" iconLeft="lock">Shortlist</Button>}
             {kind === null ? null : canDraft && !locked
               ? <Button as={Link} to={`/capital/outreach?record=${encodeURIComponent(recordId)}&kind=${kind}`} variant="secondary">Prepare outreach</Button>
               : <Button as={Link} to="/packages?highlight=capital-raising" variant="ghost" iconLeft="lock">Prepare outreach</Button>}

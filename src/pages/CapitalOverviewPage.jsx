@@ -25,7 +25,7 @@ export default function CapitalOverviewPage() {
     { label: 'Readiness', description: r ? bandLabel(r) : 'Not scored', status: r ? 'done' : 'current', href: '/capital/readiness' },
     { label: 'Capital need', description: capitalNeedConfirmed ? `${fmtUsd(company.raise_usd) || ''} ${company.instrument || ''}` : 'To confirm', status: capitalNeedConfirmed ? 'done' : 'current', href: '/capital/find?step=need' },
     { label: 'Routes and matches', description: run ? `${fmtInt(run.counts?.eligible)} pass your filters` : 'Not run yet', status: run ? 'done' : capitalNeedConfirmed ? 'current' : 'upcoming', href: '/capital/find?step=routing' },
-    { label: 'Saved and pipeline', description: gated ? 'In Capital Raising' : pipeline ? `${pc.saved} saved · ${pc.inPipeline} in pipeline` : '', status: pipeline?.length ? 'done' : 'upcoming', href: '/capital/pipeline' },
+    { label: 'Shortlist and pipeline', description: gated ? 'In Capital Raising' : pipeline ? `${pc.saved} shortlisted · ${pc.inPipeline} in pipeline` : '', status: pipeline?.length ? 'done' : 'upcoming', href: '/capital/pipeline' },
     { label: 'Data room', description: drQ.data ? `${drQ.data.completeness_pct}% ready` : '', status: drQ.data?.completeness_pct >= 100 ? 'done' : 'upcoming', href: '/capital/data-room' },
   ];
 
@@ -37,7 +37,7 @@ export default function CapitalOverviewPage() {
       <section className="home-stats" aria-label="Capital at a glance">
         <StatTile as={Link} to="/capital/matches" label="Verified fits" loading={runLoading} value={run ? fmtInt(bucket('eligible')) : 'Not yet'} foot={run ? `${fmtInt(bucket('possible'))} possible · ${fmtInt(bucket('likely_outside'))} likely outside` : 'Appears after your first match'} />
         <StatTile as={Link} to="/capital/matches" label="Pass the hard filters" loading={runLoading} value={run ? fmtInt(run.counts?.eligible) : 'Not yet'} foot={run?.counts?.considered ? `of ${fmtInt(run.counts.considered)} active sources` : ''} />
-        <StatTile as={Link} to="/capital/pipeline" label="In pipeline" loading={!pipeline && !gated && !pipeQ.error} value={gated ? 'Locked' : pipeline ? pc.inPipeline : 'Couldn\'t load'} foot={gated ? 'Included in Capital Raising' : pipeline ? `${pc.saved} saved` : ''} />
+        <StatTile as={Link} to="/capital/pipeline" label="In pipeline" loading={!pipeline && !gated && !pipeQ.error} value={gated ? 'Locked' : pipeline ? pc.inPipeline : 'Couldn\'t load'} foot={gated ? 'Included in Capital Raising' : pipeline ? `${pc.saved} shortlisted` : ''} />
         <StatTile as={Link} to="/capital/data-room" label="Data room" loading={drQ.loading && !drQ.data && !drQ.error} value={drQ.data ? `${drQ.data.completeness_pct}%` : drQ.error ? 'Not yet' : ''} foot={drQ.data ? `${drQ.data.done_count} of ${drQ.data.required_count} required items` : drQ.error ? 'Not available yet' : ''} />
       </section>
       <Card title="Your capital journey">
