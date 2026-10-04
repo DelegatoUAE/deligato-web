@@ -10,6 +10,7 @@ import { ADMIN_NAV, portalFor } from '../lib/portal';
 import { PAGE_SUFFIX } from '../lib/format';
 
 const TITLES = [
+  [/^\/admin\/companies/, 'Companies'], [/^\/admin\/providers/, 'Capital providers'],
   [/^\/admin\/experts/, 'Experts'], [/^\/admin\/projects/, 'Projects'], [/^\/admin\/corrections/, 'Corrections'],
   [/^\/admin\/learning/, 'Learning'], [/^\/admin\/match/, 'AI Match'], [/^\/admin/, 'Overview'], [/^\/dev/, 'Import a company (dev)'],
 ];

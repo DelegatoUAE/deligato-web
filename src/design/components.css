@@ -880,3 +880,10 @@ button.ui-kcard:hover, a.ui-kcard:hover { border-color: var(--border-strong); bo
 .eb-row dd { margin: 0; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: var(--text-sm); color: var(--text); overflow-wrap: anywhere; user-select: text; }
 @media (max-width: 480px) { .eb-row { grid-template-columns: 1fr; gap: var(--s-1); } }
+
+/* Admin tables carry filters and flag chips; keep them from crowding. */
+.admin-filters { gap: var(--s-2); margin-bottom: var(--s-4); flex-wrap: wrap; }
+.admin-filters > * { min-width: 9rem; }
+.admin-filters > input { min-width: 16rem; flex: 1 1 16rem; }
+.admin-flags { gap: var(--s-1); flex-wrap: wrap; }
+@media (max-width: 720px) { .admin-filters > * { min-width: 0; flex: 1 1 8rem; } }

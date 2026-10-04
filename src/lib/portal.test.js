@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { portalFor, isAdminPath, CLIENT_NAV, ADMIN_NAV, navHrefs, settingsTab, screenFor } from './portal.js';
 
 const SRC = join(dirname(fileURLToPath(import.meta.url)), '..');
-const ADMIN_ROUTES = ['/admin', '/admin/experts', '/admin/projects', '/admin/corrections', '/admin/learning', '/admin/match'];
+const ADMIN_ROUTES = ['/admin', '/admin/companies', '/admin/providers', '/admin/experts', '/admin/projects', '/admin/corrections', '/admin/learning', '/admin/match'];
 
 test('a founder gets not-found on every admin route', () => {
   for (const r of ADMIN_ROUTES) assert.equal(portalFor(r, { staff: false }), 'not_found', r);
