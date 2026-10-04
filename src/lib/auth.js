@@ -1,15 +1,76 @@
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const ENV = (import.meta && import.meta.env) || {};
+const API_URL = ENV.VITE_API_URL || 'http://localhost:3000';
 const TOKEN_KEY = 'deligato.access_token';
+const REFRESH_KEY = 'deligato.refresh_token';
+const EXPIRES_KEY = 'deligato.expires_at';
+// Renew this many seconds before the access token expires.
+const REFRESH_LEEWAY_S = 60;
 
-export function getToken() {
-  try { return localStorage.getItem(TOKEN_KEY); } catch { return null; }
+function store(key, value) {
+  try {
+    if (value) localStorage.setItem(key, String(value));
+    else localStorage.removeItem(key);
+  } catch { /* storage unavailable: session lasts for this tab only */ }
+}
+function read(key) {
+  try { return localStorage.getItem(key); } catch { return null; }
 }
 
+export function getToken() {
+  return read(TOKEN_KEY);
+}
+
+// Access token only (dev persona sign-in). Clearing it clears the whole session.
 export function setToken(token) {
-  try {
-    if (token) localStorage.setItem(TOKEN_KEY, token);
-    else localStorage.removeItem(TOKEN_KEY);
-  } catch { /* storage unavailable: session lasts for this tab only */ }
+  store(TOKEN_KEY, token);
+  if (!token) { store(REFRESH_KEY, null); store(EXPIRES_KEY, null); }
+}
+
+// Incident 4 Oct 2026: Supabase access tokens last ~1 hour. Only the access
+// token was kept, so an hour after sign-in every call failed and the founder
+// was signed out. Keep the refresh token and renew before expiry.
+export function setSession(session) {
+  if (!session || !session.access_token) { setToken(null); return; }
+  store(TOKEN_KEY, session.access_token);
+  store(REFRESH_KEY, session.refresh_token || null);
+  store(EXPIRES_KEY, session.expires_at || null);
+}
+
+let refreshing = null;
+// One renewal at a time; every caller waiting on it gets the same answer.
+// Resolves true when a new session is stored; false (session cleared) when the
+// refresh token is spent; throws on a network error (session kept).
+export function refreshSession() {
+  const refreshToken = read(REFRESH_KEY);
+  if (!refreshToken) return Promise.resolve(false);
+  if (!refreshing) {
+    refreshing = (async () => {
+      const res = await fetch(`${API_URL}/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh_token: refreshToken }),
+      });
+      if (res.ok) {
+        const body = await res.json().catch(() => null);
+        if (body && body.session && body.session.access_token) { setSession(body.session); return true; }
+      }
+      if (res.status === 400 || res.status === 401) {
+        // Another tab may already have rotated it: use theirs if it is newer.
+        if (read(REFRESH_KEY) !== refreshToken) return true;
+        setToken(null);
+        return false;
+      }
+      const err = new Error(`Session refresh failed (${res.status})`);
+      err.status = res.status;
+      throw err;
+    })().finally(() => { refreshing = null; });
+  }
+  return refreshing;
+}
+
+function expiresSoon(nowS = Date.now() / 1000) {
+  const exp = Number(read(EXPIRES_KEY));
+  return Boolean(exp) && exp - nowS < REFRESH_LEEWAY_S;
 }
 
 /**
@@ -28,7 +89,12 @@ export function readError(body, status) {
   return { message: `Request failed (${status})`, code: null };
 }
 
-export async function apiFetch(path, options = {}) {
+const isAuthPath = (path) => /^\/auth\/(login|signup|refresh|forgot-password|reset-password|dev-)/.test(path);
+
+export async function apiFetch(path, options = {}, { retried = false } = {}) {
+  if (!isAuthPath(path) && read(REFRESH_KEY) && expiresSoon()) {
+    try { await refreshSession(); } catch { /* offline: try the call anyway */ }
+  }
   const token = getToken();
   const headers = {
     'Content-Type': 'application/json',
@@ -47,6 +113,10 @@ export async function apiFetch(path, options = {}) {
   const text = await res.text();
   let body;
   try { body = text ? JSON.parse(text) : null; } catch { body = text; }
+  if (res.status === 401 && !retried && token && !isAuthPath(path) && read(REFRESH_KEY)) {
+    const renewed = await refreshSession().catch(() => false);
+    if (renewed) return apiFetch(path, options, { retried: true });
+  }
   if (!res.ok) {
     const { message, code } = readError(body, res.status);
     const err = new Error(message);
@@ -71,7 +141,7 @@ export async function login(email, password) {
     method: 'POST',
     body: JSON.stringify({ email, password }),
   });
-  setToken(data.session.access_token);
+  setSession(data.session);
   return data.user;
 }
 
@@ -80,7 +150,7 @@ export async function signup({ email, password, full_name, role, organization })
     method: 'POST',
     body: JSON.stringify({ email, password, full_name, role, organization }),
   });
-  setToken(data.session.access_token);
+  setSession(data.session);
   return data.user;
 }
 
