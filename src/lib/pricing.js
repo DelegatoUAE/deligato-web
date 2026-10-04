@@ -4,13 +4,13 @@
 
 import { fullAccess } from './plan.js';
 
-/** The offer line (PACKAGES-CLIENT-FACING.md): the stage each product answers. */
+/** The stage each product answers (D68: Understand → Stay Ready → Raise; the two services assess). */
 const STAGE = {
   'readiness-free': 'Understand',
-  'capital-readiness': 'Assess & Improve',
-  'capital-assessment': 'Assess & Improve',
+  'capital-readiness': 'Assess',
+  'capital-assessment': 'Assess',
   'company-intelligence': 'Stay Ready',
-  'capital-raising': 'Run Your Raise',
+  'capital-raising': 'Raise',
 };
 export const stageOf = (id) => STAGE[id] || null;
 
@@ -23,7 +23,7 @@ export function cleanCopy(text) {
     .trim();
 }
 
-/** The five columns (D60): the API's order, self-serve items with a price only. */
+/** Every priced item in the API's order (self-serve items with a price only). */
 export function columnsOf(data) {
   const plans = Array.isArray(data?.plans) ? data.plans : [];
   return plans.filter((p) => Array.isArray(p.prices) && p.prices.length > 0);
@@ -167,4 +167,83 @@ export const checkoutStatusLabel = (s) => CHECKOUT_STATUS[s] || (s ? String(s) :
 /** One idempotency key per checkout attempt (a double click never makes two). */
 export function idempotencyKey(productId, priceKey, rand = Math.random) {
   return `web-${productId}-${priceKey}-${Date.now().toString(36)}-${rand().toString(36).slice(2, 10)}`;
+}
+
+// ---- D68: 3 platform plans + 2 one-time services ---------------------------------------
+
+const PLATFORM = ['readiness-free', 'company-intelligence', 'capital-raising'];
+const SERVICES = ['capital-readiness', 'capital-assessment'];
+const pick = (data, ids) => ids.map((id) => columnsOf(data).find((p) => p.id === id)).filter(Boolean);
+
+/** The three platform plans, in ladder order (the API's `platform` list when present). */
+export const platformOf = (data) => pick(data, Array.isArray(data?.platform) ? data.platform : PLATFORM);
+/** The one-time Capital Readiness services, shown apart from the plans (never as tiers). */
+export const servicesOf = (data) => pick(data, Array.isArray(data?.services) ? data.services : SERVICES);
+
+/**
+ * The words on each card (Bilal's 5 Oct brief). Every bullet names the entitlement key that makes
+ * it true; planBullets() drops a bullet whose key the API reports as "Not included", so a card can
+ * never claim more than the server grants. `null` = always true for that plan.
+ */
+export const PLAN_STORY = {
+  'readiness-free': {
+    label: 'Understand', promise: 'Know where your company stands.', cta: 'Start free',
+    bullets: [['IR / Investor Readiness Score', 'company_profile'], ['Financial Health Check', 'checkin'], ['Company profile & portal', 'company_profile'],
+      ['Basic readiness insights', 'improvement_plan'], ['20-minute consultant session', 'expert_access']],
+  },
+  'company-intelligence': {
+    label: 'Stay Ready', promise: 'Keep your company continuously ready.', cta: 'Stay ready',
+    bullets: [['Everything in Free', null], ['Continuous Company Intelligence', 'company_intel_live'], ['Financial health trends', 'financial_health_history'],
+      ['Readiness history', 'score_history'], ['Changes & alerts', 'company_intel_live'], ['Recommendations', 'next_best_actions'], ['Monthly check-in', 'checkin']],
+  },
+  'capital-raising': {
+    label: 'Raise', promise: 'Find the right capital and execute your raise.', cta: 'Start raising', badge: 'Most complete',
+    bullets: [['Everything in Company Intelligence', null], ['Investor & capital-provider matching', 'max_results'], ['Why-this-fits explanations', 'ai_explanations'],
+      ['Evidence behind matches', 'investor_profile_depth'], ['Shortlist & pipeline', 'pipeline_items'], ['Outreach & meeting preparation', 'outreach_drafts_per_month'],
+      ['Raise CRM & workflow', 'crm']],
+  },
+  'capital-readiness': {
+    label: 'Capital Readiness Report', promise: 'A structured assessment of what is ready, what is missing and what to fix next.', cta: 'Get your report',
+    bullets: [['Capital Readiness assessment', 'capital_readiness_report'], ['Detailed readiness report', 'capital_readiness_report'], ['Gaps and recommendations', 'capital_readiness_report']],
+  },
+  'capital-assessment': {
+    label: 'Capital Readiness + Advisor', promise: 'The report, walked through with an advisor.', cta: 'Add an advisor',
+    bullets: [['Everything in the report', 'capital_readiness_report'], ['+ 40-minute session with an advisor', 'expert_sessions']],
+  },
+};
+
+const NOT_INCLUDED = /^not included$/i;
+/** The bullets the API confirms for this plan (see PLAN_STORY). */
+export function planBullets(plan) {
+  const story = plan && PLAN_STORY[plan.id];
+  if (!story) return [];
+  const display = plan.display || {};
+  return story.bullets.filter(([, key]) => key === null || (display[key] !== undefined && !NOT_INCLUDED.test(String(display[key])))).map(([text]) => text);
+}
+
+/** The price row for a billing period ('monthly' | 'annual'); free and one-time items have one row. */
+export function priceFor(plan, billing = 'monthly') {
+  const prices = plan?.prices || [];
+  return prices.find((p) => p.billing === billing) || prices.find((p) => p.billing === 'monthly') || prices[0] || null;
+}
+
+/** True when any plan offers a yearly price (the monthly / annual toggle is shown only then). */
+export const hasAnnual = (data) => platformOf(data).some((p) => (p.prices || []).some((x) => x.billing === 'annual'));
+
+/** The one small line under both services, worded from the API (D65 behaviour unchanged). */
+export function serviceTerms(data) {
+  const s = servicesOf(data).find((p) => p.includes_company_intelligence_days || p.credit);
+  if (!s) return null;
+  const parts = [];
+  if (s.includes_company_intelligence_days) parts.push(`Includes ${s.includes_company_intelligence_days} days of Company Intelligence`);
+  if (s.credit) parts.push(`${money(s.credit.amount_usd)} credited if you upgrade to Capital Raising within ${s.credit.window_days} days`);
+  return parts.join(' · ');
+}
+
+/** A compare-table cell: { kind: 'yes' | 'no' | 'text', text }. */
+export function compareCell(value) {
+  const v = cleanCopy(value);
+  if (!v || v === '–' || NOT_INCLUDED.test(v)) return { kind: 'no', text: 'Not included' };
+  if (/^included$/i.test(v)) return { kind: 'yes', text: 'Included' };
+  return { kind: 'text', text: v };
 }

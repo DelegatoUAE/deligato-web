@@ -3,7 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Alert, Badge, Button, Card, PageHeader, ProgressSteps, SkeletonCards, useToast } from '../design/ui';
 import SubNav from '../components/SubNav';
 import { useCompany } from '../components/company-context';
-import { LoadError } from '../components/capital/bits';
+import { LoadError, MatchingUpgrade } from '../components/capital/bits';
+import { hasMatching } from '../lib/plan';
 import useApi from '../lib/useApi';
 import { getRouting, normaliseRoute, selectRoutes, ROUTE_FIT } from '../lib/routing';
 import { runMatch } from '../lib/capital';
@@ -74,7 +75,7 @@ function RouteCard({ r, coverage, country, onSee, seeing, start = false }) {
       <div className="rcard-foot">
         <Button variant="link" size="sm" onClick={() => setOpen((v) => !v)} aria-expanded={open}>{open ? 'Hide detail' : 'Why?'}</Button>
         {!start && <Button variant="link" size="sm" onClick={() => setExpanded(false)}>Collapse</Button>}
-        {level !== 'none' && (r.fit === 'unlikely'
+        {onSee && level !== 'none' && (r.fit === 'unlikely'
           ? <Button variant="link" size="sm" onClick={() => onSee(r.key)} loading={seeing}>See them anyway</Button>
           : <Button variant="secondary" size="sm" onClick={() => onSee(r.key)} loading={seeing}>{n ? `See ${plural(n, 'provider')}` : 'See providers'}</Button>)}
       </div>
@@ -95,7 +96,10 @@ function RouteCard({ r, coverage, country, onSee, seeing, start = false }) {
 
 /** 16 · Find Capital: which kinds of capital fit, then the providers inside them. */
 export default function FindCapitalPage() {
-  const { company, companyId, readiness, capitalNeedConfirmed, run, reloadRun } = useCompany();
+  const { company, companyId, readiness, capitalNeedConfirmed, run, reloadRun, entitlements, entitlementsKnown, pipeline } = useCompany();
+  // D68: Free sees its capital routes (types of capital, no provider names); matching is in Capital Raising.
+  const noMatching = entitlementsKnown && !hasMatching(entitlements);
+  const onSee = noMatching ? null : (k) => see(k);
   const navigate = useNavigate();
   const toast = useToast();
   const q = useApi(() => getRouting(companyId), [companyId, company?.raise_usd, company?.instrument, company?.raise_timing]);
@@ -122,7 +126,7 @@ export default function FindCapitalPage() {
     { label: 'Readiness', description: r ? readinessSource(readiness).label : 'Optional', status: r ? 'done' : 'upcoming', href: '/capital/readiness' },
     { label: 'Your raise', description: capitalNeedConfirmed ? 'Confirmed' : 'To confirm', status: capitalNeedConfirmed ? 'done' : 'current', href: '/capital/need' },
     { label: 'Capital routes', description: 'This page', status: capitalNeedConfirmed ? 'current' : 'upcoming' },
-    { label: 'Your matches', description: run ? 'Ready' : 'Next', status: run ? 'done' : 'upcoming', href: run ? '/capital/matches' : undefined },
+    { label: 'Your matches', description: noMatching ? 'In Capital Raising' : run ? 'Ready' : 'Next', status: run && !noMatching ? 'done' : 'upcoming', href: run && !noMatching ? '/capital/matches' : undefined },
   ];
 
   // The founder's own date, as stored (D46). Passed = before today: the same
@@ -162,12 +166,12 @@ export default function FindCapitalPage() {
       {q.error ? <LoadError error={q.error} onRetry={q.reload} what="your routes" /> : !q.data ? <SkeletonCards count={4} height={150} /> : (
         <>
           {q.data.ordering?.key === 'ownership_first' && <Alert tone="info">{q.data.ordering.text}</Alert>}
-          {groups.strong.length > 0 && <section className="rgroup"><h2 className="sec-h">Fits you</h2>{groups.strong.map((x, i) => <RouteCard key={x.key} r={x} start={i === 0} coverage={x.coverage} country={company.hq_country_iso2} onSee={see} seeing={seeing === x.key} />)}</section>}
-          {groups.possible.length > 0 && <section className="rgroup"><h2 className="sec-h">Worth a look</h2>{groups.possible.map((x, i) => <RouteCard key={x.key} r={x} start={!groups.strong.length && i === 0} coverage={x.coverage} country={company.hq_country_iso2} onSee={see} seeing={seeing === x.key} />)}</section>}
+          {groups.strong.length > 0 && <section className="rgroup"><h2 className="sec-h">Fits you</h2>{groups.strong.map((x, i) => <RouteCard key={x.key} r={x} start={i === 0} coverage={x.coverage} country={company.hq_country_iso2} onSee={onSee} seeing={seeing === x.key} />)}</section>}
+          {groups.possible.length > 0 && <section className="rgroup"><h2 className="sec-h">Worth a look</h2>{groups.possible.map((x, i) => <RouteCard key={x.key} r={x} start={!groups.strong.length && i === 0} coverage={x.coverage} country={company.hq_country_iso2} onSee={onSee} seeing={seeing === x.key} />)}</section>}
           {groups.unlikely.length > 0 && (
             <section className="rgroup">
               <h2 className="sec-h"><button type="button" className="tier-toggle" aria-expanded={showUnlikely} onClick={() => setShowUnlikely((v) => !v)}>Unlikely for now <span className="ui-faint">({groups.unlikely.length})</span> {showUnlikely ? '▾' : '▸'}</button></h2>
-              {showUnlikely ? groups.unlikely.map((x) => <RouteCard key={x.key} r={x} coverage={x.coverage} country={company.hq_country_iso2} onSee={see} seeing={seeing === x.key} />)
+              {showUnlikely ? groups.unlikely.map((x) => <RouteCard key={x.key} r={x} coverage={x.coverage} country={company.hq_country_iso2} onSee={onSee} seeing={seeing === x.key} />)
                 : <Button variant="link" size="sm" onClick={() => setShowUnlikely(true)}>Show {groups.unlikely.length} more</Button>}
             </section>
           )}
@@ -182,8 +186,12 @@ export default function FindCapitalPage() {
             </Card>
           )}
           <div className="find-cta">
-            <Button variant="accent" size="lg" disabled={!filterRoutes.length} onClick={() => see('fits')} loading={seeing === 'fits'}>Find providers in every route that fits</Button>
-            {!filterRoutes.length && <p className="ui-muted">{q.data.capital_filter?.note}</p>}
+            {noMatching ? <MatchingUpgrade savedCount={(pipeline || []).length} showRoutes={false} /> : (
+              <>
+                <Button variant="accent" size="lg" disabled={!filterRoutes.length} onClick={() => see('fits')} loading={seeing === 'fits'}>Find providers in every route that fits</Button>
+                {!filterRoutes.length && <p className="ui-muted">{q.data.capital_filter?.note}</p>}
+              </>
+            )}
             <details className="explainer"><summary>How routing works</summary><p>We first work out which kinds of capital suit a company like yours, from your stage, revenue, profitability, growth and what the money is for. Then we match you with providers inside those routes. Your readiness score isn't used here, though some of your readiness answers (like runway) can be.</p></details>
           </div>
           {q.data.notice && <p className="ui-faint find-notice">{q.data.notice}</p>}

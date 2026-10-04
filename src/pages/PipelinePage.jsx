@@ -8,13 +8,13 @@ import SubNav from '../components/SubNav';
 import { MeetingPrep } from '../components/capital/AiBlocks';
 import { useCompany } from '../components/company-context';
 import MatchScore from '../components/capital/MatchScore';
-import { GateCard, LoadError } from '../components/capital/bits';
+import { GateCard, LoadError, MatchingUpgrade, ReadOnlyNote } from '../components/capital/bits';
 import useApi from '../lib/useApi';
 import { listPipeline, updatePipelineItem, removeFromPipeline, PIPELINE_STAGES, ACTIVE_STAGES, stageLabel, investorHref, tierLabel } from '../lib/capital';
 import { recordOutcome, createActivity, getTimeline, PASS_REASONS, passReasonLabel } from '../lib/fundraising';
 import { apiFetch } from '../lib/auth';
 import { daysSince, fmtDate, todayIso, humanise } from '../lib/format';
-import { gateFor } from '../lib/plan';
+import { canShortlist, gateFor, MATCHING_UPGRADE } from '../lib/plan';
 
 const OUTCOME_STAGES = ['passed', 'not_now', 'term_sheet', 'closed_won'];
 const TONE = { shortlisted: 'neutral', researching: 'neutral', intro_requested: 'info', contacted: 'info', in_conversation: 'navy', diligence: 'navy', term_sheet: 'gold', closed_won: 'ok', passed: 'bad', not_now: 'neutral' };
@@ -131,7 +131,7 @@ function ItemDrawer({ item, companyId, onClose, onChanged, onMove, onRemove }) {
 }
 
 export default function PipelinePage() {
-  const { companyId, reloadPipeline } = useCompany();
+  const { companyId, reloadPipeline, entitlements, entitlementsKnown } = useCompany();
   const toast = useToast();
   const q = useApi(() => listPipeline(companyId).then((x) => x.pipeline || []), [companyId]);
   const [view, setView] = useState(() => (typeof window !== 'undefined' && window.innerWidth < 768 ? 'list' : 'board'));
@@ -144,6 +144,8 @@ export default function PipelinePage() {
   const [removing, setRemoving] = useState(null);
 
   const items = q.data || [];
+  // D68: on Free, investors saved earlier stay visible but read-only (the server enforces it).
+  const readOnly = items.some((x) => x.read_only) || (entitlementsKnown && !canShortlist(entitlements));
   const boardRef = useRef(null);
   const firstStage = items.find((p) => p.stage !== 'shortlisted')?.stage;
   // Bring the first column with cards into view (later stages sit off to the right).
@@ -170,6 +172,7 @@ export default function PipelinePage() {
 
   function move(item, to) {
     if (!to || to === item.stage) return;
+    if (readOnly) { toast.info(MATCHING_UPGRADE.readOnly); return; } // D68: the server refuses it too
     if (OUTCOME_STAGES.includes(to)) { setOutcome({ item, to }); return; }
     applyMove(item, to);
   }
@@ -197,6 +200,7 @@ export default function PipelinePage() {
 
   async function remove() {
     const item = removing;
+    if (readOnly) { setRemoving(null); toast.info(MATCHING_UPGRADE.readOnly); return; }
     setBusy(true);
     try {
       await removeFromPipeline(item.id);
@@ -234,7 +238,7 @@ export default function PipelinePage() {
     const overdue = p.next_action_date && p.next_action_date < todayIso();
     return (
       <KanbanCard key={p.id} title={nameOf(p)} stale={stale} dragging={dragId === p.id}
-        draggable onDragStart={(e) => { setDragId(p.id); e.dataTransfer.effectAllowed = 'move'; }} onDragEnd={() => { setDragId(null); setOverStage(null); }}
+        draggable={!readOnly} onDragStart={(e) => { setDragId(p.id); e.dataTransfer.effectAllowed = 'move'; }} onDragEnd={() => { setDragId(null); setOverStage(null); }}
         onClick={() => setOpenId(p.id)}
         leading={<MatchScore score={p.match_score_at_add} confidence={p.capital_sources?.data_confidence} size="sm" />}
         meta={[p.fit_tier_at_add && tierLabel(p.fit_tier_at_add), p.capital_sources?.type].filter(Boolean).join(' · ')}
@@ -255,7 +259,8 @@ export default function PipelinePage() {
       <PageHeader title="Pipeline" subtitle={headline}
         meta={savedN > 0 && <Link to="/capital/saved">{savedN} saved, not in your pipeline yet</Link>}
         actions={<Tabs variant="pill" label="View" value={view} onChange={setView} items={[{ id: 'board', label: 'Board' }, { id: 'list', label: 'List' }]} />} />
-      {q.data === undefined ? <Skeleton h="300px" /> : tracked.length === 0 ? (
+      {readOnly && (items.length ? <ReadOnlyNote /> : <MatchingUpgrade />)}
+      {q.data === undefined ? <Skeleton h="300px" /> : readOnly && !items.length ? null : tracked.length === 0 ? (
         <EmptyState icon="kanban" title="Nothing tracked yet." body={savedN ? "Move a saved provider into your pipeline when you start working on it." : "Shortlist investors from your matches to start."} action={<Button as={Link} to={savedN ? "/capital/saved" : "/capital/matches"} variant="primary">{savedN ? "Open saved" : "Open matches"}</Button>} />
       ) : view === 'board' ? (
         <>

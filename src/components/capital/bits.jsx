@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Alert, Badge, Button, Card, EmptyState, Icon, Tooltip } from '../../design/ui';
-import { upgradeHref } from '../../lib/plan';
+import { MATCHING_UPGRADE, upgradeHref } from '../../lib/plan';
 
 export const FUNDRAISING_LINE = 'We help you with fundraising. We never fundraise for you.';
 
@@ -15,6 +15,30 @@ export function ConncctSourceTag({ label = 'Imported' }) {
       <Badge tone="outline" size="sm">{label}</Badge>
     </span>
   );
+}
+
+/**
+ * D68: the Free state wherever matching would be (Matches, Find Capital, profiles). Free has no
+ * investor/provider matching; it says so plainly, points to Capital Raising, keeps the capital
+ * routes one click away and, when the company saved investors earlier, links to them (read-only).
+ */
+export function MatchingUpgrade({ savedCount = 0, showRoutes = true }) {
+  return (
+    <Card className="match-upgrade" eyebrow="Capital Raising" title={MATCHING_UPGRADE.title}>
+      <p>{MATCHING_UPGRADE.body}</p>
+      {savedCount > 0 && <p className="ui-muted">{MATCHING_UPGRADE.readOnly}</p>}
+      <div className="ui-row">
+        <Button as={Link} to={upgradeHref('capital-raising')} variant="accent" iconRight="arrowRight">See Capital Raising</Button>
+        {showRoutes && <Button as={Link} to="/capital/find" variant="secondary">See the capital routes that fit</Button>}
+        {savedCount > 0 && <Button as={Link} to="/capital/saved" variant="link">View your {savedCount} saved {savedCount === 1 ? 'investor' : 'investors'}</Button>}
+      </div>
+    </Card>
+  );
+}
+
+/** D68: one line above a Free company's earlier saves. */
+export function ReadOnlyNote() {
+  return <Alert tone="info" title="Read-only on Free">{MATCHING_UPGRADE.readOnly} <Link to={upgradeHref('capital-raising')}>See Capital Raising</Link>.</Alert>;
 }
 
 /** A locked feature: what it does, which package unlocks it, one CTA. */

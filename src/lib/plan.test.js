@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, dirname, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { tierLabel, upgradeTarget, includedIn, displayValue } from './plan.js';
+import { tierLabel, upgradeTarget, includedIn, displayValue, hasMatching, canShortlist, MATCHING_UPGRADE, packageName } from './plan.js';
 
 const SRC = join(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -41,4 +41,19 @@ test('no retired package copy in customer screens (W6, D41, D45, D46)', () => {
     });
   }
   assert.deepEqual(offenders, []);
+});
+
+test('D68: Free has no matching and no new shortlist items; unknown defers to the server', () => {
+  assert.equal(hasMatching({ max_results: 0 }), false);
+  assert.equal(hasMatching({ max_results: 5 }), true, 'Company Intelligence keeps its top 5');
+  assert.equal(hasMatching({ max_results: null }), true, 'Capital Raising: plan limits');
+  assert.equal(hasMatching(null), true);
+  assert.equal(canShortlist({ pipeline_items: 0 }), false);
+  assert.equal(canShortlist({ pipeline_items: 10 }), true);
+  assert.equal(canShortlist({ pipeline_items: null }), true);
+  assert.match(MATCHING_UPGRADE.title, /Capital Raising/);
+  assert.match(MATCHING_UPGRADE.body, /without naming providers/);
+  assert.match(MATCHING_UPGRADE.readOnly, /read-only/);
+  assert.equal(packageName('capital-readiness'), 'Capital Readiness Report');
+  assert.equal(packageName('capital-assessment'), 'Capital Readiness + Advisor');
 });

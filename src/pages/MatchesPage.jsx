@@ -10,7 +10,7 @@ import WhyThisFits, { AiConsentCard } from '../components/capital/WhyThisFits';
 import useAiConsent from '../lib/useAiConsent';
 import { toggleCompare, COMPARE_MAX, sortMatches } from '../lib/matchview';
 const sortByEvidence = (rows) => sortMatches(rows, null);
-import { GateCard, ProviderBadge, LoadError } from '../components/capital/bits';
+import { GateCard, ProviderBadge, LoadError, MatchingUpgrade } from '../components/capital/bits';
 import useApi from '../lib/useApi';
 import {
   getRunNormalised, getLatestRun, runMatch, getUnlocks, listPipeline, addToPipeline, previewMatch,
@@ -20,7 +20,7 @@ import { sendFeedback, listFeedback } from '../lib/learning';
 import { getRouting, normaliseRoute } from '../lib/routing';
 import { fmtUsd, fmtDateTime, fmtInt, countryName, plural } from '../lib/format';
 import { logEvent } from '../lib/events';
-import { gateFor } from '../lib/plan';
+import { gateFor, hasMatching } from '../lib/plan';
 
 function inRoutes(r, routes) {
   if (!routes.length) return true;
@@ -128,7 +128,9 @@ function NoVerifiedFits({ company, counts = {}, unlocks, topMissing }) {
 }
 
 export default function MatchesPage() {
-  const { company, companyId, entitlements, reloadRun, reloadPipeline } = useCompany();
+  const { company, companyId, entitlements, entitlementsKnown, reloadRun, reloadPipeline } = useCompany();
+  // D68: Free has no matching. The server answers 402 either way; this only avoids asking.
+  const noMatching = entitlementsKnown && !hasMatching(entitlements);
   const [params, setParams] = useSearchParams();
   const navigate = useNavigate();
   const toast = useToast();
@@ -144,8 +146,8 @@ export default function MatchesPage() {
   }, [routingQ.data, routeParam]);
   const tierParam = params.get('tier');
 
-  const runQ = useApi(() => (runId ? getRunNormalised(runId) : getLatestRun(companyId)), [runId, companyId]);
-  const unlocksQ = useApi(() => getUnlocks(companyId), [companyId, runQ.data?.run_id]);
+  const runQ = useApi(() => (noMatching ? null : runId ? getRunNormalised(runId) : getLatestRun(companyId)), [runId, companyId, noMatching]);
+  const unlocksQ = useApi(() => (noMatching ? null : getUnlocks(companyId)), [companyId, runQ.data?.run_id, noMatching]);
   const pipeQ = useApi(() => listPipeline(companyId).then((x) => x.pipeline || []), [companyId]);
   const fbQ = useApi(() => listFeedback(companyId).then((x) => x.feedback || []).catch(() => []), [companyId]);
 
@@ -239,6 +241,14 @@ export default function MatchesPage() {
     />
   );
 
+  if (noMatching || runQ.error?.status === 402) {
+    return (
+      <div><SubNav section="capital" />
+        <PageHeader title="Capital matches" subtitle={company.name} />
+        <MatchingUpgrade savedCount={(pipeQ.data || []).length} />
+      </div>
+    );
+  }
   if (runQ.error && runQ.error.status !== 404) {
     return <div><SubNav section="capital" />{header}<LoadError error={runQ.error} onRetry={runQ.reload} what="your matches" /></div>;
   }

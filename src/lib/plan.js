@@ -4,7 +4,7 @@
 
 const TIER_LABELS = { free: 'Free', company_intelligence: 'Company Intelligence', capital_raising: 'Capital Raising' };
 // Catalog names of the self-service ids `upgrade_to` may list (api/modules/packages/catalog.js).
-const NAMES = { 'readiness-free': 'Free', 'company-intelligence': 'Company Intelligence', 'capital-raising': 'Capital Raising', 'capital-readiness': 'Capital Readiness', 'capital-assessment': 'Capital Readiness Plus' };
+const NAMES = { 'readiness-free': 'Free', 'company-intelligence': 'Company Intelligence', 'capital-raising': 'Capital Raising', 'capital-readiness': 'Capital Readiness Report', 'capital-assessment': 'Capital Readiness + Advisor' };
 
 /** entitlements.ladder_tier → badge text; null when unknown. */
 export const tierLabel = (tier) => TIER_LABELS[tier] || null;
@@ -61,3 +61,26 @@ export function gateFor(err) {
   const message = err?.message && !/^Request failed/.test(err.message) ? err.message : (GATE_DEFAULT[code] || GATE_DEFAULT.upgrade_required);
   return { code, message, href: link ? upgradeHref(upgradeTarget(err)) : null, cta: link ? 'See plans' : null };
 }
+
+/**
+ * D68: does this entitlement view include investor/provider matching? Free does not
+ * (max_results 0). Unknown (no view yet) reads as true: the server stays the judge and
+ * answers 402 when the plan does not include it.
+ */
+export function hasMatching(ents) {
+  if (!ents || ents.max_results === undefined) return true;
+  return ents.max_results === null || Number(ents.max_results) > 0;
+}
+
+/** D68: may this plan save NEW investors or move stages? Free keeps earlier saves read-only. */
+export function canShortlist(ents) {
+  if (!ents || ents.pipeline_items === undefined) return true;
+  return ents.pipeline_items === null || Number(ents.pipeline_items) > 0;
+}
+
+/** D68 copy, shared by every Free upgrade state (Matches, Find Capital, Saved, Pipeline, profile). */
+export const MATCHING_UPGRADE = {
+  title: 'Investor matching is part of Capital Raising',
+  body: 'Free shows where your company stands and which types of capital fit, without naming providers. Capital Raising adds matched investors and capital providers, why each one fits, the evidence behind it, your shortlist and pipeline, and outreach.',
+  readOnly: 'Investors you saved earlier stay here, read-only. Saving more, moving stages and outreach are part of Capital Raising.',
+};
