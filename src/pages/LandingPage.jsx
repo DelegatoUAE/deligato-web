@@ -224,6 +224,16 @@ const STEPS = [
   },
 ];
 
+
+const FAQ = [
+  { q: 'Is Deligato an investor directory?', a: 'No. A directory starts with a list of names. Deligato starts with your company: it shows how capital-ready you are, which kinds of capital fit, and why each provider fits, criterion by criterion, with the source of every fact. Then it helps you run the raise.' },
+  { q: 'Does Deligato raise money for me?', a: 'No. We help you with fundraising. We never fundraise for you. Deligato prepares, matches and drafts; you decide who to contact, edit every message and send it yourself.' },
+  { q: 'Who is Deligato for?', a: 'Startups raising capital, and established businesses looking for growth or working capital. Most companies will never raise venture capital, so Deligato checks grants, government programmes, revenue-based finance, venture debt, bank and working-capital finance alongside equity.' },
+  { q: 'Where does the capital provider information come from?', a: "From our research database, built from providers' own websites, official registers, licensed data and public sources. Every fact carries a source label and the date it was last checked. AI-inferred details are labelled as such and never shown as verified." },
+  { q: 'What does it cost to start?', a: 'You can create an account and start free. Paid plans and the one-time Capital Readiness services are listed on the pricing page.' },
+  { q: 'Who sees my company data?', a: 'You do. Company facts go to AI only with your consent, never your name or contact details, and every AI request is logged where you can see it. Nothing is sent to a capital provider unless you send it yourself. You can export or delete your data at any time.' },
+];
+
 export default function LandingPage() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [stats, setStats] = useState(null);
@@ -252,6 +262,7 @@ export default function LandingPage() {
             <a href="#journey" onClick={close}>How it works</a>
             <a href="#different" onClick={close}>Why Deligato</a>
             <a href="#evidence" onClick={close}>Evidence</a>
+            <a href="#faq" onClick={close}>FAQ</a>
             <Link to="/pricing" onClick={close}>Pricing</Link>
             <div className="lp-nav-cta">
               <Button as={Link} to="/login" variant="ghost" size="md" className="lp-signin">Sign in</Button>
@@ -363,6 +374,28 @@ export default function LandingPage() {
           </div>
         </section>
 
+        {/* ---------- WHO ---------- */}
+        <section id="who" className="lp-section" aria-labelledby="lp-who-h">
+          <div className="lp-wrap">
+            <div className="lp-section-head">
+              <p className="lp-eyebrow">Who it is for</p>
+              <h2 id="lp-who-h">Built for companies that intend to raise, not just browse</h2>
+            </div>
+            <div className="lp-who">
+              <article className="lp-who-card">
+                <span className="lp-feature-icon" aria-hidden="true"><Icon name="spark" /></span>
+                <h3>Startups raising capital</h3>
+                <p>From pre-seed onwards. Know how investors will read you, close the gaps that matter, and run a focused raise with providers whose mandates actually fit.</p>
+              </article>
+              <article className="lp-who-card">
+                <span className="lp-feature-icon" aria-hidden="true"><Icon name="building" /></span>
+                <h3>Established businesses</h3>
+                <p>Looking for growth or working capital. See whether grants, government programmes, revenue-based finance, bank or working-capital finance fit before you speak to anyone.</p>
+              </article>
+            </div>
+          </div>
+        </section>
+
         {/* ---------- EVIDENCE ---------- */}
         <section id="evidence" className="lp-section lp-section-ink" aria-labelledby="lp-evi-h">
           <div className="lp-wrap">
@@ -407,15 +440,21 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* ---------- DATA ---------- */}
-        <section className="lp-section lp-section-tight" aria-labelledby="lp-data-h">
-          <div className="lp-wrap">
-            <div className="lp-data">
-              <span className="lp-feature-icon" aria-hidden="true"><Icon name="lock" /></span>
-              <div>
-                <h2 id="lp-data-h" className="lp-h3">Your company data stays yours</h2>
-                <p>Company facts only go to AI with your consent, never your name or contact details. Every AI request is logged where you can see it. Export or delete your data at any time.</p>
-              </div>
+        {/* ---------- FAQ ---------- */}
+        <section id="faq" className="lp-section lp-section-white" aria-labelledby="lp-faq-h">
+          <div className="lp-wrap lp-faq-grid">
+            <div>
+              <p className="lp-eyebrow">Questions</p>
+              <h2 id="lp-faq-h">What founders ask first</h2>
+              <p className="lp-section-sub lp-left">Straight answers about what Deligato is, and what it is not.</p>
+            </div>
+            <div className="lp-faq">
+              {FAQ.map((f) => (
+                <details key={f.q} className="lp-faq-item">
+                  <summary>{f.q}<Icon name="plus" /></summary>
+                  <p>{f.a}</p>
+                </details>
+              ))}
             </div>
           </div>
         </section>
@@ -446,6 +485,7 @@ export default function LandingPage() {
           <nav aria-label="Footer" className="lp-footer-nav">
             <a href="#journey">How it works</a>
             <a href="#evidence">Evidence</a>
+            <a href="#faq">FAQ</a>
             <Link to="/pricing">Pricing</Link>
             <Link to="/login">Sign in</Link>
             <Link to="/signup">Create your account</Link>

@@ -275,3 +275,22 @@
   .lp-data { padding: var(--s-5); flex-direction: column; }
   .lp-final::before { background: rgba(5, 28, 56, 0.9); }
 }
+
+/* ---- who + faq (5 Oct, final pass) ---- */
+.lp-who { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-4); max-width: 1040px; margin: 0 auto; }
+.lp-who-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-xl); padding: clamp(1.5rem, 1rem + 1.5vw, 2.25rem); box-shadow: var(--shadow-xs); transition: transform var(--t-base) var(--ease), box-shadow var(--t-base) var(--ease), border-color var(--t-base) var(--ease); }
+.lp-who-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); border-color: var(--gold-line); }
+.lp-who-card .lp-feature-icon { margin-bottom: var(--s-4); }
+.lp-who-card p { margin: var(--s-3) 0 0; color: var(--text-soft); line-height: var(--lh-relaxed); }
+.lp-faq-grid { display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); gap: clamp(2rem, 1rem + 4vw, 5rem); align-items: start; }
+.lp-faq { display: grid; gap: var(--s-3); }
+.lp-faq-item { background: var(--bg); border: 1px solid var(--border); border-radius: var(--r-lg); transition: border-color var(--t-base) var(--ease), box-shadow var(--t-base) var(--ease); }
+.lp-faq-item[open] { border-color: var(--border-strong); box-shadow: var(--shadow-sm); background: var(--surface); }
+.lp-faq-item summary { list-style: none; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: var(--s-4); padding: var(--s-5) var(--s-6); font-weight: var(--fw-semibold); color: var(--text-strong); }
+.lp-faq-item summary::-webkit-details-marker { display: none; }
+.lp-faq-item summary:focus-visible { outline: none; box-shadow: var(--ring); border-radius: var(--r-lg); }
+.lp-faq-item summary svg { width: 18px; height: 18px; flex: none; color: var(--text-soft); transition: transform var(--t-base) var(--ease); }
+.lp-faq-item[open] summary svg { transform: rotate(45deg); }
+.lp-faq-item p { margin: 0; padding: 0 var(--s-6) var(--s-6); color: var(--text-soft); line-height: var(--lh-relaxed); }
+@media (max-width: 960px) { .lp-who, .lp-faq-grid { grid-template-columns: 1fr; } }
+@media (max-width: 640px) { .lp-faq-item summary { padding: var(--s-4) var(--s-5); } .lp-faq-item p { padding: 0 var(--s-5) var(--s-5); } }

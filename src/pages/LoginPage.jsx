@@ -2,6 +2,7 @@ import { lazy, Suspense, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Alert, Button, FormField, Input } from '../design/ui';
 import AuthLayout from '../components/AuthLayout';
+import PasswordInput from '../components/PasswordInput';
 import { login } from '../lib/auth';
 
 // Compiled out of production builds (Vite replaces import.meta.env.DEV with false).
@@ -29,10 +30,10 @@ export default function LoginPage() {
   }
 
   return (
-    <AuthLayout title="Sign in">
+    <AuthLayout title="Sign in" subtitle="Welcome back. Pick up where your company left off.">
       <form className="ui-stack" onSubmit={onSubmit}>
         <FormField label="Email"><Input type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} required /></FormField>
-        <FormField label="Password"><Input type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required /></FormField>
+        <FormField label="Password"><PasswordInput autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required /></FormField>
         {error && <Alert tone="bad">{error}</Alert>}
         <Button type="submit" variant="primary" block loading={busy}>Sign in</Button>
         <p className="login-alt"><Link to="/forgot-password">Forgot password?</Link> · New here? <Link to="/signup">Create an account</Link></p>
