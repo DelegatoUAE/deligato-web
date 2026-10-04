@@ -116,3 +116,6 @@ export const PERSONA_FIXTURES = [
 export const getReadinessQuestions = () => apiFetch('/api/v1/conncct/readiness/questions');
 export const assessReadiness = (companyId, answers) =>
   apiFetch('/api/v1/conncct/readiness/assess', { method: 'POST', body: JSON.stringify({ company_id: companyId, answers }) });
+
+
+export { canDeleteCompany } from './access';

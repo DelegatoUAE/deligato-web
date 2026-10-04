@@ -6,7 +6,7 @@ import { useCompany } from '../components/company-context';
 import { ReadinessSnapshot } from '../components/capital/Readiness';
 import { ConncctSourceTag } from '../components/capital/bits';
 import { completeness } from '../lib/capital';
-import { deleteCompany } from '../lib/companies';
+import { deleteCompany, canDeleteCompany } from '../lib/companies';
 import { isMissingEndpoint } from '../lib/auth';
 import { fmtUsd, fmtDateTime, timingLabel, countryName, DECLARED_LABEL, isDeclaredFigure } from '../lib/format';
 
@@ -94,8 +94,8 @@ export default function CompanyPage() {
         </Card>
       </div>
       <p className="ui-faint co-foot">
-        {company.imported_at ? `Imported ${fmtDateTime(company.imported_at)}` : `Last updated ${fmtDateTime(company.updated_at)}`}{company.payload_version ? ` · payload v${company.payload_version}` : ''} ·{' '}
-        <Button variant="link" size="sm" onClick={() => setRemoving(true)}>Remove this company from Deligato</Button>
+        {company.imported_at ? `Imported ${fmtDateTime(company.imported_at)}` : `Last updated ${fmtDateTime(company.updated_at)}`}{company.payload_version ? ` · payload v${company.payload_version}` : ''}
+        {canDeleteCompany(company) && <>{' · '}<Button variant="link" size="sm" onClick={() => setRemoving(true)}>Remove this company from Deligato</Button></>}
       </p>
       <Modal open={removing} onClose={() => setRemoving(false)} size="sm" title={`Remove ${company.name} from Deligato?`}
         description="This deletes your matches, pipeline, outreach drafts and data-room files here."
