@@ -1085,3 +1085,25 @@
 .login-script { display: inline-block; align-self: flex-start; }
 .login-line { max-width: 19ch; }
 @media (max-width: 1100px) { .login-script { display: none; } }
+/* auth photo (5 Oct, v3): in normal flow under the copy, fills the remaining height, never overlaps text;
+   bleeds to the panel's right and bottom edges, soft fade on the top and left only so faces are never cut. */
+.login-side { padding-bottom: 0; }
+.login-photo { position: relative; z-index: 0; right: auto; bottom: auto; width: auto; aspect-ratio: auto;
+  flex: 1 1 0; min-height: 240px; margin-right: calc(-1 * clamp(1.5rem, 1rem + 3vw, 4rem)); margin-top: calc(-1 * var(--s-6)); }
+.login-photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 68% 30%;
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 38%), linear-gradient(to bottom, transparent 0%, #000 26%);
+  -webkit-mask-composite: source-in;
+  mask-image: linear-gradient(to right, transparent 0%, #000 38%), linear-gradient(to bottom, transparent 0%, #000 26%);
+  mask-composite: intersect; }
+.login-script { position: absolute; z-index: 2; left: clamp(1.5rem, 1rem + 3vw, 4rem); bottom: var(--s-8); margin: 0; padding: 0; }
+@media (max-height: 760px) { .login-photo { display: none; } .login-script { position: relative; left: auto; bottom: auto; margin: auto 0 var(--s-8); } }
+@media (max-width: 1100px) { .login-script { display: none; } }
+@media (max-width: 900px) { .login-photo { display: none; } }
+/* auth photo v4: right ~60% of the panel, script stays in the light area bottom-left */
+.login-photo { align-self: flex-end; width: 62%; margin-left: 0; }
+.login-photo img { object-position: 62% 22%;
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 30%), linear-gradient(to bottom, transparent 0%, #000 22%);
+  mask-image: linear-gradient(to right, transparent 0%, #000 30%), linear-gradient(to bottom, transparent 0%, #000 22%); }
+.login-script { bottom: var(--s-10); }
+.login-swoosh-sm { bottom: -0.55em; left: 6%; width: 70%; }
+@media (max-height: 820px) { .login-photo { display: none; } .login-script { position: relative; left: auto; bottom: auto; margin: auto 0 var(--s-12); } }
