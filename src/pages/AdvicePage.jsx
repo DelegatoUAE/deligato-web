@@ -85,7 +85,7 @@ export default function AdvicePage() {
                     <div className="lever-head"><strong>{u.label}</strong><GainLoss u={u} /></div>
                     {u.actionable && <p className="ui-muted">{u.actionable}</p>}
                     {u.caveat && <p className="lever-caveat">{u.caveat}</p>}
-                    {u.net < 0 && <p className="lever-neg">Net loss: you'd lose {fmtInt(u.loses)} sources you qualify for today to gain {fmtInt(u.unlocks)}.</p>}
+                    {u.net < 0 && <p className="lever-neg">Net loss: you'd lose {fmtInt(u.loses)} sources that match you today to gain {fmtInt(u.unlocks)}.</p>}
                     {u.examples?.length > 0 && (
                       <p className="ui-muted">e.g. {u.examples.map((x, i) => <span key={x.record_id}>{i ? ' · ' : ''}<Link to={investorHref(x.record_id)}>{x.name}</Link></span>)}</p>
                     )}
