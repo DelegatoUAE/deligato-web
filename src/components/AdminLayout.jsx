@@ -45,7 +45,7 @@ function AdminShell({ me, children }) {
         )}
         topActions={<ThemeToggle />}
       >
-        <div className="page"><ErrorBoundary resetKey={pathname}>{children}</ErrorBoundary></div>
+        <div className="page"><ErrorBoundary resetKey={pathname} staff={isStaff(me)}>{children}</ErrorBoundary></div>
       </AppShell>
     </div>
   );

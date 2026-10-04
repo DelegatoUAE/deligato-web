@@ -136,7 +136,7 @@ export default function AppLayout({ children }) {
           </>
         )}
       >
-        <div className="page"><ErrorBoundary resetKey={pathname}>{children}</ErrorBoundary></div>
+        <div className="page"><ErrorBoundary resetKey={pathname} staff={staff === true}>{children}</ErrorBoundary></div>
       </AppShell>
       {!settingUp && <nav className="tabbar" aria-label="Quick">
         {TABS.map((t) => (

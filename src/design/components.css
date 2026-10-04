@@ -870,3 +870,13 @@ button.ui-kcard:hover, a.ui-kcard:hover { border-color: var(--border-strong); bo
 .ui-stack-lg { gap: var(--s-8); }
 .ui-row { display: flex; align-items: center; gap: var(--s-3); flex-wrap: wrap; }
 .ui-spacer { flex: 1; }
+
+/* Staff-only diagnostics in the error boundary. Monospace for the error line
+   so a message with ids or JSON fragments stays readable, and selectable so
+   it can be copied by hand when the clipboard API is unavailable. */
+.eb-details { margin: 0 0 var(--s-4) 0; display: grid; gap: var(--s-2); }
+.eb-row { display: grid; grid-template-columns: 7.5rem 1fr; gap: var(--s-3); align-items: baseline; }
+.eb-row dt { color: var(--text-faint); font-size: var(--text-sm); font-weight: 500; }
+.eb-row dd { margin: 0; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: var(--text-sm); color: var(--text); overflow-wrap: anywhere; user-select: text; }
+@media (max-width: 480px) { .eb-row { grid-template-columns: 1fr; gap: var(--s-1); } }
