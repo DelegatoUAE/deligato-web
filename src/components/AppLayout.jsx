@@ -15,9 +15,9 @@ import { ASK_EVENT } from '../lib/ask';
 const TITLES = [
   [/^\/$/, 'Home'],
   [/^\/capital\/find/, 'Find capital'],
-  [/^\/capital\/readiness/, 'Readiness'],
+  [/^\/capital\/readiness/, 'Capital readiness'],
   [/^\/capital\/matches\/./, 'Capital provider'],
-  [/^\/capital\/matches/, 'My matches'],
+  [/^\/capital\/matches/, 'Capital matches'],
   [/^\/capital\/saved/, 'Shortlist'],
   [/^\/capital\/pipeline/, 'Pipeline'],
   [/^\/capital\/data-room/, 'Data room'],
