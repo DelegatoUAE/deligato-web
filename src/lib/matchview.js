@@ -94,3 +94,16 @@ export function serverTier(r) {
 
 /** A run the founder scoped to chosen capital routes (R-CI-F1): its counts are route-scoped. */
 export const isRouteScoped = (run) => Number(run?.counts?.filtered_out_by_route) > 0;
+
+/**
+ * UAT F08: a run made on a smaller plan keeps its few results after an upgrade.
+ * True when today's plan would return more results than the run holds.
+ * maxResults: the entitlement (null = the engine's full list, 200).
+ */
+export function runBelowPlan(run, maxResults) {
+  if (!run || !Array.isArray(run.results)) return false;
+  const limit = Number.isFinite(Number(maxResults)) && maxResults !== null ? Number(maxResults) : 200;
+  const eligible = Number(run.counts?.eligible);
+  if (!Number.isFinite(eligible)) return false;
+  return run.results.length < Math.min(eligible, limit);
+}

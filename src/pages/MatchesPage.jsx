@@ -8,7 +8,7 @@ import MatchTable from '../components/capital/MatchTable';
 import CompareDrawer from '../components/capital/CompareDrawer';
 import WhyThisFits, { AiConsentCard } from '../components/capital/WhyThisFits';
 import useAiConsent from '../lib/useAiConsent';
-import { toggleCompare, COMPARE_MAX, sortMatches, MATCH_SCORE_EXPLAINER } from '../lib/matchview';
+import { toggleCompare, COMPARE_MAX, sortMatches, MATCH_SCORE_EXPLAINER, runBelowPlan } from '../lib/matchview';
 const sortByEvidence = (rows) => sortMatches(rows, null);
 import { GateCard, ProviderBadge, LoadError } from '../components/capital/bits';
 import useApi from '../lib/useApi';
@@ -287,6 +287,8 @@ export default function MatchesPage() {
   const topMissing = completeness(company).missing[0];
   // I-03: AI explanations on the top 3 cards (D32 covers the top 5 on trial).
   const topIds = new Set(sortByEvidence(shown).slice(0, 3).map((r) => r.record_id));
+  // UAT F33: picking the "Likely outside" tier opens it; no second click.
+  const outsideOpen = showOutside || bucketFilter === 'likely_outside';
   const tableRows = shown.filter((r) => (bucketFilter ? r.bucket === bucketFilter : r.bucket !== 'likely_outside'));
   const activeFilters = [
     filters.type && { key: 'type', label: `Type: ${filters.type}`, clear: () => setFilters((f) => ({ ...f, type: '' })) },
@@ -318,6 +320,12 @@ export default function MatchesPage() {
           )}
           <Button variant="link" size="sm" onClick={() => setParams((p) => { const q = new URLSearchParams(p); q.delete('routes'); q.delete('route'); q.delete('run'); return q; })}>Show every route</Button>
         </div>
+      )}
+
+      {!trial && entitlements && runBelowPlan(run, entitlements.max_results) && (
+        <Alert tone="info" action={<Button size="sm" variant="secondary" onClick={rerun} loading={running}>Re-run</Button>}>
+          This run was made on a smaller plan and holds {fmtInt(run.results.length)} of {fmtInt(eligible)}. Your plan now includes more matches. Re-run to see them.
+        </Alert>
       )}
 
       {/* I-07: investors first. One summary line; the statistics open on demand. */}
@@ -419,12 +427,15 @@ export default function MatchesPage() {
           </section>}
           {(!bucketFilter || bucketFilter === 'likely_outside') && <section className="tier tier-outside" aria-labelledby="b-outside">
             <h2 id="b-outside" className="tier-h">
-              <button type="button" className="tier-toggle" aria-expanded={showOutside} onClick={() => setShowOutside((v) => !v)}>
-                Likely outside their mandate <span>({byBucket.likely_outside.length}{bucketCount('likely_outside') > byBucket.likely_outside.length ? ` shown of ${fmtInt(bucketCount('likely_outside'))}` : ''})</span> <span aria-hidden="true">{showOutside ? '▾' : '▸'}</span>
+              <button type="button" className="tier-toggle" aria-expanded={outsideOpen} onClick={() => setShowOutside(!outsideOpen)}>
+                Likely outside their mandate <span>({byBucket.likely_outside.length}{bucketCount('likely_outside') > byBucket.likely_outside.length ? ` shown of ${fmtInt(bucketCount('likely_outside'))}` : ''})</span> <span aria-hidden="true">{outsideOpen ? '▾' : '▸'}</span>
               </button>
             </h2>
             <p className="ui-muted">Their own published criteria suggest they don't back companies like yours. This isn't verified, so we show the reason rather than hide them.</p>
-            {(showOutside || bucketFilter === 'likely_outside') && byBucket.likely_outside.map(card)}
+            {outsideOpen && byBucket.likely_outside.map(card)}
+            {outsideOpen && !byBucket.likely_outside.length && bucketCount('likely_outside') > 0 && (
+              <p className="tier-empty">None of the {fmtInt(bucketCount('likely_outside'))} are among the {fmtInt(run.results.length)} results this run kept; stronger fits fill those places first.</p>
+            )}
           </section>}
           </>
           )}

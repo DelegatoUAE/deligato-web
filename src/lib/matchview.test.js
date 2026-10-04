@@ -55,3 +55,12 @@ test('the Match score explainer is the approved phrase, verbatim (positioning §
   const { MATCH_SCORE_EXPLAINER } = await import('./matchview.js');
   assert.equal(MATCH_SCORE_EXPLAINER, 'Fit counts for most of the score. How much we know about the investor pulls it toward the middle. Unknown details never add points. This score is about fit, not your chance of raising.');
 });
+
+test('a run made on a smaller plan is flagged after an upgrade (UAT F08)', async () => {
+  const { runBelowPlan } = await import('./matchview.js');
+  const five = { results: new Array(5).fill({}), counts: { eligible: 1001 } };
+  assert.equal(runBelowPlan(five, null), true);
+  assert.equal(runBelowPlan(five, 5), false);
+  assert.equal(runBelowPlan({ results: new Array(200).fill({}), counts: { eligible: 1123 } }, null), false);
+  assert.equal(runBelowPlan({ results: new Array(3).fill({}), counts: { eligible: 3 } }, null), false);
+});
