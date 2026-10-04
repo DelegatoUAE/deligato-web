@@ -457,7 +457,11 @@
 .xresults { display: grid; gap: var(--s-3); }
 .xfitrows { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-2); }
 .xfitrow { display: grid; grid-template-columns: 190px 1fr auto; gap: var(--s-3); align-items: center; font-size: var(--text-sm); }
-@media (max-width: 700px) { .xfitrow { grid-template-columns: 1fr; } }
+@media (max-width: 700px) {
+  /* Phones: chip and source label keep their own width instead of stretching across the card. */
+  .xfitrow { grid-template-columns: 1fr; gap: 4px; padding-bottom: var(--s-2); border-bottom: 1px solid var(--border-soft); }
+  .xfitrow > .ui-fit, .xfitrow > .xprov { justify-self: start; }
+}
 .xfitrow-detail { color: var(--text-soft); }
 .xprov { font-size: 11px; color: var(--text-faint); border: 1px solid var(--border); border-radius: var(--r-full); padding: 1px 8px; white-space: nowrap; }
 .xprov.is-inferred { border-style: dashed; border-color: var(--accent); color: var(--text-accent); font-style: italic; }
@@ -1115,3 +1119,6 @@
 /* R-CI-F2: provenance label plus its date as plain text (no hover needed, no two-line pills). */
 .prov-wrap { display: inline-flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
 .prov-date { font-size: var(--text-xs); color: var(--text-faint); white-space: nowrap; }
+/* A disabled action says why in plain text (touch users can't hover a tooltip). */
+.xd-locked { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+.xd-locked .ui-faint { font-size: var(--text-xs); }
