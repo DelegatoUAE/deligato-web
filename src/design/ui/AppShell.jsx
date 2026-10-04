@@ -70,6 +70,8 @@ export default function AppShell({
 
   return (
     <div className={cx('ui-shell', open && 'is-nav-open')}>
+      {/* UAT F30: keyboard users skip the sidebar's tab stops. */}
+      <a className="ui-skip" href="#main" onClick={(e) => { e.preventDefault(); const m = document.getElementById('main'); m?.focus(); m?.scrollIntoView(); }}>Skip to content</a>
       <div className="ui-shell-scrim" onClick={close} aria-hidden="true" />
       <aside className="ui-shell-side ui-on-navy" id="ui-shell-nav" aria-label="Main">
         {brand || (
@@ -119,7 +121,7 @@ export default function AppShell({
           {title && <div className="ui-shell-top-title">{title}</div>}
           {topActions && <div className="ui-shell-top-actions">{topActions}</div>}
         </header>
-        <main className="ui-shell-content" id="main">{children}</main>
+        <main className="ui-shell-content" id="main" tabIndex={-1}>{children}</main>
       </div>
     </div>
   );
