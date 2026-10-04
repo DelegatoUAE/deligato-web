@@ -4,11 +4,13 @@
 // endpoint is missing, slow or malformed, the numbers are hidden.
 // Pure; tested in publicStats.test.js.
 
+// `from` lists the field names accepted, newest first: the live API (api/lib/public-stats.js)
+// sends `providers` and `verified`; the original request named them capital_providers / primary_verified.
 const FIELDS = [
-  { key: 'capital_providers', label: 'capital providers' },
-  { key: 'countries', label: 'countries' },
-  { key: 'gcc_hq', label: 'headquartered in the GCC' },
-  { key: 'primary_verified', label: "checked against the provider's own website or register" },
+  { key: 'capital_providers', from: ['providers', 'capital_providers'], label: 'capital providers' },
+  { key: 'countries', from: ['countries'], label: 'countries' },
+  { key: 'gcc_hq', from: ['gcc_hq'], label: 'headquartered in the GCC' },
+  { key: 'primary_verified', from: ['verified', 'primary_verified'], label: "checked against the provider's own website or register" },
 ];
 
 const okInt = (v) => Number.isInteger(v) && v > 0;
@@ -21,7 +23,9 @@ export function normaliseStats(body) {
   if (!body || typeof body !== 'object') return null;
   const asOf = typeof body.as_of === 'string' && !Number.isNaN(Date.parse(body.as_of)) ? body.as_of.slice(0, 10) : null;
   if (!asOf) return null;
-  const items = FIELDS.filter((f) => okInt(body[f.key])).map((f) => ({ ...f, value: body[f.key] }));
+  const items = FIELDS
+    .map((f) => ({ key: f.key, label: f.label, value: f.from.map((k) => body[k]).find(okInt) }))
+    .filter((f) => f.value !== undefined);
   return items.length ? { asOf, items } : null;
 }
 
