@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Badge, Button, EmptyState, Input, PageHeader, Select, Table } from '../../design/ui';
 import useApi from '../../lib/useApi';
 import { COMPANY_FLAG_LABEL, URGENT_COMPANY_FLAGS, listPlatformCompanies } from '../../lib/admin';
@@ -19,6 +20,7 @@ const ago = (iso) => {
  * Oversight only — no founder documents, drafts or notes (api capital/admin.js).
  */
 export default function AdminCompaniesPage() {
+  const navigate = useNavigate();
   const [f, setF] = useState({ q: '', stage: '', seeking: '', sort: 'last_activity' });
   const [offset, setOffset] = useState(0);
   const q = useApi(() => listPlatformCompanies({ ...f, limit: PAGE, offset }), [f.q, f.stage, f.seeking, f.sort, offset]);
@@ -64,6 +66,7 @@ export default function AdminCompaniesPage() {
       {!q.error && (q.loading || rows.length > 0) && (
         <Table
           rowKey="key"
+          onRowClick={(r) => navigate(`/admin/companies/${encodeURIComponent(r.key)}`)}
           loading={q.loading}
           columns={[
             { key: 'name', header: 'Company' },
@@ -97,7 +100,7 @@ export default function AdminCompaniesPage() {
               : (
                 <div className="ui-row admin-flags">
                   {c.flags.map((x) => (
-                    <Badge key={x} tone={URGENT_COMPANY_FLAGS.has(x) ? 'danger' : 'warn'}>
+                    <Badge key={x} tone={URGENT_COMPANY_FLAGS.has(x) ? 'bad' : 'warn'}>
                       {COMPANY_FLAG_LABEL[x] || x}
                     </Badge>
                   ))}

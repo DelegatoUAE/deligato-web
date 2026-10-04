@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Badge, Button, EmptyState, Input, PageHeader, Select, Table } from '../../design/ui';
 import useApi from '../../lib/useApi';
 import { PROVIDER_ISSUE_LABEL, listPlatformProviders } from '../../lib/admin';
@@ -12,7 +13,7 @@ const fmtTicket = (t) => {
 };
 const freshness = (days) => {
   if (days == null) return <Badge tone="warn">Unknown</Badge>;
-  if (days > 365) return <Badge tone="danger">{Math.floor(days / 30)}mo old</Badge>;
+  if (days > 365) return <Badge tone="bad">{Math.floor(days / 30)}mo old</Badge>;
   if (days > 180) return <Badge tone="warn">{Math.floor(days / 30)}mo old</Badge>;
   return <span className="ui-small">{days}d</span>;
 };
@@ -27,6 +28,7 @@ const freshness = (days) => {
  * inferred value to a verified one (D20).
  */
 export default function AdminProvidersPage() {
+  const navigate = useNavigate();
   const [f, setF] = useState({ q: '', type: '', status: '', exception: '', sort: 'name' });
   const [offset, setOffset] = useState(0);
   const filters = { q: f.q, type: f.type, status: f.status, sort: f.sort, limit: PAGE, offset };
@@ -77,6 +79,7 @@ export default function AdminProvidersPage() {
       {!q.error && (q.loading || rows.length > 0) && (
         <Table
           rowKey="key"
+          onRowClick={(r) => navigate(`/admin/providers/${encodeURIComponent(r.key)}`)}
           loading={q.loading}
           columns={[
             { key: 'name', header: 'Provider' },
@@ -115,7 +118,7 @@ export default function AdminProvidersPage() {
               : (
                 <div className="ui-row admin-flags">
                   {p.issues.map((x) => (
-                    <Badge key={x} tone={x === 'unverified' || x === 'stale' ? 'danger' : 'warn'}>
+                    <Badge key={x} tone={x === 'unverified' || x === 'stale' ? 'bad' : 'warn'}>
                       {PROVIDER_ISSUE_LABEL[x] || x}
                     </Badge>
                   ))}

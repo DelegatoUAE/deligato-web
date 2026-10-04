@@ -50,6 +50,10 @@ const AdminHomePage = lazy(() => import('./pages/admin/AdminHomePage'));
 const AdminExpertsPage = lazy(() => import('./pages/admin/AdminExpertsPage'));
 const AdminCompaniesPage = lazy(() => import('./pages/admin/AdminCompaniesPage'));
 const AdminProvidersPage = lazy(() => import('./pages/admin/AdminProvidersPage'));
+const AdminCompanyPage = lazy(() => import('./pages/admin/AdminCompanyPage'));
+const AdminProviderPage = lazy(() => import('./pages/admin/AdminProviderPage'));
+const AdminRaisesPage = lazy(() => import('./pages/admin/AdminRaisesPage'));
+const AdminMatchingPage = lazy(() => import('./pages/admin/AdminMatchingPage'));
 const AdminProjectsPage = lazy(() => import('./pages/admin/AdminProjectsPage'));
 const AdminCorrectionsPage = lazy(() => import('./pages/admin/AdminCorrectionsPage'));
 const AdminLearningPage = lazy(() => import('./pages/admin/AdminLearningPage'));
@@ -161,7 +165,11 @@ export default function App() {
       {/* Admin Portal (D58): own shell; founders get not-found; the API enforces every call */}
       <Route path="/admin" element={<AdminArea><Suspense fallback={<PageSkeleton />}><AdminHomePage /></Suspense></AdminArea>} />
       <Route path="/admin/companies" element={<AdminArea><Suspense fallback={<PageSkeleton />}><AdminCompaniesPage /></Suspense></AdminArea>} />
+      <Route path="/admin/companies/:id" element={<AdminArea><Suspense fallback={<PageSkeleton />}><AdminCompanyPage /></Suspense></AdminArea>} />
       <Route path="/admin/providers" element={<AdminArea><Suspense fallback={<PageSkeleton />}><AdminProvidersPage /></Suspense></AdminArea>} />
+      <Route path="/admin/providers/:recordId" element={<AdminArea><Suspense fallback={<PageSkeleton />}><AdminProviderPage /></Suspense></AdminArea>} />
+      <Route path="/admin/raises" element={<AdminArea><Suspense fallback={<PageSkeleton />}><AdminRaisesPage /></Suspense></AdminArea>} />
+      <Route path="/admin/matching" element={<AdminArea><Suspense fallback={<PageSkeleton />}><AdminMatchingPage /></Suspense></AdminArea>} />
       <Route path="/admin/experts" element={<AdminArea><Suspense fallback={<PageSkeleton />}><AdminExpertsPage /></Suspense></AdminArea>} />
       <Route path="/admin/projects" element={<AdminArea><Suspense fallback={<PageSkeleton />}><AdminProjectsPage /></Suspense></AdminArea>} />
       <Route path="/admin/corrections" element={<AdminArea><Suspense fallback={<PageSkeleton />}><AdminCorrectionsPage /></Suspense></AdminArea>} />
