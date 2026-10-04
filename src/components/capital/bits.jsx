@@ -1,6 +1,8 @@
+import { createElement } from 'react';
 import { Link } from 'react-router-dom';
 import { Alert, Badge, Button, Card, EmptyState, Icon, Tooltip } from '../../design/ui';
 import { upgradeHref } from '../../lib/plan';
+import { headingTag, useHeadingLevel } from '../../design/ui/heading-context.js';
 
 export const FUNDRAISING_LINE = 'We help you with fundraising. We never fundraise for you.';
 
@@ -19,11 +21,12 @@ export function ConncctSourceTag({ label = 'Imported' }) {
 
 /** A locked feature: what it does, which package unlocks it, one CTA. */
 export function GateCard({ title, body, code = 'capital-raising', cta = 'See plans', compact = false }) {
+  const level = useHeadingLevel();
   return (
     <Card tone="outline" className={`gate${compact ? ' gate-compact' : ''}`}>
       <div className="gate-icon" aria-hidden="true"><Icon name="lock" /></div>
       <div className="gate-body">
-        <h3 className="gate-title">{title}</h3>
+        {createElement(headingTag(level), { className: 'gate-title' }, title)}
         {body && <p>{body}</p>}
       </div>
       <Button as={Link} to={upgradeHref(code)} variant="secondary" size="sm">{cta}</Button>
