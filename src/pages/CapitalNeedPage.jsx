@@ -13,8 +13,8 @@ export default function CapitalNeedPage() {
   // "Set a target date" (Company Intelligence) lands on the field.
   useEffect(() => {
     // "Say what the money is for" (Find capital) lands on the purpose chips.
-    if (hash === '#purpose') {
-      const el = document.getElementById('purpose');
+    if (['#purpose', '#collateral', '#dilution'].includes(hash)) {
+      const el = document.getElementById(hash.slice(1));
       el?.scrollIntoView({ block: 'center' });
       el?.closest('.ui-field')?.querySelector('.ui-chip')?.focus({ preventScroll: true });
       return;

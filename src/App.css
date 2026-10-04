@@ -731,8 +731,13 @@
 .rrow-meta { font-size: var(--text-xs); color: var(--text-soft); white-space: nowrap; }
 .rrow-chev { color: var(--text-faint); }
 @media (max-width: 640px) { .rrow-btn { grid-template-columns: minmax(0, 1fr) auto; } .rrow-meta { grid-column: 1 / -1; } .rrow-chev { display: none; } }
-.rcard-reasons li { display: grid; grid-template-columns: 1.1em minmax(0, 1fr); column-gap: 6px; align-items: baseline; }
-.rcard-reasons li > .ui-badge { grid-column: 2; justify-self: start; margin-top: 2px; }
+/* UAT F32: the source pill sits on the reason's own line (right), and under it on phones. */
+.rcard-reasons li { display: grid; grid-template-columns: 1.1em minmax(0, 1fr) auto; column-gap: 6px; align-items: baseline; }
+.rcard-reasons li > .ui-badge { margin-left: 0; justify-self: end; }
+@media (max-width: 640px) {
+  .rcard-reasons li { grid-template-columns: 1.1em minmax(0, 1fr); }
+  .rcard-reasons li > .ui-badge { grid-column: 2; justify-self: start; margin-top: 2px; }
+}
 @media (max-width: 640px) {
   .rrow { margin-bottom: 6px; }
   .rrow-btn { padding: 10px 14px; row-gap: 2px; }

@@ -134,8 +134,9 @@ export default function FindCapitalPage() {
   const unknowns = q.data?.unknown_fields || [];
   const filterRoutes = q.data?.capital_filter?.routes || [];
 
-  const unknownLink = (field) => (field === 'purposes'
-    ? <Button as={Link} to="/capital/need#purpose" variant="link" size="sm">Say what the money is for</Button>
+  const NEED_ANCHOR = { purposes: ['#purpose', 'Say what the money is for'], collateral: ['#collateral', 'Answer in your raise'], collateral_available: ['#collateral', 'Answer in your raise'], dilution_tolerance: ['#dilution', 'Answer in your raise'] };
+  const unknownLink = (field) => (NEED_ANCHOR[field]
+    ? <Button as={Link} to={`/capital/need${NEED_ANCHOR[field][0]}`} variant="link" size="sm">{NEED_ANCHOR[field][1]}</Button>
     : NEED_FIELDS.includes(field)
     ? <Button as={Link} to="/capital/need" variant="link" size="sm">Edit your raise</Button>
     : READINESS_FIELDS.includes(field) && !(r && readinessSource(readiness).key === 'conncct')
@@ -169,8 +170,7 @@ export default function FindCapitalPage() {
           {groups.unlikely.length > 0 && (
             <section className="rgroup">
               <h2 className="sec-h"><button type="button" className="tier-toggle" aria-expanded={showUnlikely} onClick={() => setShowUnlikely((v) => !v)}>Unlikely for now <span className="ui-faint">({groups.unlikely.length})</span> {showUnlikely ? '▾' : '▸'}</button></h2>
-              {showUnlikely ? groups.unlikely.map((x) => <RouteCard key={x.key} r={x} coverage={x.coverage} country={company.hq_country_iso2} onSee={see} seeing={seeing === x.key} />)
-                : <Button variant="link" size="sm" onClick={() => setShowUnlikely(true)}>Show {groups.unlikely.length} more</Button>}
+              {showUnlikely && groups.unlikely.map((x) => <RouteCard key={x.key} r={x} coverage={x.coverage} country={company.hq_country_iso2} onSee={see} seeing={seeing === x.key} />)}
             </section>
           )}
           {unknowns.length > 0 && (

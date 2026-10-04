@@ -19,6 +19,10 @@ const PURPOSES = [
   { key: 'rnd', label: 'R&D, pilots, certification' }, { key: 'refinancing', label: 'Refinancing debt' },
   { key: 'acquisition', label: 'An acquisition' },
 ];
+// api modules/routing/capital-need.js: dilution_tolerance none | low | open.
+const DILUTION = [
+  { key: 'open', label: 'Yes' }, { key: 'low', label: 'A small stake only' }, { key: 'none', label: 'No, I keep full ownership' },
+];
 
 function sourceTag(company, field, edited) {
   if (edited) return <Badge tone="info" size="sm">Edited here</Badge>;
@@ -41,6 +45,8 @@ export default function CapitalNeedForm({ firstRun = false, onSaved, submitLabel
     target_markets: company?.target_markets || [],
     raise_timing: company?.raise_timing || '',
     purpose: Array.isArray(company?.purpose) ? company.purpose : [],
+    collateral_available: company?.collateral_available === true ? 'yes' : company?.collateral_available === false ? 'no' : '',
+    dilution_tolerance: company?.dilution_tolerance || '',
     // capital/eligibility.js#checkLocalPresence: true clears, false excludes,
     // null (not sure) keeps the "requires local presence" caveat.
     // D46: the date the money must be in the bank (capital timing = target − route duration − 1 month).
@@ -101,6 +107,8 @@ export default function CapitalNeedForm({ firstRun = false, onSaved, submitLabel
         // Sent only when changed here, so a save never fails on a field the founder didn't touch.
         ...(edited.target_funding_date ? { target_funding_date: form.target_funding_date || null } : {}),
         ...(edited.purpose ? { purpose: form.purpose.length ? form.purpose : null } : {}),
+        ...(edited.collateral_available ? { collateral_available: form.collateral_available === 'yes' ? true : form.collateral_available === 'no' ? false : null } : {}),
+        ...(edited.dilution_tolerance ? { dilution_tolerance: form.dilution_tolerance || null } : {}),
       };
       const out = await saveCapitalNeed(company.id, need);
       // Not part of the routing capital-need allow-list: saved on the profile
@@ -138,6 +146,16 @@ export default function CapitalNeedForm({ firstRun = false, onSaved, submitLabel
       <FormField wide label={<span className="need-label" id="purpose">What will the money be used for? {sourceTag(company, 'purpose', edited.purpose)}</span>}
         hint="Pick all that apply. It decides which kinds of capital fit, for example working capital lines or equipment finance.">
         {() => <ChipToggle label="Use of the money" options={PURPOSES} value={form.purpose} onChange={(v) => set('purpose', v)} />}
+      </FormField>
+
+      <FormField wide label={<span className="need-label" id="dilution">Are you willing to sell equity in this round? {sourceTag(company, 'dilution_tolerance', edited.dilution_tolerance)}</span>}
+        hint="Optional. It separates equity routes from lending and grants.">
+        {() => <ChipToggle single label="Selling equity" options={DILUTION} value={form.dilution_tolerance ? [form.dilution_tolerance] : []} onChange={(v) => set('dilution_tolerance', v[0] || '')} />}
+      </FormField>
+
+      <FormField wide label={<span className="need-label" id="collateral">Do you have assets, receivables or contracts a lender could secure against? {sourceTag(company, 'collateral_available', edited.collateral_available)}</span>}
+        hint="Optional. Lenders and working-capital routes ask this first.">
+        {() => <ChipToggle single label="Security for a lender" options={[{ key: 'yes', label: 'Yes' }, { key: 'no', label: 'No' }]} value={form.collateral_available ? [form.collateral_available] : []} onChange={(v) => set('collateral_available', v[0] || '')} />}
       </FormField>
 
       <FormField wide label={<span className="need-label">Investor types you want {sourceTag(company, 'investor_types_sought', edited.investor_types_sought)}</span>} hint="Leave all off to see every type.">
