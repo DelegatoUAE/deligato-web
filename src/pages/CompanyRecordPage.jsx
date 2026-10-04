@@ -115,6 +115,12 @@ export default function CompanyRecordPage() {
       ) : (
         <section>
           <p>{r.counts?.missing ? `${r.counts.missing} items are missing` : 'Nothing is missing'}{r.counts?.expiring ? `, ${r.counts.expiring} expiring soon` : ''}{r.counts?.expired ? `, ${r.counts.expired} expired` : ''}.</p>
+          {r.critical_open?.length > 0 && (
+            <div className="rec-critical">
+              <p className="cc-h">Start with these: they stop your record being complete</p>
+              <ul>{r.critical_open.map((c) => <li key={c.key}>{c.label}</li>)}</ul>
+            </div>
+          )}
           <div className="ui-row"><Button as={Link} to="/capital/data-room" variant="secondary">Open the data room</Button><Button as={Link} to="/company" variant="ghost">Open your profile</Button></div>
           <UpgradeLine note={d.locked?.note || 'Company Intelligence lists every missing and expiring item, with expiry alerts.'} />
         </section>

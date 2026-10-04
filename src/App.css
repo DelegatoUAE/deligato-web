@@ -229,6 +229,8 @@
 .tier-h span { color: var(--text-faint); font-weight: var(--fw-regular); }
 .tier-h-strong { color: var(--text-strong); }
 .tier-empty { padding: var(--s-4); border: 1px dashed var(--border-strong); border-radius: var(--r-md); color: var(--text-soft); font-size: var(--text-sm); margin: 0; }
+.tier-empty-act { display: grid; gap: var(--s-2); color: var(--text); }
+.tier-empty-act p { margin: 0; }
 .tier-toggle { background: none; border: 0; padding: 0; font: inherit; color: inherit; cursor: pointer; }
 .tier-outside .mcard { opacity: 0.9; }
 .mcard { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: var(--s-4); padding: var(--s-4) var(--s-5); background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); }
@@ -1011,3 +1013,7 @@
 .plan-rows li > span:first-child { color: var(--text-strong); }
 .plan-rows li > span:last-child { text-align: right; }
 .cc .cc-empty, .ci .ui-muted, .ci .cc-empty, .fh-hist .ui-muted, .fh-hist p { font-size: var(--text-sm); }
+.rec-critical { margin: var(--s-3) 0; padding: var(--s-3) var(--s-4); border-left: 3px solid var(--warn-fg); background: var(--surface-2); border-radius: var(--r-sm); }
+.rec-critical .cc-h { font-size: var(--text-sm); margin: 0 0 var(--s-2); }
+.rec-critical ul { margin: 0; padding-left: var(--s-5); display: grid; gap: 2px; }
+.composer-example > .ui-badge { align-self: flex-start; justify-self: start; }

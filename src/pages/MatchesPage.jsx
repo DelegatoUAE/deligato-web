@@ -96,6 +96,37 @@ function EligibilityPanel({ counts, unlocks, company, onShowExcluded }) {
   );
 }
 
+/**
+ * No verified fit is never a dead end (Bilal, 4 Oct). It says honestly what
+ * happened, from the run's own counts: either the company's raise criteria
+ * excluded most of the universe, or the mandates that remain are not yet
+ * verified. Then the strongest lever the founder controls, from the existing
+ * unlocks engine (never a manufactured match), and where to go next.
+ */
+function NoVerifiedFits({ company, counts = {}, unlocks, topMissing }) {
+  const considered = counts.considered ?? null;
+  const excluded = counts.excluded ?? null;
+  const mostlyExcluded = considered && excluded != null && excluded / considered >= 0.5;
+  const dom = unlocks?.blockers?.dominant_blocker;
+  const best = (unlocks?.unlocks || []).filter((u) => u.net > 0).sort((a, b) => b.net - a.net)[0];
+  return (
+    <div className="tier-empty tier-empty-act">
+      <p><strong>No investor on record is verified to fit {company.name} yet.</strong>{' '}
+        {mostlyExcluded
+          ? <>{fmtInt(excluded)} of {fmtInt(considered)} were ruled out by your raise criteria{dom ? <>, mostly <strong>{String(dom.label || filterLabel(dom.dimension)).toLowerCase()}</strong></> : ''}.</>
+          : <>The investors that remain have not had every decisive part of their mandate verified, so we can't confirm a fit yet.</>}
+      </p>
+      {best && <p>The biggest option you control: <strong>{best.label}</strong> would open about {fmtInt(best.net)} more. Only change your raise if it's right for the company.</p>}
+      <div className="ui-row">
+        <Button as={Link} to="/capital/improve" variant="secondary" size="sm">See what would open more investors</Button>
+        <Button as={Link} to="/capital/find" variant="link" size="sm">Review your capital routes</Button>
+        {topMissing && <Button as={Link} to="/company/business" variant="link" size="sm">Add your {topMissing.label.toLowerCase()}</Button>}
+      </div>
+      <p className="ui-faint">We never invent a fit. Our research adds and verifies investors continuously, so re-running later can change this.</p>
+    </div>
+  );
+}
+
 export default function MatchesPage() {
   const { company, companyId, entitlements, reloadRun, reloadPipeline } = useCompany();
   const [params, setParams] = useSearchParams();
@@ -352,7 +383,7 @@ export default function MatchesPage() {
               bucketCount('eligible') > 0 ? (
                 <p className="tier-empty">{fmtInt(bucketCount('eligible'))} verified {bucketCount('eligible') === 1 ? 'fit is' : 'fits are'} outside the top {run.results.length} your plan shows. <Link to="/packages?highlight=capital-raising">See every match with Capital Raising</Link>.</p>
               ) : (
-                <p className="tier-empty">No verified fits yet. That reflects how much of these investors' mandates we have verified, not your company.{topMissing ? ` Adding ${topMissing.label.toLowerCase()} would also sharpen your results.` : ''}</p>
+                <NoVerifiedFits company={company} counts={run.counts} unlocks={unlocksQ.data} topMissing={topMissing} />
               )
             )}
           </section>}

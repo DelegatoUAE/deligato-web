@@ -4,7 +4,8 @@ import SubNav from '../components/SubNav';
 import { useCompany } from '../components/company-context';
 import useApi from '../lib/useApi';
 import { getWhatChanged, getAttention, getReassessment, getCapitalTiming, isUnavailable } from '../lib/companyIntel';
-import { fmtDate, fmtUsd, plainIntel } from '../lib/format';
+import { fmtDate, fmtUsd, plainIntel, todayIso } from '../lib/format';
+import { bandLabel } from '../lib/readiness';
 import { upgradeTarget } from '../lib/plan';
 import { LoadError } from '../components/capital/bits';
 import { ChangeList, AttentionList, UpgradeLine, TrustNote, AskPrompts } from '../components/intel/IntelBits';
@@ -18,7 +19,7 @@ const BAND = { fast: 'fast', moderate: 'moderate', slow: 'slow', cycle_bound: 't
  * Free sees its own slice with a quiet plan line; the API decides the scope.
  */
 export default function CompanyIntelligencePage() {
-  const { companyId } = useCompany();
+  const { companyId, company, readiness } = useCompany();
   const changedQ = useApi(() => (companyId ? getWhatChanged(companyId) : null), [companyId]);
   const attnQ = useApi(() => (companyId ? getAttention(companyId) : null), [companyId]);
   const reQ = useApi(() => (companyId ? getReassessment(companyId) : null), [companyId]);
@@ -43,20 +44,21 @@ export default function CompanyIntelligencePage() {
           {attnQ.error ? <LoadError error={attnQ.error} onRetry={attnQ.reload} what="attention items" /> : !attnQ.data ? <Skeleton h="80px" /> : (
             <>
               <AttentionList items={attnQ.data.items} />
-              {attnQ.data.scope === 'limited' && <UpgradeLine note="Your plan shows check-in and Financial Health items. Company Intelligence adds documents, readiness, deadlines and your pipeline." />}
+              {/* One plan line per card: when an item already carries its own, the card does not repeat it. */}
+              {attnQ.data.scope === 'limited' && !(attnQ.data.items || []).some((a) => a.locked) && <UpgradeLine note="Your plan shows check-in and Financial Health items. Company Intelligence adds documents, readiness, deadlines and your pipeline." />}
             </>
           )}
         </section>
 
         <section aria-labelledby="ci-time" className="ci-time">
           <h2 id="ci-time" className="cc-h">When to start raising</h2>
-          <Timing q={timingQ} />
+          <Timing q={timingQ} company={company} />
         </section>
       </div>
 
       <section aria-labelledby="ci-re" className="ci-re">
         <h2 id="ci-re" className="cc-h">Capital Readiness</h2>
-        <Reassessment q={reQ} />
+        <Reassessment q={reQ} readiness={readiness?.readiness} />
       </section>
 
       <section aria-labelledby="ci-ch">
@@ -79,8 +81,23 @@ function Locked({ e, note }) {
 }
 
 /** D46 capital timing: "start raising by" + why (bound_by) + "set a target date". */
-function Timing({ q }) {
-  if (q.error?.status === 402) return <><p className="ui-muted">See the date to start raising, worked out from your capital need, the route's usual process length and, if you are burning cash, your runway.</p><Locked e={q.error} note="Capital timing is part of Company Intelligence." /></>;
+function Timing({ q, company }) {
+  // Free: the founder's own plan stays visible (it is theirs); only the
+  // worked-out start date and its reasoning are Company Intelligence.
+  if (q.error?.status === 402) {
+    const target = company?.target_funding_date ? String(company.target_funding_date).slice(0, 10) : null;
+    const passed = target && target < todayIso();
+    return (
+      <div className="timing">
+        <dl className="timing-facts">
+          <div><dt>Raise</dt><dd>{company?.raise_usd ? `${fmtUsd(company.raise_usd)}${company.instrument ? ` · ${company.instrument}` : ''}` : 'Not set'}</dd></div>
+          <div><dt>Target date</dt><dd>{target ? fmtDate(target) : 'Not set'}{passed && <> <Badge tone="bad" size="sm">Passed</Badge></>}</dd></div>
+        </dl>
+        {!target && <Button as={Link} to="/capital/need#target-date" variant="secondary" size="sm">Set a target date</Button>}
+        <Locked e={q.error} note="Company Intelligence works out when to start raising from your route's usual length and, if you are burning cash, your runway." />
+      </div>
+    );
+  }
   if (q.error) return <LoadError error={q.error} onRetry={q.reload} what="your capital timing" />;
   if (!q.data) return <Skeleton h="120px" />;
   const t = q.data.timing || {};
@@ -117,8 +134,17 @@ function Timing({ q }) {
   );
 }
 
-function Reassessment({ q }) {
-  if (q.error?.status === 402) return <><p className="ui-muted">Company Intelligence checks your latest figures against your readiness answers and tells you when a re-take is worth it.</p><Locked e={q.error} note="Reassessment recommendations are part of Company Intelligence." /></>;
+function Reassessment({ q, readiness }) {
+  if (q.error?.status === 402) {
+    return (
+      <>
+        {readiness?.score != null
+          ? <p>Your score <strong>{Math.round(Number(readiness.score))}</strong> · {bandLabel(readiness)} <Link to="/capital/readiness">See what drives it</Link></p>
+          : <p className="ui-muted">No Capital Readiness score yet. <Link to="/capital/readiness/assess">Take the assessment</Link></p>}
+        <Locked e={q.error} note="Company Intelligence checks your latest figures against your answers and tells you when a re-take is worth it." />
+      </>
+    );
+  }
   if (q.error) return <LoadError error={q.error} onRetry={q.reload} what="the reassessment check" />;
   if (!q.data) return <Skeleton h="80px" />;
   const d = q.data;
