@@ -40,7 +40,7 @@ export function timelineRows(data, { stageLabel = humanise } = {}) {
     let label;
     if (FIXED[t]) label = FIXED[t];
     else if (t === 'pipeline.stage_changed') label = e.from ? `Moved from ${stageLabel(e.from)} to ${stageLabel(e.to)}` : `Moved to ${stageLabel(e.to)}`;
-    else if (t === 'pipeline.current_stage') label = `In ${stageLabel(e.stage)}`;
+    else if (t === 'pipeline.current_stage') label = `Moved to ${stageLabel(e.stage)}`;
     else if (t.startsWith('activity.')) label = e.kind === 'meeting' ? 'Meeting logged' : (e.title || humanise(e.kind || t.slice(9)));
     else if (t.startsWith('outcome.')) label = humanise(e.event || t.slice(8));
     else label = humanise(t);
