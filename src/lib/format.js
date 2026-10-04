@@ -168,3 +168,17 @@ export function plainExclusion(text) {
     .replace(/\binvests in ((?:[A-Z]{2})(?:, [A-Z]{2})*)\b/g, (m, list) => `invests in ${joinWords(list.split(', ').map((c) => countryName(c)))}`)
     .replace(/\bIs a ([AEIOU])/g, 'Is an $1');
 }
+
+// A capital-need change arrives as "Raise usd: not set → $1.5M" (the column
+// name). Founders read the field's own name; the values are as sent.
+const CHANGE_FIELD = {
+  raise_usd: 'Raise amount', instrument: 'Instrument', raise_timing: 'Timing', purpose: 'Use of the money',
+  target_funding_date: 'Target date', stage: 'Stage',
+};
+export function changeTitle(c) {
+  const t = plainIntel(c?.title);
+  const f = c?.cite?.field;
+  if (typeof t !== 'string' || c?.type !== 'capital_need' || !CHANGE_FIELD[f]) return t;
+  const i = t.indexOf(':');
+  return i > 0 ? `${CHANGE_FIELD[f]}${t.slice(i)}` : t;
+}

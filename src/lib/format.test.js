@@ -58,3 +58,9 @@ test('exclusion reasons read country names and the right article', async () => {
   assert.equal(plainExclusion('Is a Incubator; you asked for VC'), 'Is an Incubator; you asked for VC');
   assert.equal(plainExclusion('Invests at Growth, not Seed'), 'Invests at Growth, not Seed');
 });
+
+test('capital-need changes are titled by the field name founders know', async () => {
+  const { changeTitle } = await import('./format.js');
+  assert.equal(changeTitle({ type: 'capital_need', title: 'Raise usd: not set → $1.5M', cite: { field: 'raise_usd' } }), 'Raise amount: not set → $1.5M');
+  assert.equal(changeTitle({ type: 'pipeline', title: 'X moved to contacted', cite: { field: 'stage' } }), 'X moved to contacted');
+});

@@ -163,7 +163,7 @@ function Reassessment({ q, readiness }) {
   const cs = d.current_score;
   return (
     <div className="reas">
-      {cs ? <p>Current score <strong>{cs.score}</strong>{cs.band ? ` · ${cs.band}` : ''} <span className="ui-faint">· {plainIntel(cs.label)}</span></p> : <p className="ui-muted">No paid Capital Readiness assessment yet.</p>}
+      {cs ? <p>Current score <strong>{Math.round(Number(cs.score))}</strong>{cs.band ? ` · ${cs.band}` : ''} <span className="ui-faint">· {plainIntel(cs.label)}</span></p> : <p className="ui-muted">No paid Capital Readiness assessment yet.</p>}
       {d.recommended ? (
         <>
           <p className="reas-rec"><Badge tone="warn" dot>Reassessment recommended</Badge></p>
