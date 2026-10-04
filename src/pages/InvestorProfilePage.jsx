@@ -43,7 +43,7 @@ function Prov({ profile, field, value }) {
   const tip = fp && typeof fp === 'object' ? [stealthLabel(fp.label_text), stealthLabel(fp.basis), fp.source_name, fp.as_of && `as of ${fp.as_of}`].filter(Boolean).join(' · ') : l;
   // R-CI-F2: the date is visible text, not only a hover title (touch users can't hover).
   const asOf = fp && typeof fp === 'object' && fp.as_of && l !== PROV.unknown ? fmtDate(fp.as_of) : null;
-  return <Badge tone={provTone(l)} size="sm" className="prov" title={tip}>{l}{asOf ? ` · ${asOf}` : ''}</Badge>;
+  return <span className="prov-wrap"><Badge tone={provTone(l)} size="sm" className="prov" title={tip}>{l}</Badge>{asOf && <span className="prov-date">{asOf}</span>}</span>;
 }
 
 const list = (a) => (Array.isArray(a) && a.length ? a.join(', ') : null);

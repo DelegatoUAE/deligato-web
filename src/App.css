@@ -1112,3 +1112,6 @@
 .login-script { bottom: var(--s-10); }
 .login-swoosh-sm { bottom: -0.55em; left: 6%; width: 70%; }
 @media (max-height: 820px) { .login-photo { display: none; } .login-script { position: relative; left: auto; bottom: auto; margin: auto 0 var(--s-12); } }
+/* R-CI-F2: provenance label plus its date as plain text (no hover needed, no two-line pills). */
+.prov-wrap { display: inline-flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+.prov-date { font-size: var(--text-xs); color: var(--text-faint); white-space: nowrap; }
