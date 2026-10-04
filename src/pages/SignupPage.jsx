@@ -2,7 +2,7 @@ import { lazy, Suspense, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Alert, Button, ChipToggle, FormField, Input } from '../design/ui';
 import AuthLayout from '../components/AuthLayout';
-import { apiFetch, setToken } from '../lib/auth';
+import { apiFetch, setSession } from '../lib/auth';
 
 const DevRegister = import.meta.env.DEV ? lazy(() => import('../components/DevRegister')) : null;
 
@@ -24,7 +24,7 @@ export default function SignupPage() {
       const data = await apiFetch('/auth/signup', { method: 'POST', body: JSON.stringify(form) });
       // Production confirms the email first: the account exists but there is no session yet.
       if (data && data.session && data.session.access_token) {
-        setToken(data.session.access_token);
+        setSession(data.session);
         navigate('/onboarding');
       } else {
         setSent(data && data.message ? data.message : 'Check your email to confirm your address, then sign in.');

@@ -1,7 +1,7 @@
 import { Navigate } from 'react-router-dom';
 import { getToken, fetchMe, logout } from '../lib/auth';
 import useApi from '../lib/useApi';
-import { Skeleton } from '../design/ui';
+import { Skeleton, EmptyState, Button } from '../design/ui';
 
 export default function ProtectedRoute({ children }) {
   const token = getToken();
@@ -9,8 +9,22 @@ export default function ProtectedRoute({ children }) {
 
   if (!token) return <Navigate to="/login" replace />;
   if (meQ.error) {
-    logout();
-    return <Navigate to="/login" replace />;
+    // Only an invalid session signs the founder out (apiFetch has already
+    // tried to renew it). A network blip or server error keeps them signed in.
+    if (meQ.error.status === 401) {
+      logout();
+      return <Navigate to="/login" replace />;
+    }
+    return (
+      <div className="centered">
+        <EmptyState
+          icon="alert"
+          title="We couldn't load your account"
+          body={meQ.error.message || 'Please try again in a moment.'}
+          action={<Button onClick={meQ.reload}>Try again</Button>}
+        />
+      </div>
+    );
   }
   if (meQ.loading || !meQ.data) {
     return (
