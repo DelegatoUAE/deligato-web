@@ -177,7 +177,9 @@ test('fit states stay distinguishable from each other in both themes', () => {
 
 // ---- no hard-coded colours outside tokens.css ------------------------------
 // Literal colours are allowed only in tokens.css and on these lines, which
-// draw the fixed navy brand chrome (white type and white hairlines on navy,
+// draw the fixed navy brand chrome (5 Oct landing: product-view frame and sidebar, journey strip,
+// navy compare column and step badges, the always-navy evidence band and its fixed source chips)
+// (white type and white hairlines on navy,
 // gold glows) and look the same in both themes. Everything else uses tokens.
 const ALLOWED_FILES = new Set(['design/tokens.css', 'design/Showcase.jsx', 'design/showcase.css', 'lib/tokens.test.js',
   // the readiness dial's gold arc gradient: always drawn on the navy dial
@@ -185,7 +187,7 @@ const ALLOWED_FILES = new Set(['design/tokens.css', 'design/Showcase.jsx', 'desi
 const COLOUR = /#[0-9a-f]{3,8}\b|rgba?\(\s*\d|\b(?:white|black)\s*[;}]/i;
 // raw scale steps (--navy-200, --gold-dark, --ok-600, --cream-2...) do not change with the theme
 const RAW = /var\(--(?:navy|gold|cream|n|ok|warn|bad|info)(?:-(?:\d+|dark|2))?\s*[,)]/;
-const CHROME = /^\s*\.(ui-on-navy|ui-panel-navy|ui-dial|ui-bandstrip|ui-shell-(side|brand|user|foot)|ui-wordmark|ui-navitem|ui-shell-section-title|ui-stat-navy|signout|ms-(tile|label|low \.ms-tile)|ui-match-seg|ui-btn-(primary|accent|gold)\b|coswitch|tabbar|ms-tile|login-|mcompare-bar|aiconsent-ic|lp-step-icon|appearance-swatch|lp-(header|wordmark|nav|signin|burger|hero(?!-card-(tag|title|foot))|proof|trust-navy|final|footer|section-navy|skip|asof|eyebrow-gold|lede|step-icon)|applayout|ui-conf|ui-badge-neutral|ui-progress-brand)/;
+const CHROME = /^\s*\.(ui-on-navy|ui-panel-navy|ui-dial|ui-bandstrip|ui-shell-(side|brand|user|foot)|ui-wordmark|ui-navitem|ui-shell-section-title|ui-stat-navy|signout|ms-(tile|label|low \.ms-tile)|ui-match-seg|ui-btn-(primary|accent|gold)\b|coswitch|tabbar|ms-tile|login-|mcompare-bar|aiconsent-ic|lp-step-icon|appearance-swatch|lp-(header|wordmark|nav|signin|burger|hero(?!-card-(tag|title|foot))|proof|trust-navy|final|footer|section-navy|skip|asof|eyebrow-gold|lede|step-icon|app|journey-strip|js-n|compare-dg|step-n|step-visual|v-num|section-ink|evi|prov|btn-outline)|applayout|ui-conf|ui-badge-neutral|ui-progress-brand)/;
 
 function walk(dir) {
   return readdirSync(dir).flatMap((f) => {
