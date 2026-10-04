@@ -1,10 +1,10 @@
+import { citeText } from '../lib/citeText';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, matchPath, useSearchParams } from 'react-router-dom';
 import { Alert, Badge, Button, Drawer, Skeleton, Textarea } from '../design/ui';
 import { useCompany } from './company-context';
 import { runTask } from '../lib/intelligence';
 import { isMissingEndpoint } from '../lib/auth';
-import { humanise } from '../lib/format';
 import { ASK_EVENT } from '../lib/ask';
 import { gateFor } from '../lib/plan';
 import { UpgradeNote } from './capital/AiBlocks';
@@ -110,7 +110,7 @@ export default function AssistantPanel({ open, onClose }) {
             <p>{out.answer}</p>
             {out.refused === 'advice' && <p className="ui-muted">I can't advise on that. An expert can. <Link to="/experts" onClick={onClose}>Find an Expert →</Link></p>}
             {(out.citations || []).length > 0 && (
-              <p className="assist-cite">Based on: {out.citations.map((c) => `${humanise(c.field)} ${c.value ? `(${c.value}` : ''}${c.source ? `${c.value ? ', ' : '('}from ${c.source})` : c.value ? ')' : ''}`).join(' · ')}</p>
+              <p className="assist-cite">Based on: {out.citations.map(citeText).join(' · ')}</p>
             )}
             {out.next_action?.label && (internal(out.next_action.route)
               ? <Button as={Link} to={out.next_action.route} variant="secondary" size="sm" onClick={onClose}>{out.next_action.label}</Button>

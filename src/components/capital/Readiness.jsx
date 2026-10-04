@@ -96,14 +96,14 @@ export function FactorBars({ readiness }) {
   );
 }
 
-/** Topbar pill: "Readiness 74 · Investor-Ready · from Conncct". */
-export function ReadinessPill({ readiness, source }) {
+/** Topbar pill: "Readiness 74 · Investor-Ready". Where the score came from is on the Readiness page, not jargon in the header. */
+export function ReadinessPill({ readiness }) {
   if (!readiness) return <Link to="/capital/readiness/assess" className="rpill rpill-none">Readiness · not scored yet</Link>;
   const { tone } = bandOf(readiness);
   return (
     <Link to="/capital/readiness" className={`rpill rpill-${tone || 'none'}`} title="Your Capital Readiness Score (Conncct method)">
       <span className="rpill-dot" aria-hidden="true" />
-      Readiness {Math.round(Number(readiness.score))} · {bandLabel(readiness)}<span className="rpill-src"> · {readinessSource(source).key === 'embedded' ? 'assessed here' : 'imported'}</span>
+      Readiness {Math.round(Number(readiness.score))} · {bandLabel(readiness)}
     </Link>
   );
 }

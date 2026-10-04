@@ -7,7 +7,7 @@ import { LoadError } from '../components/capital/bits';
 import useApi from '../lib/useApi';
 import { getRouting, normaliseRoute, selectRoutes, ROUTE_FIT } from '../lib/routing';
 import { runMatch } from '../lib/capital';
-import { fmtUsd, timingLabel, countryName, plural } from '../lib/format';
+import { fmtUsd, fmtDate, timingLabel, countryName, plural, todayIso } from '../lib/format';
 import { readinessSource } from '../lib/readiness';
 
 const CONF = { high: 'High confidence', medium: 'Medium confidence', low: 'Based on limited information' };
@@ -125,6 +125,10 @@ export default function FindCapitalPage() {
     { label: 'Your matches', description: run ? 'Ready' : 'Next', status: run ? 'done' : 'upcoming', href: run ? '/capital/matches' : undefined },
   ];
 
+  // The founder's own date, as stored (D46). Passed = before today: the same
+  // comparison the timing engine makes for target_passed.
+  const targetDate = company.target_funding_date ? String(company.target_funding_date).slice(0, 10) : null;
+  const targetPassed = !!targetDate && targetDate < todayIso();
   const routes = (q.data?.routes || []).map((x) => ({ ...normaliseRoute(x), coverage: x.coverage }));
   const groups = { strong: routes.filter((x) => x.fit === 'strong'), possible: routes.filter((x) => x.fit === 'possible'), unlikely: routes.filter((x) => x.fit === 'unlikely') };
   const unknowns = q.data?.unknown_fields || [];
@@ -145,8 +149,14 @@ export default function FindCapitalPage() {
 
       <Card className="raise-card" title="Your raise" action={<Button as={Link} to="/capital/need" variant="secondary" size="sm">Edit your raise</Button>}>
         <p className="raise-line">{capitalNeedConfirmed || company.raise_usd
-          ? [fmtUsd(company.raise_usd) || 'Amount not set', company.instrument || 'instrument not set', timingLabel(company.raise_timing)].filter(Boolean).join(' · ')
+          ? [fmtUsd(company.raise_usd) || 'Amount not set', company.instrument || 'instrument not set', timingLabel(company.raise_timing), targetDate && `needed by ${fmtDate(targetDate)}`].filter(Boolean).join(' · ')
           : 'Confirm your raise to sharpen these routes.'}</p>
+        {targetPassed && (
+          <Alert tone="warn">
+            Your target funding date ({fmtDate(targetDate)}) has passed. Set a new date so your plan, routes and timing reflect where your raise really is.
+            {' '}<Button as={Link} to="/capital/need" variant="link" size="sm">Set a new date</Button>
+          </Alert>
+        )}
       </Card>
 
       {q.error ? <LoadError error={q.error} onRetry={q.reload} what="your routes" /> : !q.data ? <SkeletonCards count={4} height={150} /> : (

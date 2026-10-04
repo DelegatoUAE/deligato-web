@@ -905,7 +905,7 @@ button.ui-kcard:hover, a.ui-kcard:hover { border-color: var(--border-strong); bo
 .admin-list > li { display: flex; justify-content: space-between; align-items: center; gap: var(--s-3); }
 .admin-list > li > span:first-child { display: inline-flex; gap: var(--s-2); align-items: center; flex-wrap: wrap; }
 .admin-clamp { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; max-width: 26rem; }
-.admin-funnel { display: inline-block; white-space: nowrap; font-variant-numeric: var(--num); }
+.admin-raise-funnel { display: inline-block; white-space: nowrap; font-variant-numeric: var(--num); }
 
 /* The journey strip: one station per step, coloured by whether it is stuck. */
 .admin-journey { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 100px), 1fr)); gap: var(--s-2); }

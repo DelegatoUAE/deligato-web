@@ -66,7 +66,7 @@ export default function AdminRaisesPage() {
               : <span className="ui-faint">None given</span>,
             readiness: r.readiness ? <span>{Math.round(r.readiness.score)} <span className="ui-faint admin-small">{r.readiness.band}</span></span> : <span className="ui-faint">Not assessed</span>,
             funnel: (
-              <span className="admin-funnel admin-small" title="matches · shortlisted · contacted · in conversation · diligence · term sheet · closed">
+              <span className="admin-raise-funnel admin-small" title="matches · shortlisted · contacted · in conversation · diligence · term sheet · closed">
                 {r.funnel.matches ?? '—'} → {r.funnel.shortlisted} → {r.funnel.contacted} → {r.funnel.in_conversation} → {r.funnel.diligence} → {r.funnel.term_sheet} → <strong>{r.funnel.closed_won}</strong>
                 {r.funnel.passed > 0 && <span className="ui-faint"> · {r.funnel.passed} passed</span>}
               </span>

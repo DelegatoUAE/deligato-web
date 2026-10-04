@@ -3,7 +3,7 @@ import { Badge, Button, Icon, Skeleton } from '../design/ui';
 import { useCompany } from '../components/company-context';
 import useApi from '../lib/useApi';
 import { getCommandCenter, isUnavailable } from '../lib/companyIntel';
-import { firstName, countryName, fmtUsd, fmtDate, fmtMonths, timingLabel, plural, plainIntel } from '../lib/format';
+import { firstName, countryName, fmtUsd, fmtDate, fmtMonths, timingLabel, plural, plainIntel, todayIso } from '../lib/format';
 import { partOfDay } from '../lib/home';
 import { LoadError, FundraisingNotice } from '../components/capital/bits';
 import ClassicHome, { Waiting } from '../components/home/ClassicHome';
@@ -180,7 +180,12 @@ function Signal({ kind, s, high }) {
     value = s.raise_usd ? fmtUsd(s.raise_usd) : 'Not set';
     line = s.raising ? `Raising${s.instrument ? ` · ${s.instrument}` : ''}` : s.confirmed ? `Not raising now${s.instrument ? ` · ${s.instrument}` : ''}` : 'Not confirmed yet';
     const t = s.timing;
-    foot = t?.start_by ? `Start raising by ${fmtDate(t.start_by)}` : t?.status === 'no_target_date' ? 'Set a target date' : timingLabel(s.raise_timing) || (s.timing_locked ? 'Start date: Company Intelligence' : '');
+    // "Start date: Company Intelligence" read as nonsense to a founder; a
+    // passed target date is the founder's own date and is always said.
+    const passed = s.target_funding_date && s.target_funding_date < todayIso();
+    foot = passed ? `Target date ${fmtDate(s.target_funding_date)} has passed`
+      : t?.start_by ? `Start raising by ${fmtDate(t.start_by)}` : t?.status === 'no_target_date' ? 'Set a target date'
+        : timingLabel(s.raise_timing) || (!s.confirmed ? "Confirm what you're raising" : '');
   }
   return (
     <Link to={to} className={`sig${high ? ' sig-high' : ''}`}>
