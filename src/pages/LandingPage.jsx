@@ -41,6 +41,14 @@ function Wordmark({ onDark = true }) {
   );
 }
 
+function Swoosh({ className }) {
+  return (
+    <svg className={className} viewBox="0 0 220 14" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+      <path d="M3 10 C 60 3, 140 1, 217 6" fill="none" strokeWidth="5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 function FitMark({ s }) {
   const t = { fit: '✓', partial: '~', no: '×', unknown: '?' }[s];
   return <span className={`lp-fm lp-fm-${s}`} aria-hidden="true">{t}</span>;
@@ -281,18 +289,22 @@ export default function LandingPage() {
         <section className="lp-hero" aria-labelledby="lp-hero-h">
           <div className="lp-wrap lp-hero-grid">
             <div className="lp-hero-copy">
-              <p className="lp-eyebrow lp-eyebrow-gold">Capital Intelligence</p>
-              <h1 id="lp-hero-h">Know which capital fits your company, <span>and exactly why.</span></h1>
+              <p className="lp-hero-eyebrow">Capital Intelligence</p>
+              <h1 id="lp-hero-h">Know which capital fits your company, <span className="lp-hl">and exactly why.<Swoosh className="lp-hero-swoosh" /></span></h1>
               <p className="lp-lede">
                 Deligato understands your company, shows how capital-ready you are, finds the kinds of capital and the providers that fit, and explains every match with its evidence. Then it helps you run the raise.
               </p>
               <div className="lp-cta-row">
                 <Button as={Link} to="/signup" variant="accent" size="lg" iconRight="arrowRight">Create your free account</Button>
-                <Button as="a" href="#journey" variant="secondary" size="lg" className="lp-btn-outline">See how it works</Button>
+                <Button as="a" href="#journey" variant="secondary" size="lg">See how it works</Button>
               </div>
               <p className="lp-hero-note">Not an investor directory. We help you with fundraising. We never fundraise for you.</p>
+              <p className="lp-hero-script" aria-hidden="true">Evidence first.<br />Capital that fits.<Swoosh className="lp-hero-swoosh lp-hero-swoosh-sm" /></p>
             </div>
-            <HeroProduct />
+            <div className="lp-hero-visual">
+              <div className="lp-hero-photo"><img src="/img/auth-founders.jpg" width="1000" height="833" alt="Two founders reviewing their company's capital options on a laptop." decoding="async" fetchPriority="high" /></div>
+              <HeroProduct />
+            </div>
           </div>
           <div className="lp-wrap">
             <ol className="lp-journey-strip" aria-label="The Deligato journey">
@@ -383,12 +395,12 @@ export default function LandingPage() {
             </div>
             <div className="lp-who">
               <article className="lp-who-card">
-                <span className="lp-feature-icon" aria-hidden="true"><Icon name="spark" /></span>
+                <span className="lp-round lp-round-gold" aria-hidden="true"><Icon name="spark" /></span>
                 <h3>Startups raising capital</h3>
                 <p>From pre-seed onwards. Know how investors will read you, close the gaps that matter, and run a focused raise with providers whose mandates actually fit.</p>
               </article>
               <article className="lp-who-card">
-                <span className="lp-feature-icon" aria-hidden="true"><Icon name="building" /></span>
+                <span className="lp-round lp-round-blue" aria-hidden="true"><Icon name="building" /></span>
                 <h3>Established businesses</h3>
                 <p>Looking for growth or working capital. See whether grants, government programmes, revenue-based finance, bank or working-capital finance fit before you speak to anyone.</p>
               </article>
@@ -397,26 +409,26 @@ export default function LandingPage() {
         </section>
 
         {/* ---------- EVIDENCE ---------- */}
-        <section id="evidence" className="lp-section lp-section-ink" aria-labelledby="lp-evi-h">
+        <section id="evidence" className="lp-section lp-section-white" aria-labelledby="lp-evi-h">
           <div className="lp-wrap">
             <div className="lp-section-head">
-              <p className="lp-eyebrow lp-eyebrow-gold">Evidence first</p>
+              <p className="lp-eyebrow">Evidence first</p>
               <h2 id="lp-evi-h">Every fact has a source. Every gap is shown as a gap.</h2>
             </div>
             <div className="lp-evi">
               <article className="lp-evi-card">
-                <h3><Icon name="search" />Unknown is never a match.</h3>
+                <h3><span className="lp-round lp-round-green" aria-hidden="true"><Icon name="search" /></span>Unknown is never a match.</h3>
                 <p>If we don't know whether a provider accepts your stage or instrument, we say so. Missing data never counts in your favour, and it never quietly rules you out either.</p>
               </article>
               <article className="lp-evi-card">
-                <h3><Icon name="layers" />Labelled by where it came from.</h3>
+                <h3><span className="lp-round lp-round-blue" aria-hidden="true"><Icon name="layers" /></span>Labelled by where it came from.</h3>
                 <p>Each provider detail carries its source and when it was last checked. AI-inferred details are never shown as verified.</p>
                 <ul className="lp-prov-chips" aria-label="Source labels">
                   {PROVENANCE.map((l) => <li key={l} className={`lp-prov-label lp-prov-${l.split(' ')[0].toLowerCase()}`}>{l}</li>)}
                 </ul>
               </article>
               <article className="lp-evi-card">
-                <h3><Icon name="users" />You stay in control of every contact.</h3>
+                <h3><span className="lp-round lp-round-gold" aria-hidden="true"><Icon name="users" /></span>You stay in control of every contact.</h3>
                 <p>Deligato drafts; you decide, edit and send. Nothing is ever sent on your behalf.</p>
               </article>
             </div>
@@ -431,7 +443,7 @@ export default function LandingPage() {
             </div>
             <div className="lp-human-copy">
               <p className="lp-eyebrow">Expertise when a gap needs it</p>
-              <h2 id="lp-exp-h">Technology first. Specialists when you want them.</h2>
+              <h2 id="lp-exp-h">Technology first. <span className="lp-hl">Specialists when you want them.<Swoosh className="lp-hero-swoosh" /></span></h2>
               <p className="lp-section-sub lp-left">Deligato works on its own. When your readiness shows a gap that needs a specialist, such as a financial model, the investor deck, legal and cap-table work or fractional finance support, you can ask for expert help. It is entirely optional, and you agree the scope directly.</p>
               <div className="lp-cta-row">
                 <Button as={Link} to="/signup" variant="primary" size="lg" iconRight="arrowRight">Start with your company</Button>
@@ -464,13 +476,13 @@ export default function LandingPage() {
           <div className="lp-final-img" aria-hidden="true"><img src="/img/lp-team.jpg" width="1400" height="596" loading="lazy" decoding="async" alt="" /></div>
           <div className="lp-wrap lp-final-row">
             <div>
-              <p className="lp-eyebrow lp-eyebrow-gold">Capital Intelligence</p>
-              <h2 id="lp-final-h">Start with your company. See what fits, and why.</h2>
+              <p className="lp-hero-eyebrow">Your capital journey</p>
+              <h2 id="lp-final-h">Start with your company. <span className="lp-hl">See what fits, and why.<Swoosh className="lp-hero-swoosh" /></span></h2>
               <p>Free to start. We help you with fundraising. We never fundraise for you.</p>
             </div>
             <div className="lp-cta-row">
               <Button as={Link} to="/signup" variant="accent" size="lg" iconRight="arrowRight">Create your free account</Button>
-              <Button as={Link} to="/pricing" variant="secondary" size="lg" className="lp-btn-outline">See pricing</Button>
+              <Button as={Link} to="/pricing" variant="secondary" size="lg">See pricing</Button>
             </div>
           </div>
         </section>
