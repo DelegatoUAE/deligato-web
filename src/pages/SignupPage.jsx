@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Alert, Button, ChipToggle, FormField, Input } from '../design/ui';
 import AuthLayout from '../components/AuthLayout';
 import PasswordInput from '../components/PasswordInput';
+import { publicAuthError } from '../lib/errorDetails';
 import { apiFetch, setSession } from '../lib/auth';
 
 const DevRegister = import.meta.env.DEV ? lazy(() => import('../components/DevRegister')) : null;
@@ -34,7 +35,8 @@ export default function SignupPage() {
         setSent(data && data.message ? data.message : 'Check your email to confirm your address, then sign in.');
       }
     } catch (err) {
-      setError(err.message);
+      // UAT F16: a server fault never shows its internals (e.g. an env variable name).
+      setError(publicAuthError(err, 'Sign-up is unavailable right now. Try again shortly.'));
     } finally {
       setBusy(false);
     }

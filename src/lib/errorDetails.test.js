@@ -47,3 +47,11 @@ test('a 0 status is reported, not dropped as falsy', () => {
   const e = Object.assign(new Error('network'), { status: 0, code: 'network' });
   assert.equal(map(e, '/').HTTP, '0');
 });
+
+test('auth pages never show server internals (UAT F16)', async () => {
+  const { publicAuthError } = await import('./errorDetails.js');
+  const msg = 'Sign-up is unavailable right now. Try again shortly.';
+  assert.equal(publicAuthError({ status: 500, message: 'Server is missing SUPABASE_SECRET_KEY — signup unavailable' }, msg), msg);
+  assert.equal(publicAuthError(new TypeError('Failed to fetch'), msg), msg);
+  assert.equal(publicAuthError({ status: 409, message: 'That email already has an account.' }, msg), 'That email already has an account.');
+});

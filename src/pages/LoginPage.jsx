@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Alert, Button, FormField, Input } from '../design/ui';
 import AuthLayout from '../components/AuthLayout';
 import PasswordInput from '../components/PasswordInput';
+import { publicAuthError } from '../lib/errorDetails';
 import { login } from '../lib/auth';
 
 // Compiled out of production builds (Vite replaces import.meta.env.DEV with false).
@@ -23,7 +24,7 @@ export default function LoginPage() {
       await login(email, password);
       navigate('/');
     } catch (err) {
-      setError(err.status === 401 ? "That email and password don't match an account." : err.message);
+      setError(err.status === 401 ? "That email and password don't match an account." : publicAuthError(err, 'Sign-in is unavailable right now. Try again shortly.'));
     } finally {
       setBusy(false);
     }
