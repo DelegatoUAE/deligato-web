@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Alert, Badge, Button, ConfirmDialog, EmptyState, FormField, Icon, Input, Modal, PageHeader, ProgressBar, SkeletonCards, Tabs, Textarea, useToast } from '../design/ui';
+import { Alert, Badge, Button, ConfirmDialog, EmptyState, FormField, Icon, Input, Modal, PageHeader, ProgressBar, SkeletonCards, Tabs, Textarea, Tooltip, useToast } from '../design/ui';
 import SubNav from '../components/SubNav';
 import { useCompany } from '../components/company-context';
 import { LoadError } from '../components/capital/bits';
@@ -44,6 +44,11 @@ export default function DataRoomPage({ mode = 'dataroom' }) {
   // D55 Prepare: "I have this" and date edits carry the document's dates (api faf5732).
   const [dates, setDates] = useState(null); // { item, doc?, document_date, expires_at }
   const canUpload = ['uploads', 'uploads_and_sharing'].includes(entitlements?.data_room);
+  // The plan allows uploads, but the API says where files can go. While it
+  // reports 'metadata_only' there is no private storage, so no file can
+  // honestly be "uploaded": a paying customer sees why, not a button that
+  // fails (found 4 Oct testing as a genuinely entitled account).
+  const storageLive = !!q.data && q.data.storage && q.data.storage !== 'metadata_only';
   const docsMode = mode === 'documents';
 
   const head = (
@@ -78,7 +83,10 @@ export default function DataRoomPage({ mode = 'dataroom' }) {
     if (!f || !uploadFor) return;
     if (!TYPES.test(f.name)) { toast.error("That file type isn't supported. Use PDF, Word, Excel, PowerPoint, CSV or an image."); return; }
     if (f.size > MAX) { toast.error('Files must be 25 MB or smaller.'); return; }
-    act(`up-${uploadFor.key}`, () => addDataRoomItem(companyId, { doc_type: uploadFor.key, status: 'uploaded', file_name: f.name, mime_type: f.type || null, size_bytes: f.size, file_ref: `local:${f.name}`, title: uploadFor.label }), `${f.name} recorded.`);
+    // Only reachable when the API reports live storage. It used to send a
+    // made-up 'local:' pointer, which the API rightly rejects (invalid_file_ref):
+    // a stored file needs a real storage key from the upload, never a guess.
+    act(`up-${uploadFor.key}`, () => addDataRoomItem(companyId, { doc_type: uploadFor.key, status: 'uploaded', file_name: f.name, mime_type: f.type || null, size_bytes: f.size, title: uploadFor.label }), `${f.name} recorded.`);
   }
 
   const items = docsMode ? cats.flatMap((c) => c.items).filter((i) => (i.documents || []).length) : cat?.items || [];
@@ -89,7 +97,7 @@ export default function DataRoomPage({ mode = 'dataroom' }) {
       {!docsMode && (
         <p className="dr-mode"><Badge tone="brand">Prepare</Badge> Get every document your stage needs in place and in date. Tick <em>I have this</em> with the document's date and expiry, and we flag it before it goes stale.{!canUpload ? ' File uploads are included in Capital Raising.' : ''}</p>
       )}
-      <Alert tone="info">Files stay private to you. Nothing is shared with investors from here. In this preview we record each document's name, type and size; file storage is being connected.</Alert>
+      <Alert tone="info">Files stay private to you. Nothing is shared with investors from here.{!storageLive ? <> File storage is being connected{canUpload ? ', and your plan includes uploads once it is' : ''}. Until then, tick <em>I have this</em> with the document's date and expiry, and we keep track of it.</> : null}</Alert>
       {!docsMode && (
         <Tabs variant="pill" label="Categories" value={active} onChange={setTab}
           items={cats.map((c) => ({ id: c.key, label: `${c.label} ${c.items.filter((i) => i.required_for_stage && i.done).length}/${c.items.filter((i) => i.required_for_stage).length}` }))} />
@@ -127,9 +135,11 @@ export default function DataRoomPage({ mode = 'dataroom' }) {
                   <Badge tone={st.tone} size="sm">{st.label}</Badge>
                   {!i.done && (
                     <>
-                      {canUpload
-                        ? <Button size="sm" variant="secondary" onClick={() => pickFile(i)} loading={busy === `up-${i.key}`}>Add file</Button>
-                        : <Button size="sm" variant="ghost" iconLeft="lock" as={Link} to="/packages?highlight=capital-raising">Add file</Button>}
+                      {!canUpload
+                        ? <Button size="sm" variant="ghost" iconLeft="lock" as={Link} to="/packages?highlight=capital-raising">Add file</Button>
+                        : storageLive
+                          ? <Button size="sm" variant="secondary" onClick={() => pickFile(i)} loading={busy === `up-${i.key}`}>Add file</Button>
+                          : <Tooltip text="File storage is being connected. Until then, tick I have this with the document's date."><span><Button size="sm" variant="ghost" disabled>Add file</Button></span></Tooltip>}
                       <Button size="sm" variant="ghost" onClick={() => setDates({ item: i, doc: null, document_date: '', expires_at: '' })} loading={busy === `sd-${i.key}`}>I have this</Button>
                       <Button size="sm" variant="ghost" onClick={() => { setNa(i); setNaReason(''); }}>Not applicable</Button>
                     </>

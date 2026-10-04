@@ -12,6 +12,10 @@ import { wordsForCodes, countryName } from '../../lib/format';
  * score tile · name · fit chips · why we matched you · caveats · actions.
  * pipelineItem: the existing pipeline row (if any). canTrack: plan includes pipeline.
  */
+// What the card says about a provider already on the founder's list. A
+// provider that passed must not read "In your pipeline" (seen in real use).
+const PIPELINE_WORD = { shortlisted: 'Shortlisted', passed: 'Passed', not_now: 'Not now', closed_won: 'Closed' };
+
 export default function MatchCard({ r, runId, pipelineItem, canTrack, canDraft, onSave, onTrack, feedback, onFeedback, busy, instrumentUnknown = false, why = null }) {
   const [askWhy, setAskWhy] = useState(false);
   const [reason, setReason] = useState('wrong_geography');
@@ -53,7 +57,7 @@ export default function MatchCard({ r, runId, pipelineItem, canTrack, canDraft, 
       <div className="mcard-actions">
         <Button as={Link} to={href} variant="secondary" size="sm">View investor</Button>
         {pipelineItem ? (
-          <Button as={Link} to={pipelineItem.stage === 'shortlisted' ? '/capital/saved' : '/capital/pipeline'} variant="ghost" size="sm" iconLeft="check">{pipelineItem.stage === 'shortlisted' ? 'Saved' : 'In your pipeline'}</Button>
+          <Button as={Link} to={pipelineItem.stage === 'shortlisted' ? '/capital/saved' : '/capital/pipeline'} variant="ghost" size="sm" iconLeft="check">{PIPELINE_WORD[pipelineItem.stage] || 'In your pipeline'}</Button>
         ) : canTrack ? (
           <>
             <Button variant="primary" size="sm" onClick={() => onSave(r)} loading={busy === 'save'} disabled={Boolean(busy)}>Save</Button>

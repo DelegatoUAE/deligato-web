@@ -76,6 +76,8 @@ export function AttentionList({ items, empty = 'Nothing needs your attention rig
             <div className="attn-main">
               <p className="attn-title">{plainIntel(a.title)}</p>
               {a.detail && <p className="attn-detail">{plainIntel(a.detail)}</p>}
+              {/* Free shows the problem; the diagnosis is a plan feature (Bilal, 4 Oct). */}
+              {a.locked?.note && <UpgradeLine note={a.locked.note} />}
             </div>
             {internal && <Button as={Link} to={a.route} variant="link" size="sm">Open</Button>}
           </li>

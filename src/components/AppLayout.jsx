@@ -18,7 +18,7 @@ const TITLES = [
   [/^\/capital\/readiness/, 'Readiness'],
   [/^\/capital\/matches\/./, 'Capital provider'],
   [/^\/capital\/matches/, 'My matches'],
-  [/^\/capital\/saved/, 'Saved'],
+  [/^\/capital\/saved/, 'Shortlist'],
   [/^\/capital\/pipeline/, 'Pipeline'],
   [/^\/capital\/data-room/, 'Data room'],
   [/^\/capital\/outreach/, 'Outreach'],
@@ -129,14 +129,14 @@ export default function AppLayout({ children }) {
         )}
         topActions={(
           <>
-            {company && !readinessLoading && <ReadinessPill readiness={readiness?.readiness} source={readiness} />}
+            {company && !readinessLoading && <ReadinessPill readiness={readiness?.readiness} />}
             {planName && <Link to="/settings/plan" className="planlink"><Badge tone="neutral">{planName}</Badge></Link>}
             <Button variant="secondary" size="sm" iconLeft="spark" onClick={() => setAssistantOpen(true)} aria-haspopup="dialog">Ask AI</Button>
             <ThemeToggle />
           </>
         )}
       >
-        <div className="page"><ErrorBoundary resetKey={pathname}>{children}</ErrorBoundary></div>
+        <div className="page"><ErrorBoundary resetKey={pathname} staff={staff === true}>{children}</ErrorBoundary></div>
       </AppShell>
       {!settingUp && <nav className="tabbar" aria-label="Quick">
         {TABS.map((t) => (

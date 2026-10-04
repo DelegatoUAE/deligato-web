@@ -37,7 +37,7 @@ function OutcomeDialog({ state, onCancel, onSave, busy }) {
   const needAmount = ['term_sheet', 'closed_won'].includes(form.outcome);
   const valid = (!needReason || form.reason) && (!needAmount || Number(form.amount) > 0) && (form.outcome !== 'closed_won' || form.instrument);
   return (
-    <Modal open onClose={onCancel} title={`What happened with ${nameOf(item)}?`} description="Outcomes teach the matching which predictions held. Your note stays private."
+    <Modal open onClose={onCancel} title={`What happened with ${nameOf(item)}?`} description="Outcomes help Conncct learn which matches lead somewhere. They never change your results on their own, and your note stays private."
       footer={<><Button variant="ghost" onClick={onCancel}>Cancel</Button><Button variant="primary" onClick={() => onSave(form)} loading={busy} disabled={!valid}>Save outcome</Button></>}>
       <div className="ui-form">
         {needReason && (
@@ -217,7 +217,11 @@ export default function PipelinePage() {
   if (q.error) return <div><SubNav section="capital" /><PageHeader title="Pipeline" /><LoadError error={q.error} onRetry={q.reload} what="your pipeline" /></div>;
 
   const tracked = items.filter((p) => p.stage !== 'shortlisted');
+  // "1 in conversation" was said of a provider in diligence (seen in real use):
+  // say what is true, and never leave a closed deal unmentioned.
   const conv = items.filter((p) => ['in_conversation', 'diligence', 'term_sheet'].includes(p.stage)).length;
+  const won = items.filter((p) => p.stage === 'closed_won').length;
+  const headline = [`${tracked.length} ${tracked.length === 1 ? 'provider' : 'providers'}`, conv ? `${conv} in active talks` : null, won ? `${won} closed` : null].filter(Boolean).join(' · ');
   // Saved (shortlisted) lives on its own screen (18); the board starts at Researching.
   const boardStages = PIPELINE_STAGES.filter((s) => s.key !== 'shortlisted');
   const columns = showClosed ? boardStages : boardStages.filter((s) => ACTIVE_STAGES.includes(s.key));
@@ -248,7 +252,7 @@ export default function PipelinePage() {
   return (
     <div className="pipeline">
       <SubNav section="capital" />
-      <PageHeader title="Pipeline" subtitle={`${tracked.length} ${tracked.length === 1 ? "provider" : "providers"} · ${conv} in conversation`}
+      <PageHeader title="Pipeline" subtitle={headline}
         meta={savedN > 0 && <Link to="/capital/saved">{savedN} saved, not in your pipeline yet</Link>}
         actions={<Tabs variant="pill" label="View" value={view} onChange={setView} items={[{ id: 'board', label: 'Board' }, { id: 'list', label: 'List' }]} />} />
       {q.data === undefined ? <Skeleton h="300px" /> : tracked.length === 0 ? (

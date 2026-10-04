@@ -2,7 +2,6 @@ import { Link } from 'react-router-dom';
 import { ScoreRing, Badge } from '../../design/ui';
 import { fmtDate, daysSince } from '../../lib/format';
 import { bandOf, provisionalText, bandLabel, readinessSource, readinessGaps, factorName, notAsked } from '../../lib/readiness';
-import { Badge as SrcBadge } from '../../design/ui';
 
 export function BandChip({ readiness }) {
   const { name, tone } = bandOf(readiness);
@@ -49,20 +48,19 @@ export function ReadinessSnapshot({ readiness, variant = 'compact', conncctHref,
         {exact && value !== null && value !== Math.round(value) && <div className="rsnap-exact">Exact score: <strong>{value}</strong></div>}
       </div>
       <div className="rsnap-body">
-        <div className="rsnap-chips">{(variant !== 'full' || prov) && <BandChip readiness={r} />}<SrcBadge tone="outline" size="sm">{src.label}</SrcBadge></div>
+        <div className="rsnap-chips">{(variant !== 'full' || prov) && <BandChip readiness={r} />}</div>
         {variant === 'full' && description && !prov && <p className="rsnap-desc">{description}</p>}
         {prov && <p className="rsnap-desc">Your readiness isn't final yet. Some questions are still unanswered.</p>}
         {gap && variant !== 'full' && <p className="rsnap-gap">Biggest gap: <strong>{gap}</strong></p>}
         <p className="rsnap-meta">
           {src.foot} {fmtDate(r?.computed_at) || 'an unknown date'}
-          {variant === 'full' && r?.methodology_version ? ` · methodology v${r.methodology_version}` : ''}
         </p>
         {stale && (
           <p className="rsnap-stale">This score is from {fmtDate(r.computed_at)}. Update your answers for current advice.</p>
         )}
         {showLink && variant !== 'full' && <Link to="/capital/readiness" className="rsnap-link">View details</Link>}
         {variant === 'full' && conncctHref && (
-          <p className="rsnap-meta">This score was imported from your readiness partner. Changes to it are made there.</p>
+          <p className="rsnap-meta">Scored from the answers in your readiness assessment. If your situation has changed, your answers can be updated.</p>
         )}
       </div>
     </div>
@@ -96,14 +94,14 @@ export function FactorBars({ readiness }) {
   );
 }
 
-/** Topbar pill: "Readiness 74 · Investor-Ready · from Conncct". */
-export function ReadinessPill({ readiness, source }) {
+/** Topbar pill: "Readiness 74 · Investor-Ready". Where the score came from is on the Readiness page, not jargon in the header. */
+export function ReadinessPill({ readiness }) {
   if (!readiness) return <Link to="/capital/readiness/assess" className="rpill rpill-none">Readiness · not scored yet</Link>;
   const { tone } = bandOf(readiness);
   return (
     <Link to="/capital/readiness" className={`rpill rpill-${tone || 'none'}`} title="Your Capital Readiness Score (Conncct method)">
       <span className="rpill-dot" aria-hidden="true" />
-      Readiness {Math.round(Number(readiness.score))} · {bandLabel(readiness)}<span className="rpill-src"> · {readinessSource(source).key === 'embedded' ? 'assessed here' : 'imported'}</span>
+      Readiness {Math.round(Number(readiness.score))} · {bandLabel(readiness)}
     </Link>
   );
 }

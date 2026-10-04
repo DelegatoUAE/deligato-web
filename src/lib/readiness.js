@@ -31,8 +31,11 @@ export function bandLabel(r) {
 export function readinessSource(out) {
   const embedded = out?.engine === 'embedded' || ['conncct_embedded', 'deligato_reference'].includes(out?.source);
   return embedded
-    ? { key: 'embedded', label: 'Conncct method, assessed here', foot: 'Assessed here with the Conncct method on' }
-    : { key: 'conncct', label: 'Imported score', foot: 'Imported, scored with the Conncct method on' };
+    // Founder words, not our architecture: where a score was computed
+    // ("imported from your readiness partner", "methodology v3.3") is ours to
+    // know, not theirs (D57, seen in real use 4 Oct). The key still tells code apart.
+    ? { key: 'embedded', label: 'Assessed here', foot: 'Assessed on' }
+    : { key: 'conncct', label: 'Assessed', foot: 'Assessed on' };
 }
 
 /** Gaps (00 §3 K5): missing/unknown factors, or under 60% of their points; debt_type excluded. */

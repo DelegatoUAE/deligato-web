@@ -10,6 +10,9 @@ import { ADMIN_NAV, portalFor } from '../lib/portal';
 import { PAGE_SUFFIX } from '../lib/format';
 
 const TITLES = [
+  [/^\/admin\/companies\/./, 'Company 360'], [/^\/admin\/companies/, 'Companies'],
+  [/^\/admin\/providers\/./, 'Provider 360'], [/^\/admin\/providers/, 'Capital providers'],
+  [/^\/admin\/raises/, 'Raises'], [/^\/admin\/matching/, 'Matching oversight'],
   [/^\/admin\/experts/, 'Experts'], [/^\/admin\/projects/, 'Projects'], [/^\/admin\/corrections/, 'Corrections'],
   [/^\/admin\/learning/, 'Learning'], [/^\/admin\/match/, 'AI Match'], [/^\/admin/, 'Overview'], [/^\/dev/, 'Import a company (dev)'],
 ];
@@ -45,7 +48,7 @@ function AdminShell({ me, children }) {
         )}
         topActions={<ThemeToggle />}
       >
-        <div className="page"><ErrorBoundary resetKey={pathname}>{children}</ErrorBoundary></div>
+        <div className="page"><ErrorBoundary resetKey={pathname} staff={isStaff(me)}>{children}</ErrorBoundary></div>
       </AppShell>
     </div>
   );

@@ -54,6 +54,10 @@ export const ADMIN_NAV = [
     title: 'Admin',
     items: [
       { id: 'adm-home', label: 'Overview', icon: 'gauge', href: '/admin', end: true },
+      { id: 'adm-companies', label: 'Companies', icon: 'building', href: '/admin/companies' },
+      { id: 'adm-raises', label: 'Raises', icon: 'target', href: '/admin/raises' },
+      { id: 'adm-providers', label: 'Capital providers', icon: 'layers', href: '/admin/providers' },
+      { id: 'adm-matching', label: 'Matching oversight', icon: 'compass', href: '/admin/matching' },
       { id: 'adm-corrections', label: 'Corrections', icon: 'check', href: '/admin/corrections' },
       { id: 'adm-projects', label: 'Projects', icon: 'file', href: '/admin/projects' },
       { id: 'adm-experts', label: 'Experts', icon: 'users', href: '/admin/experts' },
