@@ -15,6 +15,7 @@
 .page { min-width: 0; }
 .page > div > .ui-page-head, .page .ui-page-head { margin-bottom: var(--s-6); }
 .page .ui-card + .ui-card, .page .ui-card + .ui-alert, .page .ui-alert + .ui-card { margin-top: var(--s-4); }
+.page .ui-card + .ui-grid { margin-top: var(--s-4); }
 .sec-h { font-size: var(--text-lg); margin: var(--s-8) 0 var(--s-3); }
 .sub-h { font-size: var(--text-sm); margin: var(--s-4) 0 var(--s-2); color: var(--text-soft); }
 .back { display: inline-block; margin-bottom: var(--s-4); font-size: var(--text-sm); }
@@ -1122,3 +1123,6 @@
 /* A disabled action says why in plain text (touch users can't hover a tooltip). */
 .xd-locked { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 2px; }
 .xd-locked .ui-faint { font-size: var(--text-xs); }
+/* Insights: four tiles read as one row on desktop and a 2×2 grid on phones. */
+.home-stats.insights-stats { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@media (max-width: 600px) { .home-stats.insights-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } .home-stats.insights-stats > :first-child { grid-column: auto; } }
