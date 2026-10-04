@@ -154,7 +154,7 @@ function Signal({ kind, s, high }) {
   let value; let line; let foot; let delta = null; let to = meta.to;
   if (kind === 'financial_health') {
     if (s.score == null) {
-      value = s.status === 'not_applicable' ? 'N/A' : 'Not yet';
+      value = s.status === 'not_applicable' ? 'Not scored' : 'Not yet'; // positioning §2.6: never "N/A"
       line = s.status === 'not_applicable' ? `${s.state_label || 'Dormant'}: not scored` : 'Needs your first check-in';
       if (s.status !== 'not_applicable') to = '/company/check-in';
     } else {
@@ -163,7 +163,8 @@ function Signal({ kind, s, high }) {
       if (s.last_change?.delta) delta = { direction: s.last_change.direction, text: `${s.last_change.delta > 0 ? '+' : ''}${s.last_change.delta} since last` };
       else if (s.trend?.direction) delta = { direction: s.trend.direction, text: { up: 'Rising', down: 'Falling', flat: 'Steady' }[s.trend.direction] };
     }
-    foot = [s.source_label, s.runway_months != null ? `${fmtMonths(s.runway_months)} runway` : s.cash_buffer_months != null ? `${fmtMonths(s.cash_buffer_months)} cash buffer` : null, s.computed_at ? fmtDate(s.computed_at) : null].filter(Boolean).join(' · ');
+    // A source label ("You told us") only names where a result came from; with no result there is nothing to label.
+    foot = [s.score == null ? null : s.source_label, s.runway_months != null ? `${fmtMonths(s.runway_months)} runway` : s.cash_buffer_months != null ? `${fmtMonths(s.cash_buffer_months)} cash buffer` : null, s.computed_at ? fmtDate(s.computed_at) : null].filter(Boolean).join(' · ');
   } else if (kind === 'capital_readiness') {
     if (s.status === 'scored') {
       // Same whole number as the topbar pill and the sidebar badge (the exact score lives on Readiness).
@@ -172,7 +173,7 @@ function Signal({ kind, s, high }) {
       foot = s.assessed_at ? `Assessed ${fmtDate(s.assessed_at)}` : s.label;
     } else { value = 'Not yet'; line = 'Not assessed'; foot = 'Take the assessment'; to = '/capital/readiness/assess'; }
   } else if (kind === 'company_record') {
-    value = s.pct != null ? `${Math.round(Number(s.pct))}%` : '–';
+    value = s.pct != null ? `${Math.round(Number(s.pct))}%` : 'Not yet';
     line = s.band;
     const f = s.freshness || {};
     foot = [f.missing ? `${f.missing} missing` : null, f.expiring ? `${f.expiring} expiring` : null, f.expired ? `${f.expired} expired` : null].filter(Boolean).join(' · ') || 'Up to date';
