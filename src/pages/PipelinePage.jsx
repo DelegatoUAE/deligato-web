@@ -71,7 +71,7 @@ function OutcomeDialog({ state, onCancel, onSave, busy }) {
   );
 }
 
-function ItemDrawer({ item, companyId, onClose, onChanged, onMove, onRemove }) {
+function ItemDrawer({ item, companyId, onClose, onChanged, onMove, onRemove, readOnly = false }) {
   const toast = useToast();
   const [form, setForm] = useState({ next_action: item.next_action || '', next_action_date: item.next_action_date || '', owner_note: item.owner_note || '' });
   const [busy, setBusy] = useState(null);
@@ -98,21 +98,22 @@ function ItemDrawer({ item, companyId, onClose, onChanged, onMove, onRemove }) {
   const events = tl.data?.events || tl.data?.timeline || [];
   return (
     <Drawer open onClose={onClose} title={nameOf(item)} description={`${stageLabel(item.stage)} · ${daysSince(enteredAt(item)) ?? 0} days in stage`}
-      footer={<><Button variant="danger" onClick={() => onRemove(item)}>Remove from pipeline</Button><Button variant="primary" onClick={save} loading={busy === 'save'}>Save</Button></>}>
+      footer={<><Button variant="danger" onClick={() => onRemove(item)}>Remove from pipeline</Button>{!readOnly && <Button variant="primary" onClick={save} loading={busy === 'save'}>Save</Button>}</>}>
+      {/* D68/D69: on Free and Company Intelligence a saved investor is read-only (view or remove); the server refuses changes too. */}
       <div className="ui-stack">
         <FormField label="Stage">
-          <Select value={item.stage} onChange={(e) => onMove(item, e.target.value)} options={PIPELINE_STAGES.map((s) => ({ value: s.key, label: s.label }))} />
+          <Select value={item.stage} disabled={readOnly} onChange={(e) => onMove(item, e.target.value)} options={PIPELINE_STAGES.map((s) => ({ value: s.key, label: s.label }))} />
         </FormField>
         <div className="ui-form ui-form-2">
-          <FormField label="Next action"><Input value={form.next_action} onChange={(e) => setForm({ ...form, next_action: e.target.value })} placeholder="e.g. Send deck" /></FormField>
-          <FormField label="By"><Input type="date" value={form.next_action_date || ''} onChange={(e) => setForm({ ...form, next_action_date: e.target.value })} /></FormField>
+          <FormField label="Next action"><Input disabled={readOnly} value={form.next_action} onChange={(e) => setForm({ ...form, next_action: e.target.value })} placeholder="e.g. Send deck" /></FormField>
+          <FormField label="By"><Input disabled={readOnly} type="date" value={form.next_action_date || ''} onChange={(e) => setForm({ ...form, next_action_date: e.target.value })} /></FormField>
         </div>
-        <FormField label="Private notes"><Textarea rows={3} value={form.owner_note} onChange={(e) => setForm({ ...form, owner_note: e.target.value })} /></FormField>
-        <div className="ui-row">
+        <FormField label="Private notes"><Textarea disabled={readOnly} rows={3} value={form.owner_note} onChange={(e) => setForm({ ...form, owner_note: e.target.value })} /></FormField>
+        {!readOnly && <div className="ui-row">
           <Button variant="secondary" size="sm" onClick={() => log('meeting')} loading={busy === 'meeting'}>Log a meeting</Button>
           <Button variant="secondary" size="sm" onClick={() => log('reply')} loading={busy === 'reply'}>Log a reply</Button>
-        </div>
-        <MeetingPrep key={item.record_id} companyId={companyId} recordId={item.record_id} compact />
+        </div>}
+        {!readOnly && <MeetingPrep key={item.record_id} companyId={companyId} recordId={item.record_id} compact />}
         <div className="ui-row">
           <Link to={investorHref(item.record_id)}>Open investor profile</Link>
           <Link to={`/capital/outreach?record=${encodeURIComponent(item.record_id)}`}>Drafts for this investor</Link>
@@ -303,7 +304,7 @@ export default function PipelinePage() {
       <p className="ui-faint">Drag a card, or open it and use Stage, to move it. Passed, Not now, Term sheet and Closed ask what happened.</p>
 
       {outcome && <OutcomeDialog state={outcome} busy={busy} onCancel={() => setOutcome(null)} onSave={saveOutcome} />}
-      {openItem && <ItemDrawer key={openItem.id} item={openItem} companyId={companyId} onClose={() => setOpenId(null)} onChanged={replace} onMove={move} onRemove={setRemoving} />}
+      {openItem && <ItemDrawer key={openItem.id} item={openItem} companyId={companyId} onClose={() => setOpenId(null)} onChanged={replace} onMove={move} onRemove={setRemoving} readOnly={readOnly} />}
       <ConfirmDialog open={Boolean(removing)} title={`Remove ${removing ? nameOf(removing) : ''}?`} body="This removes the investor and its next action from your pipeline. Outcomes you've recorded are kept." confirmLabel="Remove from pipeline" busy={busy} onConfirm={remove} onCancel={() => setRemoving(null)} />
       {items.some((p) => p.stage === 'term_sheet') && <Alert tone="ok">You have a term sheet in play. Get legal advice before you sign anything.</Alert>}
     </div>
