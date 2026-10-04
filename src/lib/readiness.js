@@ -61,5 +61,13 @@ export function factorName(f) {
   if (PLAIN_FACTOR[f.key || f.factor]) return PLAIN_FACTOR[f.key || f.factor];
   return String(f.label || f.key || f.factor || '').replace(/\s*\((?:Q\d+[^)]*)\)/g, '').trim();
 }
-/** A factor the questionnaire never asked: "Not asked yet", never "unknown". */
-export const notAsked = (f) => f && (f.status === 'unknown' || f.status === 'missing');
+/**
+ * A factor the questionnaire never asked: "Not asked yet", never "unknown".
+ * The engine's status 'missing' is overloaded: it also means "answered but
+ * scored low" (ratio below the threshold). An answered factor, or one that
+ * scored any points, shows its points (UAT F01, 5 Oct).
+ */
+export const notAsked = (f) => Boolean(f) && (
+  f.status === 'unknown'
+  || (f.status === 'missing' && (f.answer === null || f.answer === undefined) && !(f.points > 0))
+);
