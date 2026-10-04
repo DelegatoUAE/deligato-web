@@ -149,3 +149,9 @@ export function plainIntel(text) {
     .replace(/\b(0_3m|3_6m|6_12m)\b/g, (m) => timingLabel(m) || m)
     .replace(/(→\s*)(now|exploring)\b/g, (m, a, k) => `${a}${timingLabel(k).toLowerCase()}`);
 }
+
+// R-F1 (Architecture, 5 Oct): founder-typed profile figures carry the declared
+// provenance label, so they never read as Financial Health's computed values.
+export const DECLARED_LABEL = 'You told us';
+export const DECLARED_PROFILE_FIGURES = ['revenue_usd', 'burn_usd', 'runway_months'];
+export const isDeclaredFigure = (field) => DECLARED_PROFILE_FIGURES.includes(field);

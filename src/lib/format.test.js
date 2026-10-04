@@ -44,3 +44,10 @@ test('engine sentences show dates, periods and timing as words (D57)', () => {
   assert.equal(plainIntel('Runway is 11.4 months, $1.5M raise'), 'Runway is 11.4 months, $1.5M raise');
   assert.equal(plainIntel(null), null);
 });
+
+test('founder-typed revenue, burn and runway carry the "You told us" label (R-F1)', async () => {
+  const { DECLARED_LABEL, isDeclaredFigure } = await import('./format.js');
+  assert.equal(DECLARED_LABEL, 'You told us');
+  for (const f of ['revenue_usd', 'burn_usd', 'runway_months']) assert.equal(isDeclaredFigure(f), true);
+  assert.equal(isDeclaredFigure('stage'), false);
+});

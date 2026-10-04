@@ -8,14 +8,15 @@ import { ConncctSourceTag } from '../components/capital/bits';
 import { completeness } from '../lib/capital';
 import { deleteCompany } from '../lib/companies';
 import { isMissingEndpoint } from '../lib/auth';
-import { fmtUsd, fmtDateTime, timingLabel, countryName } from '../lib/format';
+import { fmtUsd, fmtDateTime, timingLabel, countryName, DECLARED_LABEL, isDeclaredFigure } from '../lib/format';
 
 function Unknown({ href }) {
   return <span className="unknown-pill" title="Not set yet. Every match shows this as unknown, and confidence drops.">unknown {href && <Link to="/company/business">Set it</Link>}</span>;
 }
-function Row({ label, value, href }) {
+function Row({ label, value, href, field }) {
   const empty = value === null || value === undefined || value === '' || (Array.isArray(value) && !value.length);
-  return <div><dt>{label}</dt><dd>{empty ? <Unknown href={href} /> : Array.isArray(value) ? value.join(' · ') : value}</dd></div>;
+  const declared = !empty && field && isDeclaredFigure(field);
+  return <div><dt>{label}</dt><dd>{empty ? <Unknown href={href} /> : Array.isArray(value) ? value.join(' · ') : value}{declared && <span className="ui-faint declared-note"> · {DECLARED_LABEL}</span>}</dd></div>;
 }
 
 export default function CompanyPage() {
@@ -65,7 +66,7 @@ export default function CompanyPage() {
             <Row label="Sector" value={company.sector ? `${company.sector}${company.sub_sectors?.length ? ` (also: ${company.sub_sectors.join(', ')})` : ''}` : null} href={href} />
             <Row label="Business model" value={company.business_model} href={href} />
             <Row label="HQ country" value={countryName(company.hq_country_iso2)} href={href} />
-            <Row label="Revenue (12 months)" value={company.revenue_usd != null ? `${fmtUsd(company.revenue_usd)} / yr` : null} href={href} />
+            <Row label="Revenue (12 months)" field="revenue_usd" value={company.revenue_usd != null ? `${fmtUsd(company.revenue_usd)} / yr` : null} href={href} />
             <Row label="Keywords" value={company.keywords} href={href} />
           </dl>
           {c.missing.length > 0 && <p className="ui-muted">Missing: {c.missing.map((m) => m.label.toLowerCase()).join(', ')}.</p>}
@@ -73,11 +74,12 @@ export default function CompanyPage() {
         <Card title="Traction, team, finances">
           <dl className="facts">
             <Row label="MRR" value={company.mrr_usd != null ? fmtUsd(company.mrr_usd) : null} href={href} />
-            <Row label="Burn" value={company.burn_usd != null ? `${fmtUsd(company.burn_usd)} / mo` : null} href={href} />
-            <Row label="Runway" value={company.runway_months != null ? `${company.runway_months} months` : null} href={href} />
+            <Row label="Burn" field="burn_usd" value={company.burn_usd != null ? `${fmtUsd(company.burn_usd)} / mo` : null} href={href} />
+            <Row label="Runway" field="runway_months" value={company.runway_months != null ? `${company.runway_months} months` : null} href={href} />
             <Row label="Raised to date" value={company.raised_to_date_usd != null ? fmtUsd(company.raised_to_date_usd) : null} href={href} />
             <Row label="Team" value={company.team_size ? `${company.team_size} people` : null} href={href} />
           </dl>
+          <p className="ui-faint">Revenue, burn and runway here are the figures you typed into your profile. <Link to="/company/financial-health">Financial Health</Link> works its own from your monthly check-ins.</p>
           {company.traction && <p className="ui-muted">{company.traction}</p>}
           {isOwner && (company.founders || []).length > 0 && (
             <p className="ui-muted">Founders: {company.founders.map((f) => `${f.name}${f.role ? ` (${f.role})` : ''}`).join(' · ')} <Badge tone="outline" size="sm">Visible to you only</Badge></p>
