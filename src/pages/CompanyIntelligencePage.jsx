@@ -103,6 +103,8 @@ function Timing({ q, company }) {
   const t = q.data.timing || {};
   const need = q.data.capital_need || {};
   const setTarget = <Button as={Link} to="/capital/need#target-date" variant={t.status === 'no_target_date' ? 'accent' : 'link'} size="sm">{need.target_funding_date ? 'Change target date' : 'Set a target date'}</Button>;
+  // UAT F03: a start date behind today reads "Now", never a past date on its own.
+  const startPassed = Boolean(t.start_by) && (t.days_until_start < 0 || t.start_by < todayIso());
   if (t.status === 'no_target_date') {
     return (
       <div className="timing">
@@ -114,9 +116,19 @@ function Timing({ q, company }) {
   }
   return (
     <div className="timing">
-      <p className="timing-k">Start raising by</p>
-      <p className="timing-date">{fmtDate(t.start_by)}</p>
-      {t.attention && <Badge tone={t.attention.code === 'start_passed' || t.attention.code === 'target_infeasible' ? 'bad' : 'warn'} dot>{plainIntel(t.attention.text)}</Badge>}
+      {startPassed ? (
+        <>
+          <p className="timing-k">Start raising</p>
+          <p className="timing-date">Now</p>
+          <p className="ui-muted">The latest start date, {fmtDate(t.start_by)}, has passed.</p>
+        </>
+      ) : (
+        <>
+          <p className="timing-k">Start raising by</p>
+          <p className="timing-date">{fmtDate(t.start_by)}</p>
+        </>
+      )}
+      {t.attention && <Badge tone={['start_passed', 'target_infeasible', 'target_passed'].includes(t.attention.code) ? 'bad' : 'warn'} dot>{plainIntel(t.attention.text)}</Badge>}
       <p className="timing-why">{plainIntel(t.reason)}</p>
       {t.note && <p className="ui-muted">{plainIntel(t.note)}</p>}
       <dl className="timing-facts">

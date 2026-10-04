@@ -184,6 +184,7 @@ function Signal({ kind, s, high }) {
     // passed target date is the founder's own date and is always said.
     const passed = s.target_funding_date && s.target_funding_date < todayIso();
     foot = passed ? `Target date ${fmtDate(s.target_funding_date)} has passed`
+      : t?.start_by && t.start_by < todayIso() ? `Start now: the ${fmtDate(t.start_by)} start date has passed`
       : t?.start_by ? `Start raising by ${fmtDate(t.start_by)}` : t?.status === 'no_target_date' ? 'Set a target date'
         : timingLabel(s.raise_timing) || (!s.confirmed ? "Confirm what you're raising" : '');
   }
