@@ -115,11 +115,12 @@ export function PricingFaq({ data }) {
     },
     cr && ci && {
       q: 'What happens when my raise ends?',
-      a: `You step down to Company Intelligence${ci.prices?.[0] ? ` (${priceLine(ci.prices[0])})` : ''} and keep all your data. A monthly plan steps down at the end of the period you have paid for; a Raise Pass simply ends. You can also step down to Free.`,
+      a: `You step down to Company Intelligence${ci.prices?.[0] ? ` (${priceLine(ci.prices[0])})` : ''} and keep all your data. A monthly or yearly plan steps down at the end of the period you have paid for. You can also step down to Free.`,
     },
     cr && {
-      q: 'Is there an annual Capital Raising plan?',
-      a: `No. Capital Raising is ${crPrices || 'monthly or a 6-month Raise Pass'}. Raises have a start and an end, so you pay for the months you are raising.`,
+      // D62: both paid platform plans can be paid yearly, 10 months' price for 12 months.
+      q: 'Can I pay yearly?',
+      a: `Yes. Company Intelligence and Capital Raising can be paid monthly or yearly, and yearly is 10 months' price for 12 months of access: two months free.${crPrices ? ` Capital Raising is ${crPrices}.` : ''}`,
     },
     {
       q: 'Which currency?',
