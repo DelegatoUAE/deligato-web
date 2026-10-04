@@ -20,7 +20,7 @@ export default function AppShell({
   nav = [],
   LinkComponent = 'a',
   brand,
-  productName = 'Capital Access',
+  productName = 'Capital Intelligence',
   wordmark = 'Deligato',
   user,
   footer,
