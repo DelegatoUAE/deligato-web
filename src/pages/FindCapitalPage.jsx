@@ -186,7 +186,7 @@ export default function FindCapitalPage() {
             </Card>
           )}
           <div className="find-cta">
-            {noMatching ? <MatchingUpgrade savedCount={(pipeline || []).length} showRoutes={false} /> : (
+            {noMatching ? <MatchingUpgrade savedCount={(pipeline || []).length} showRoutes={false} companyId={companyId} /> : (
               <>
                 <Button variant="accent" size="lg" disabled={!filterRoutes.length} onClick={() => see('fits')} loading={seeing === 'fits'}>Find providers in every route that fits</Button>
                 {!filterRoutes.length && <p className="ui-muted">{q.data.capital_filter?.note}</p>}

@@ -89,11 +89,11 @@ export default function SavedPage() {
                 {byRecord.get(p.record_id) && <FitPills fits={byRecord.get(p.record_id).fits} result={byRecord.get(p.record_id)} />}
                 {p.capital_sources?.deadline && <span className="ui-muted">Next step: applications close {fmtDate(p.capital_sources.deadline)}.</span>}
               </div>
-              {!readOnly && <div className="ui-row">
-                <Button size="sm" variant="primary" onClick={() => toPipeline(p)} loading={busy === p.id}>Move to pipeline</Button>
-                {canDraft && <Button as={Link} size="sm" variant="ghost" to={`/capital/outreach?record=${encodeURIComponent(p.record_id)}`}>Prepare outreach</Button>}
+              <div className="ui-row">
+                {!readOnly && <Button size="sm" variant="primary" onClick={() => toPipeline(p)} loading={busy === p.id}>Move to pipeline</Button>}
+                {!readOnly && canDraft && <Button as={Link} size="sm" variant="ghost" to={`/capital/outreach?record=${encodeURIComponent(p.record_id)}`}>Prepare outreach</Button>}
                 <Button size="sm" variant="ghost" onClick={() => setRemoving(p)}>Remove</Button>
-              </div>}
+              </div>
             </li>
           ))}
         </ul>

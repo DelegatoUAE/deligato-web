@@ -62,6 +62,9 @@ export function getRun(runId) {
   return apiFetch(`/capital/runs/${runId}`);
 }
 
+/** D68/D69 locked teaser (Free and Company Intelligence): { preview: { potential_fits, regions } | null }. Aggregate only. */
+export const getMatchPreview = (companyId) => apiFetch(`/capital/profiles/${companyId}/preview`);
+
 export function getUnlocks(companyId) {
   return apiFetch(`/capital/profiles/${companyId}/unlocks`);
 }

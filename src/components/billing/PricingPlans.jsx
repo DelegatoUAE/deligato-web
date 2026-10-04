@@ -1,4 +1,4 @@
-import { Fragment } from 'react';
+import { Fragment, useState } from 'react';
 import { Badge, Icon } from '../../design/ui';
 import {
   cleanCopy, compareCell, isLaunching, money, PLAN_STORY, planBullets, platformOf, priceFor, priceLine, priceParts, servicesOf, serviceTerms,
@@ -48,6 +48,7 @@ function Bullets({ items }) {
 export function PlatformPlans({ data, cta, billing = 'monthly', isCurrent = () => false, highlight }) {
   const plans = platformOf(data);
   return (
+    <>
     <div className="pr2-plans" role="list" aria-label="Platform plans">
       {plans.map((plan, i) => {
         const story = PLAN_STORY[plan.id] || {};
@@ -75,6 +76,8 @@ export function PlatformPlans({ data, cta, billing = 'monthly', isCurrent = () =
         );
       })}
     </div>
+    <p className="pr2-boundary">Company Intelligence is continuous intelligence on your company. Investor and capital-provider matching, and the tools to run your raise, are in Capital Raising.</p>
+    </>
   );
 }
 
@@ -125,11 +128,20 @@ export function ProductMoment() {
   );
 }
 
-/** The two one-time services: wide horizontal cards, clearly add-ons rather than tiers. */
+/**
+ * The Capital Readiness Report as ONE service card (D69 layout, Bilal 5 Oct): a switch styled like
+ * the billing toggle chooses "Report" ($54) or "Report + Advisor" ($99, 40-minute session). The
+ * selected option shows its price, includes, the one terms line and its CTA. A service, not a tier.
+ */
 export function ServicesSection({ data, cta, isCurrent = () => false, highlight }) {
   const items = servicesOf(data);
+  const [pick, setPick] = useState(() => (highlight && items.some((p) => p.id === highlight) ? highlight : items[0]?.id));
   if (!items.length) return null;
+  const plan = items.find((p) => p.id === pick) || items[0];
+  const story = PLAN_STORY[plan.id] || {};
+  const price = plan.prices[0];
   const terms = serviceTerms(data);
+  const label = (p) => (p.id === 'capital-assessment' ? 'Report + Advisor' : 'Report');
   return (
     <section className="pr2-services" aria-labelledby="pr2-services-h">
       <header className="pr2-section-head">
@@ -137,25 +149,28 @@ export function ServicesSection({ data, cta, isCurrent = () => false, highlight 
         <h2 id="pr2-services-h" className="pr2-h2">Get capital-ready before you raise.</h2>
         <p className="pr2-sub">Get a structured assessment of what&apos;s ready, what&apos;s missing and what to fix next.</p>
       </header>
-      <div className="pr2-svc-list">
-        {items.map((plan) => {
-          const story = PLAN_STORY[plan.id] || {};
-          const price = plan.prices[0];
-          const lead = plan.id === 'capital-assessment';
-          return (
-            <article key={plan.id} className={`pr2-svc${lead ? ' is-lead' : ''}${isCurrent(plan) ? ' is-current' : ''}${highlight === plan.id ? ' is-hl' : ''}`} aria-labelledby={`pr2-${plan.id}`}>
-              <div className="pr2-svc-main">
-                <h3 id={`pr2-${plan.id}`} className="pr2-svc-name">{(story.label || plan.name).toUpperCase()}</h3>
-                <p className="pr2-svc-price"><strong>{money(price.amount_usd)}</strong><span> · one-time</span></p>
-                <p className="pr2-svc-promise">{story.promise}</p>
-              </div>
-              <Bullets items={planBullets(plan)} />
-              <div className="pr2-svc-cta">{cta(plan, price, story)}</div>
-            </article>
-          );
-        })}
-      </div>
-      {terms && <p className="pr2-svc-terms"><Icon name="spark" />{terms}</p>}
+      <article className={`pr2-svc${isCurrent(plan) ? ' is-current' : ''}`} aria-labelledby="pr2-svc-name">
+        <div className="pr2-svc-main">
+          <p className="pr2-svc-kicker">One-time service</p>
+          <h3 id="pr2-svc-name" className="pr2-svc-name">CAPITAL READINESS REPORT</h3>
+          {items.length > 1 && (
+            <div className="pr2-toggle pr2-svc-switch" role="radiogroup" aria-label="Report option">
+              {items.map((p) => (
+                <button key={p.id} type="button" role="radio" aria-checked={p.id === plan.id} className={p.id === plan.id ? 'is-on' : ''} onClick={() => setPick(p.id)}>
+                  {label(p)} <span className="pr2-svc-switch-price">{money(p.prices[0].amount_usd)}</span>
+                </button>
+              ))}
+            </div>
+          )}
+          <p className="pr2-svc-price"><strong>{money(price.amount_usd)}</strong><span> · one-time{plan.id === 'capital-assessment' ? ' · 40-minute advisor session' : ''}</span></p>
+          <p className="pr2-svc-promise">{story.promise}</p>
+        </div>
+        <div className="pr2-svc-side">
+          <Bullets items={planBullets(plan)} />
+          {terms && <p className="pr2-svc-terms"><Icon name="spark" />{terms}</p>}
+          <div className="pr2-svc-cta">{cta(plan, price, story)}</div>
+        </div>
+      </article>
     </section>
   );
 }

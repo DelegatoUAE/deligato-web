@@ -151,7 +151,7 @@ export default function InvestorProfilePage() {
       return <EmptyState icon="search" title="We couldn't find this capital source. It may have been retired." action={<Button as={Link} to="/capital/matches" variant="primary">Back to matches</Button>} />;
     }
     // D68: on Free an investor profile opens only for an investor saved earlier.
-    if (srcQ.error.status === 402) return <MatchingUpgrade savedCount={(pipeQ.data || []).length} />;
+    if (srcQ.error.status === 402) return <MatchingUpgrade savedCount={(pipeQ.data || []).length} companyId={companyId} />;
     return <LoadError error={srcQ.error} onRetry={srcQ.reload} what="this investor" />;
   }
   const p = srcQ.data?.profile;

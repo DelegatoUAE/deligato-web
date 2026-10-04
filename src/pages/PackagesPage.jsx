@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Badge, Button, Card, Modal, PageHeader, Skeleton, useToast } from '../design/ui';
 import { useCompany } from '../components/company-context';
-import { FundraisingNotice, LoadError } from '../components/capital/bits';
+import { FundraisingNotice, LoadError, MatchPreview } from '../components/capital/bits';
+import { hasMatching } from '../lib/plan';
 import { BillingToggle, CompareTable, PlatformPlans, PricingFaq, ServicesSection } from '../components/billing/PricingPlans';
 import CheckoutDialog from '../components/billing/CheckoutDialog';
 import useApi from '../lib/useApi';
@@ -92,8 +93,11 @@ export default function PackagesPage() {
       {!data.checkout?.enabled && (
         <p className="pr-payments-off" role="status"><strong>Payments open soon.</strong> Your plan isn&apos;t charged yet.</p>
       )}
-      {currentTier === 'free' && (
-        <p className="pr-credit-banner" role="note"><strong>Free has no investor matching.</strong> Matched investors and capital providers, why each fits, your shortlist, pipeline and outreach are part of Capital Raising. Investors you saved earlier stay visible, read-only.</p>
+      {entitlementsRaw && !hasMatching(entitlementsRaw.entitlements) && (
+        <>
+          <MatchPreview companyId={companyId} />
+          <p className="pr-credit-banner" role="note"><strong>Your plan has no investor matching.</strong> Company Intelligence is continuous intelligence on your company; matched investors and capital providers, why each fits, your shortlist, pipeline and outreach are part of Capital Raising. Investors you saved earlier stay visible, read-only.</p>
+        </>
       )}
 
       {hasAnnual(data) && <div className="pr2-bar"><BillingToggle value={billing} onChange={setBilling} note={annualNote} /></div>}

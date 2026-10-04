@@ -200,7 +200,6 @@ export default function PipelinePage() {
 
   async function remove() {
     const item = removing;
-    if (readOnly) { setRemoving(null); toast.info(MATCHING_UPGRADE.readOnly); return; }
     setBusy(true);
     try {
       await removeFromPipeline(item.id);

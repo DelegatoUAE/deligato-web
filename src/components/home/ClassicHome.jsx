@@ -12,7 +12,7 @@ import { rankActions, partOfDay, pipelineCounts } from '../../lib/home';
 import { bandLabel, readinessSource, readinessGaps } from '../../lib/readiness';
 import NextActions from '../capital/NextActions';
 import MatchRow from '../capital/MatchRow';
-import { FundraisingNotice, GateCard, LoadError } from '../capital/bits';
+import { FundraisingNotice, GateCard, LoadError, MatchPreview } from '../capital/bits';
 import { logEvent } from '../../lib/events';
 import { hasMatching, includedIn, MATCHING_UPGRADE, upgradeHref } from '../../lib/plan';
 
@@ -189,7 +189,7 @@ export default function ClassicHome() {
         </Card>
 
         <Card title="Top matches" action={run && !noMatching && <Button as={Link} to="/capital/matches" variant="link" size="sm">See all matches</Button>}>
-          {noMatching ? <GateCard compact title={MATCHING_UPGRADE.title} body="Free shows the capital routes that fit, without naming providers." cta="See Capital Raising" /> : runLoading ? <Skeleton h="140px" /> : !run ? (
+          {noMatching ? <><MatchPreview companyId={companyId} compact /><GateCard compact title={MATCHING_UPGRADE.title} body="Your plan shows the capital routes that fit, without naming providers." cta={MATCHING_UPGRADE.cta} /></> : runLoading ? <Skeleton h="140px" /> : !run ? (
             <p className="ui-muted">Your matches will appear here. <Link to="/capital/find">Find capital</Link></p>
           ) : <ul className="mrows">{run.results.slice(0, 3).map((x) => <MatchRow key={x.record_id} r={x} runId={run.run_id} />)}</ul>}
         </Card>

@@ -1017,3 +1017,13 @@
 .rec-critical .cc-h { font-size: var(--text-sm); margin: 0 0 var(--s-2); }
 .rec-critical ul { margin: 0; padding-left: var(--s-5); display: grid; gap: 2px; }
 .composer-example > .ui-badge { align-self: flex-start; justify-self: start; }
+
+/* ==== D69 LOCKED TEASER ==== */
+.match-teaser { display: grid; grid-template-columns: auto 1fr auto; gap: var(--s-3) var(--s-4); align-items: center; margin: 0 0 var(--s-4); padding: var(--s-4) var(--s-5); border: 1px solid var(--gold-line); border-radius: var(--r-lg); background: var(--gold-wash); }
+.match-teaser-lock { display: grid; place-items: center; width: 36px; height: 36px; border-radius: var(--r-md); background: var(--surface); color: var(--text-accent); }
+.match-teaser-lock svg { width: 18px; height: 18px; }
+.match-teaser-count { margin: 0; font-size: var(--text-lg); font-weight: var(--fw-semibold); color: var(--text-strong); }
+.match-teaser-sub { margin: 2px 0 0; font-size: var(--text-sm); color: var(--text-soft); }
+.match-teaser.is-compact { padding: var(--s-3) var(--s-4); }
+.match-teaser.is-compact .match-teaser-count { font-size: var(--text-md); }
+@media (max-width: 639px) { .match-teaser { grid-template-columns: auto 1fr; } .match-teaser > .ui-btn { grid-column: 1 / -1; } }

@@ -245,7 +245,7 @@ export default function MatchesPage() {
     return (
       <div><SubNav section="capital" />
         <PageHeader title="Capital matches" subtitle={company.name} />
-        <MatchingUpgrade savedCount={(pipeQ.data || []).length} />
+        <MatchingUpgrade savedCount={(pipeQ.data || []).length} companyId={companyId} />
       </div>
     );
   }

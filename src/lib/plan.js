@@ -81,6 +81,24 @@ export function canShortlist(ents) {
 /** D68 copy, shared by every Free upgrade state (Matches, Find Capital, Saved, Pipeline, profile). */
 export const MATCHING_UPGRADE = {
   title: 'Investor matching is part of Capital Raising',
-  body: 'Free shows where your company stands and which types of capital fit, without naming providers. Capital Raising adds matched investors and capital providers, why each one fits, the evidence behind it, your shortlist and pipeline, and outreach.',
-  readOnly: 'Investors you saved earlier stay here, read-only. Saving more, moving stages and outreach are part of Capital Raising.',
+  body: 'Free and Company Intelligence show where your company stands and which types of capital fit, without naming providers. Capital Raising adds matched investors and capital providers, why each one fits, the evidence behind it, your shortlist and pipeline, and outreach.',
+  readOnly: 'Investors you saved earlier stay here, read-only. You can remove them. Saving more, moving stages and outreach are part of Capital Raising.',
+  cta: 'Unlock Capital Raising',
 };
+
+const listWords = (xs) => (xs.length <= 1 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`);
+
+/**
+ * D69 locked teaser words, from the API's aggregate only (a real engine run). null when there is
+ * nothing honest to say (no preview, a count of 0, or not a whole number): never an estimate.
+ */
+export function previewLines(preview) {
+  const n = preview && Number.isInteger(preview.potential_fits) ? preview.potential_fits : 0;
+  if (n <= 0) return null;
+  const regions = Array.isArray(preview.regions) ? preview.regions.filter((x) => typeof x === 'string' && x).slice(0, 3) : [];
+  return {
+    count: `${n.toLocaleString('en-US')} potential capital ${n === 1 ? 'match' : 'matches'} identified.`,
+    regions: regions.length ? `Potential fits across ${listWords(regions)} investors.` : null,
+    upgrade: 'Upgrade to Capital Raising to see who fits your company and why.',
+  };
+}

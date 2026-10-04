@@ -158,7 +158,8 @@ test('D68: three platform plans in ladder order, the two services apart (never t
 test('D68: card bullets are only shown when the API confirms them', () => {
   assert.deepEqual(planBullets(platformOf(D68)[0]), ['IR / Investor Readiness Score', 'Financial Health Check', 'Company profile & portal', 'Basic readiness insights', '20-minute consultant session']);
   assert.equal(planBullets(platformOf(D68)[2]).length, PLAN_STORY['capital-raising'].bullets.length, 'every Capital Raising bullet is true');
-  assert.ok(!planBullets(platformOf(D68)[0]).some((b) => /match|shortlist|pipeline|outreach/i.test(b)), 'Free never lists matching');
+  assert.ok(!planBullets(platformOf(D68)[0]).some((b) => /match|shortlist|pipeline|outreach|team/i.test(b)), 'Free never lists matching or team members (D69)');
+  assert.ok(!planBullets(platformOf(D68)[1]).some((b) => /match|shortlist|pipeline|outreach/i.test(b)), 'Company Intelligence never lists matching (D69)');
   const pretend = { ...platformOf(D68)[1], display: { ...platformOf(D68)[1].display, score_history: 'Not included' } };
   assert.ok(!planBullets(pretend).includes('Readiness history'), 'a bullet the API does not grant is dropped');
   assert.deepEqual(planBullets(servicesOf(D68)[1]), ['Everything in the report', '+ 40-minute session with an advisor']);

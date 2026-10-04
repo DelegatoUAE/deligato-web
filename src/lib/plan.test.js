@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, dirname, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { tierLabel, upgradeTarget, includedIn, displayValue, hasMatching, canShortlist, MATCHING_UPGRADE, packageName } from './plan.js';
+import { tierLabel, upgradeTarget, includedIn, displayValue, hasMatching, canShortlist, MATCHING_UPGRADE, packageName, previewLines } from './plan.js';
 
 const SRC = join(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -56,4 +56,16 @@ test('D68: Free has no matching and no new shortlist items; unknown defers to th
   assert.match(MATCHING_UPGRADE.readOnly, /read-only/);
   assert.equal(packageName('capital-readiness'), 'Capital Readiness Report');
   assert.equal(packageName('capital-assessment'), 'Capital Readiness + Advisor');
+});
+
+test('D69 locked teaser words: from the aggregate only, nothing when 0 or unknown', () => {
+  assert.equal(previewLines(null), null);
+  assert.equal(previewLines({ potential_fits: 0, regions: ['UAE'] }), null);
+  assert.equal(previewLines({ potential_fits: '27' }), null, 'never coerces a non-number');
+  assert.deepEqual(previewLines({ potential_fits: 23, regions: [] }),
+    { count: '23 potential capital matches identified.', regions: null, upgrade: 'Upgrade to Capital Raising to see who fits your company and why.' });
+  assert.equal(previewLines({ potential_fits: 1, regions: [] }).count, '1 potential capital match identified.');
+  assert.equal(previewLines({ potential_fits: 140, regions: ['United Arab Emirates', 'United Kingdom', 'USA', 'France'] }).regions,
+    'Potential fits across United Arab Emirates, United Kingdom and USA investors.');
+  assert.equal(MATCHING_UPGRADE.cta, 'Unlock Capital Raising');
 });

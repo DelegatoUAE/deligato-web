@@ -183,3 +183,17 @@
 @media (max-width: 1023px) { .pr2-loading { grid-template-columns: minmax(0, 1fr); } }
 .pr2-final .pr2-btn-outline { background: transparent; color: var(--text-strong); border-color: var(--border-strong); }
 .pr2-final .pr2-btn-outline:hover { background: var(--surface-hover); }
+
+/* D69: one service card with a Report / Report + Advisor switch */
+.pr2-boundary { grid-column: 1 / -1; margin: var(--s-5) 0 0; font-size: var(--text-sm); color: var(--text-soft); text-align: center; }
+.pr2-services .pr2-svc { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; max-width: 980px; }
+.pr2-svc-kicker { margin: 0 0 var(--s-2); font-size: var(--text-2xs); font-weight: var(--fw-semibold); letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-faint); }
+.pr2-svc-switch { margin: var(--s-4) 0 var(--s-2); }
+.pr2-svc-switch-price { font-weight: var(--fw-semibold); }
+.pr2-svc-side { display: flex; flex-direction: column; gap: var(--s-4); }
+.pr2-svc-side .pr2-list { padding: 0; border: 0; }
+.pr2-svc-side .pr2-svc-terms { margin: 0; }
+.pr2-svc-side .pr2-svc-cta { min-width: 0; }
+@media (max-width: 1023px) { .pr2-services .pr2-svc { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 639px) { .pr2-svc-switch { width: 100%; } .pr2-svc-switch button { flex: 1; justify-content: center; padding: 0 var(--s-2); } }
+@media (max-width: 639px) { .pr2-svc-switch button { white-space: nowrap; font-size: var(--text-xs); gap: var(--s-1); } }
