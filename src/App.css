@@ -1092,11 +1092,6 @@
 .login-form .ui-faint { font-size: var(--text-xs); line-height: var(--lh-normal); }
 .login-secure { display: flex; gap: 8px; align-items: flex-start; margin: var(--s-4) 0 0; padding-top: var(--s-4); border-top: 1px solid var(--border-soft); font-size: var(--text-xs); color: var(--text-soft); line-height: var(--lh-normal); }
 .login-secure svg { width: 14px; height: 14px; flex: none; margin-top: 2px; }
-.pw-field { position: relative; }
-.pw-field .ui-input { padding-right: 64px; width: 100%; }
-.pw-toggle { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); height: 32px; padding: 0 10px; border: 0; border-radius: var(--r-sm); background: transparent; color: var(--text-link); font: inherit; font-size: var(--text-xs); font-weight: var(--fw-semibold); cursor: pointer; }
-.pw-toggle:hover { background: var(--surface-hover); }
-.pw-toggle:focus-visible { outline: none; box-shadow: var(--ring); }
 @media (max-width: 1100px) { .login-photo { width: min(70%, 460px); opacity: 0.85; } .login-script { display: none; } }
 @media (max-width: 900px) {
   .login { grid-template-columns: 1fr; }
@@ -1145,3 +1140,9 @@
 /* Insights: four tiles read as one row on desktop and a 2×2 grid on phones. */
 .home-stats.insights-stats { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 @media (max-width: 600px) { .home-stats.insights-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } .home-stats.insights-stats > :first-child { grid-column: auto; } }
+/* Show password (5 Oct v2): a visible control under the field, never inside it */
+.pw-field { display: grid; gap: 6px; }
+.pw-field .ui-input { width: 100%; }
+.pw-toggle { justify-self: end; display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 4px 8px; margin-right: -8px; border: 0; border-radius: var(--r-sm); background: transparent; color: var(--text-link); font: inherit; font-size: var(--text-sm); font-weight: var(--fw-semibold); cursor: pointer; }
+.pw-toggle:hover { background: var(--surface-hover); }
+.pw-toggle:focus-visible { outline: none; box-shadow: var(--ring); }
