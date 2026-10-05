@@ -122,6 +122,7 @@ test('D73 limit rows: numbers from the API, hidden limits never shown', () => {
   ]);
   const free = planLimitRows({ entitlements: { advisory_minutes_per_year: 0 }, display: { max_results: 'Up to 5', shortlist_limit: 'Up to 5', active_pipeline_limit: 'Not included' }, limits: { seats: 1, deal_room_storage_gb: 0 } });
   assert.deepEqual(free.map((r) => r.value), ['Up to 5', 'Up to 5', 'Not included', 'Owner only', 'Not included', 'Not included']);
+  assert.equal(planLimitRows(view, { deal_room_storage_gb: '4a' }).find((r) => r.key === 'deal_room_storage_gb').value, '2 GB (opens in a later release)');
   assert.equal(advisoryLabel(120), '2 hours');
   assert.equal(advisoryLabel('Up to 40'), '40 minutes');
   assert.equal(advisoryLabel(60), '1 hour');

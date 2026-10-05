@@ -4,7 +4,7 @@ import { Alert, Badge, Button, Card, ConfirmDialog, Skeleton, Table, useToast } 
 import useApi from '../../lib/useApi';
 import { getPlans, getSubscription, cancelPlan, refundCheckout } from '../../lib/billing';
 import { setPocPlan, getCatalog } from '../../lib/packages';
-import { tierLabel, displayValue, planLimitRows } from '../../lib/plan';
+import { tierLabel, displayValue, planIdForTier, planLimitRows } from '../../lib/plan';
 import { billingErrorCopy, bridgeExpiry, checkoutStatusLabel, money, planForTier, priceLine, productName, refundable, creditUsedBy } from '../../lib/pricing';
 import { fmtDate, humanise } from '../../lib/format';
 import './billing.css';
@@ -114,7 +114,7 @@ export default function PlanBilling({ companyId, entitlementsRaw, reloadEntitlem
         ))}
         {entitlementsRaw && (
           <dl className="bill-limits">
-            {planLimitRows(entitlementsRaw).map((r) => <div key={r.key}><dt>{r.label}</dt><dd>{r.value}</dd></div>)}
+            {planLimitRows(entitlementsRaw, plansQ.data?.d73_platform?.pending?.[planIdForTier(tier)]).map((r) => <div key={r.key}><dt>{r.label}</dt><dd>{r.value}</dd></div>)}
           </dl>
         )}
         {Object.keys(display).length > 0 ? (

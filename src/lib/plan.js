@@ -111,6 +111,9 @@ export const canCompare = (ents) => Boolean(ents && ents.compare_tools === true)
 /** Basic explanations (Free): the company's own top N only, no contact routes, no excluded list. */
 export const basicMatching = (ents) => Boolean(ents) && ents.match_explanation_level !== undefined && !atLeast(ents, 'match_explanation_level', 'full');
 
+/** ladder tier → D73 plan id (for the API's per-plan d73_platform maps). */
+export const planIdForTier = (tier) => ({ free: 'readiness-free', capital_intelligence: 'capital-intelligence', capital_raising: 'capital-raising', company_intelligence: 'company-intelligence' }[tier] || null);
+
 /** The plan that shows more matches than this one (D73 ladder), or null at the top. */
 export function nextPlanFor(tier) {
   if (tier === 'capital_raising') return null;
@@ -201,12 +204,13 @@ export const LIMIT_LABELS = {
  * them (signed-in entitlements, or a price-list / catalog plan). A row is left out when the API
  * gives nothing for it. → [{ key, label, value }]
  */
-export function planLimitRows(view) {
+export function planLimitRows(view, pending = {}) {
   const d = view?.display || {};
   const lim = view?.limits || {};
   const ents = view?.entitlements || {};
   const rows = [];
-  const push = (key, value) => { if (value !== null && value !== undefined && value !== '') rows.push({ key, label: LIMIT_LABELS[key], value: fullAccess(value) }); };
+  const later = (key, value) => (pending && pending[key] && !/^not included$/i.test(String(value)) ? `${value} (opens in a later release)` : value);
+  const push = (key, value) => { if (value !== null && value !== undefined && value !== '') rows.push({ key, label: LIMIT_LABELS[key], value: later(key, fullAccess(value)) }); };
   push('max_results', d.max_results);
   push('shortlist_limit', d.shortlist_limit);
   push('active_pipeline_limit', d.active_pipeline_limit);

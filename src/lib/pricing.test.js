@@ -234,3 +234,42 @@ test('D73: compare cells read each plan\'s own values; unpublished cells are fla
   assert.deepEqual(row('advisory_minutes_per_year').values, ['Not included', '40 minutes', '2 hours']);
   assert.equal(cmp.pending, true);
 });
+
+// api 65702e4: d73_platform carries the D73 limits, the later-release flags and a D73 compare table.
+const D73_65 = {
+  ...D73,
+  d73_platform: {
+    plans: ['readiness-free', 'capital-intelligence', 'capital-raising'],
+    not_sold_until_phase_3: ['capital-intelligence'],
+    limits: {
+      'readiness-free': { max_results: 'Up to 5', seats: 'Owner only', deal_room_storage_gb: 'Not included', dataroom_active_guests: 'Not included', ai_calls_per_month: 'Full access / plan limits' },
+      'capital-intelligence': { max_results: 'Up to 50', seats: '3 team members', deal_room_storage_gb: '2 GB', dataroom_active_guests: 'Coming later' },
+      'capital-raising': { max_results: 'Up to 200', seats: '5 team members', deal_room_storage_gb: '10 GB', dataroom_active_guests: 'Coming later' },
+    },
+    pending: { 'readiness-free': {}, 'capital-intelligence': { deal_room_storage_gb: '4a', data_room: '4a' }, 'capital-raising': {} },
+    compare: { plans: ['readiness-free', 'capital-intelligence', 'capital-raising'], groups: [
+      { label: 'Team access', rows: [{ key: 'seats', label: 'Team members', values: ['Owner only', '3 team members', '5 team members'] }] },
+      { label: 'Data / deal room', rows: [
+        { key: 'data_room', label: 'Data room', values: ['Checklist', 'Checklist with expiry alerts', 'Private document storage (investor sharing coming later)'] },
+        { key: 'deal_room_storage_gb', label: 'Data room storage', values: ['Not included', '2 GB', '10 GB'] },
+      ] },
+    ] },
+  },
+};
+
+test('api 65702e4: D73 limits and compare published, so nothing is "not published"; storage carries its later-release flag', () => {
+  const [, ci] = platformOf(D73_65, CATALOG);
+  assert.equal(ci.checkout, false, 'still not sold until phase 3');
+  assert.equal(ci.limits.seats, '3 team members');
+  assert.ok(planBullets(ci).includes('Data room: 2 GB of private document storage (opens in a later release)'));
+  assert.ok(planBullets(ci).includes('3 team members'));
+  const cmp = compareOf(D73_65, CATALOG);
+  assert.equal(cmp.pending, false, 'no "*" cell remains');
+  const row = (k) => cmp.groups.flatMap((g) => g.rows).filter((r) => r.key === k);
+  assert.equal(row('deal_room_storage_gb').length, 1, 'the API storage row is used, not duplicated');
+  assert.deepEqual(row('deal_room_storage_gb')[0].values, ['Not included', '2 GB (opens in a later release)', '10 GB']);
+  assert.deepEqual(row('seats')[0].values, ['Owner only', '3 team members', '5 team members']);
+  assert.deepEqual(row('data_room')[0].values[1], 'Checklist with expiry alerts', 'the checklist works today: no flag');
+  assert.deepEqual(row('dataroom_active_guests')[0].values, ['Not included', 'Coming later', 'Coming later']);
+  assert.ok(!cmp.groups.flatMap((g) => g.rows).some((r) => r.key === 'ai_calls_per_month'), 'hidden limits never become a row');
+});

@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { Badge, Button, Card, Modal, PageHeader, Skeleton, useToast } from '../design/ui';
 import { useCompany } from '../components/company-context';
 import { FundraisingNotice, LoadError } from '../components/capital/bits';
-import { planLimitRows, tierLabel } from '../lib/plan';
+import { planIdForTier, planLimitRows, tierLabel } from '../lib/plan';
 import { BillingToggle, CompareTable, PlatformPlans, PricingFaq, ServicesSection } from '../components/billing/PricingPlans';
 import CheckoutDialog from '../components/billing/CheckoutDialog';
 import useApi from '../lib/useApi';
@@ -99,7 +99,7 @@ export default function PackagesPage() {
       {entitlementsRaw && (
         <Card className="plan-now" eyebrow="Your plan" title={tierLabel(currentTier) || 'Free'}>
           <dl className="bill-limits">
-            {planLimitRows(entitlementsRaw).map((r) => <div key={r.key}><dt>{r.label}</dt><dd>{r.value}</dd></div>)}
+            {planLimitRows(entitlementsRaw, data.d73_platform?.pending?.[planIdForTier(currentTier)]).map((r) => <div key={r.key}><dt>{r.label}</dt><dd>{r.value}</dd></div>)}
           </dl>
         </Card>
       )}

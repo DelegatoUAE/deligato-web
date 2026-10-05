@@ -18,7 +18,8 @@ import { bucketOf, canCompare, countBuckets, gateFor, hasPipelineWorkflow, nextP
 import { timelineRows } from '../lib/timeline';
 import ExportButton from '../components/capital/ExportButton';
 
-const OUTCOME_STAGES = ['passed', 'not_now', 'term_sheet', 'closed_won'];
+// D73: `rejected` asks why too; the api records it as passed (approached) or not_fit (never approached).
+const OUTCOME_STAGES = ['passed', 'not_now', 'rejected', 'term_sheet', 'closed_won'];
 const TONE = { shortlisted: 'neutral', researching: 'neutral', intro_requested: 'info', contacted: 'info', in_conversation: 'navy', diligence: 'navy', term_sheet: 'gold', closed_won: 'ok', passed: 'bad', not_now: 'neutral', rejected: 'bad' };
 // D73: the stage menu offers what the plan allows (history always; a full bucket is disabled). The server stays the judge.
 const stageOptions = (from, capacity, readOnly) => PIPELINE_STAGES.map((s) => ({
@@ -40,6 +41,7 @@ async function eventForMove(companyId, item, to) {
 function OutcomeDialog({ state, onCancel, onSave, busy }) {
   const { item, to } = state;
   const [form, setForm] = useState({ outcome: to === 'not_now' ? 'not_now' : to, reason: to === 'not_now' ? 'timing_fund_cycle' : '', amount: '', instrument: '', date: todayIso(), note: '' });
+  const rejecting = form.outcome === 'rejected';
   const needReason = ['passed', 'not_now'].includes(form.outcome);
   const needAmount = ['term_sheet', 'closed_won'].includes(form.outcome);
   const valid = (!needReason || form.reason) && (!needAmount || Number(form.amount) > 0) && (form.outcome !== 'closed_won' || form.instrument);
@@ -56,6 +58,11 @@ function OutcomeDialog({ state, onCancel, onSave, busy }) {
                 ))}
               </div>
             )}
+          </FormField>
+        )}
+        {rejecting && (
+          <FormField label="Main reason" optional hint="Rejected stays in your history and frees a slot. If you never approached them, we record it as not a fit.">
+            <Select value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} placeholder="Choose a reason" options={PASS_REASONS.map((r) => ({ value: r.key, label: r.label }))} />
           </FormField>
         )}
         {needReason && (
@@ -200,7 +207,7 @@ export default function PipelinePage() {
   async function saveOutcome(form) {
     const { item, to } = outcome;
     setBusy(true);
-    const target = form.outcome === 'not_now' ? 'not_now' : to === 'not_now' && form.outcome === 'passed' ? 'passed' : to;
+    const target = form.outcome === 'rejected' ? 'rejected' : form.outcome === 'not_now' ? 'not_now' : to === 'not_now' && form.outcome === 'passed' ? 'passed' : to;
     await applyMove(item, target, async () => {
       try {
         await recordOutcome(companyId, {
@@ -330,7 +337,7 @@ export default function PipelinePage() {
           })}
         </div>
       )}
-      <p className="ui-faint">Drag a card, or open it and use Stage, to move it. Passed, Not now, Term sheet and Closed ask what happened. Closed, passed, not now and rejected stay in your history and free a slot.</p>
+      <p className="ui-faint">Drag a card, or open it and use Stage, to move it. Passed, Not now, Rejected, Term sheet and Closed ask what happened. Closed, passed, not now and rejected stay in your history and free a slot.</p>
 
       {outcome && <OutcomeDialog state={outcome} busy={busy} onCancel={() => setOutcome(null)} onSave={saveOutcome} />}
       {openItem && <ItemDrawer key={openItem.id} item={openItem} companyId={companyId} onClose={() => setOpenId(null)} onChanged={replace} onMove={move} onRemove={setRemoving} readOnly={Boolean(openItem.read_only)} workflow={workflow} compare={canCompare(entitlements)} capacity={capacity} />}

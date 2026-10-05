@@ -82,7 +82,7 @@ export default function DataRoomPage({ mode = 'dataroom' }) {
   const tier = entitlementsRaw?.ladder_tier || 'free';
   const nextPlan = nextPlanFor(tier) || 'capital-raising';
   const planLine = canUpload ? ''
-    : storageGb > 0 ? ` Your plan includes ${storageGb} GB of private document storage; uploads open soon.`
+    : storageGb > 0 ? ` Your plan includes ${storageGb} GB of private document storage (opens in a later release).`
       : ' Private document storage is part of Capital Intelligence and Capital Raising.';
   // The plan allows uploads, but the API says whether private storage is
   // connected. Only 'available' means a file can honestly be stored; anything

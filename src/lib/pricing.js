@@ -184,9 +184,13 @@ function fromCatalog(p, version) {
   return { id: p.id, name: p.name, tier: p.tier || null, tagline: p.tagline, includes: p.includes, prices, display: p.display || {}, entitlements: p.entitlements || {}, checkout: false, from_catalog: true };
 }
 
-/** Seats and other shown limits per plan id from the API's compare block (it covers the priced columns). */
+/** "opens in a later release" when the API marks a plan's key as decided but not delivered yet. */
+export const LATER = 'opens in a later release';
+export const isPending = (plan, key) => Boolean(plan?.pending && plan.pending[key]);
+
+/** Seats and other shown limits per plan id from the API's compare block (D73 compare first). */
 function compareLimit(data, id, key) {
-  const cmp = data?.compare;
+  const cmp = data?.d73_platform?.compare?.plans?.includes(id) ? data.d73_platform.compare : data?.compare;
   const i = Array.isArray(cmp?.plans) ? cmp.plans.indexOf(id) : -1;
   if (i < 0) return undefined;
   for (const g of cmp.groups || []) for (const r of g.rows || []) if (r.key === key) return r.values?.[i];
@@ -202,14 +206,21 @@ export function platformOf(data, catalog = null) {
   const ids = Array.isArray(data?.d73_platform?.plans) ? data.d73_platform.plans : Array.isArray(data?.platform) ? data.platform : LEGACY_PLATFORM;
   const priced = columnsOf(data);
   const cat = [...(catalog?.packages || []), ...(catalog?.add_ons || [])];
+  const d73 = data?.d73_platform || {};
+  const notSold = Array.isArray(d73.not_sold_until_phase_3) ? d73.not_sold_until_phase_3 : [];
   return ids.map((id) => {
+    // api 65702e4: d73_platform.limits / .pending carry each D73 plan's shown limits and the keys that
+    // open in a later release; they win over the priced column (which may be the restricted bundle).
+    const extra = { limits: d73.limits?.[id] || null, pending: d73.pending?.[id] || {} };
     const p = priced.find((x) => x.id === id && !x.restricted_bundle);
     if (p) {
       const seats = p.limits?.seats ?? compareLimit(data, id, 'seats');
-      return { ...p, checkout: true, limits: { ...(p.limits || {}), ...(seats !== undefined ? { seats } : {}) } };
+      return { ...p, checkout: !notSold.includes(id), pending: extra.pending, limits: { ...(p.limits || {}), ...(seats !== undefined ? { seats } : {}), ...(extra.limits || {}) } };
     }
     const c = cat.find((x) => x.id === id);
-    return c ? fromCatalog(c, data?.price_version) : null;
+    if (!c) return null;
+    const plan = fromCatalog(c, data?.price_version);
+    return { ...plan, pending: extra.pending, limits: { ...(c.limits || {}), ...(extra.limits || {}) } };
   }).filter(Boolean);
 }
 
@@ -236,7 +247,7 @@ const D73_BULLETS = [
   (p) => (given(p.display?.ai_level) ? cleanCopy(p.display.ai_level) : null),
   (p) => {
     const gb = p.limits?.deal_room_storage_gb;
-    if (given(gb)) return `Data room: ${cleanCopy(gb)} of private document storage`;
+    if (given(gb)) return `Data room: ${cleanCopy(gb)} of private document storage${isPending(p, 'deal_room_storage_gb') ? ` (${LATER})` : ''}`;
     if (p.id !== 'readiness-free' && given(p.display?.data_room)) return 'Data room: private document storage coming later';
     return given(p.display?.data_room) ? `Data room ${cleanCopy(p.display.data_room).toLowerCase()}` : null;
   },
@@ -312,21 +323,28 @@ export function compareCell(value) {
  */
 export function compareOf(data, catalog = null) {
   const plans = platformOf(data, catalog);
-  const groups = (data?.compare?.groups || []).map((g) => ({
+  const base = data?.d73_platform?.compare?.groups ? data.d73_platform.compare : data?.compare;
+  const groups = (base?.groups || []).map((g) => ({
     label: g.label,
     rows: (g.rows || []).map((r) => ({
       key: r.key, label: r.label,
       values: plans.map((p) => {
-        if (p.display && r.key in p.display) return p.display[r.key];
-        const v = r.key === 'seats' ? (p.limits?.seats ?? compareLimit(data, p.id, r.key)) : compareLimit(data, p.id, r.key);
-        return v === undefined ? null : v;
+        let v;
+        if (p.display && r.key in p.display) v = p.display[r.key];
+        else if (p.limits && r.key in p.limits) v = p.limits[r.key];
+        else v = compareLimit(data, p.id, r.key);
+        if (v === undefined || v === null) return null;
+        // Only storage carries the flag here: the data room checklist works today, and the report /
+        // expert-time timing (phase 3) is worded on the cards and FAQ, not as a later release.
+        return r.key === 'deal_room_storage_gb' && isPending(p, r.key) && given(v) ? `${cleanCopy(v)} (${LATER})` : v;
       }),
     })),
   }));
-  const storage = (p) => (given(p.limits?.deal_room_storage_gb) ? p.limits.deal_room_storage_gb : p.id === 'readiness-free' ? 'Not included' : null);
+  const has = (k) => groups.some((g) => g.rows.some((r) => r.key === k));
+  const storage = (p) => (given(p.limits?.deal_room_storage_gb) ? `${cleanCopy(p.limits.deal_room_storage_gb)}${isPending(p, 'deal_room_storage_gb') ? ` (${LATER})` : ''}` : p.id === 'readiness-free' ? 'Not included' : null);
   const extra = [
-    { key: 'deal_room_storage_gb', label: 'Data room storage', values: plans.map(storage) },
-    { key: 'dataroom_active_guests', label: 'Investor guest access', values: plans.map((p) => (p.id === 'readiness-free' ? 'Not included' : 'Coming later')) },
+    ...(has('deal_room_storage_gb') ? [] : [{ key: 'deal_room_storage_gb', label: 'Data room storage', values: plans.map(storage) }]),
+    { key: 'dataroom_active_guests', label: 'Investor guest access', values: plans.map((p) => (p.limits?.dataroom_active_guests ? cleanCopy(p.limits.dataroom_active_guests) : p.id === 'readiness-free' ? 'Not included' : 'Coming later')) },
   ];
   const dr = groups.find((g) => g.rows.some((r) => r.key === 'data_room'));
   if (dr) dr.rows.push(...extra); else groups.push({ label: 'Data room', rows: extra });
