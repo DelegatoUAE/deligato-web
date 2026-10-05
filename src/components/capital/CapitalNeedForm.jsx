@@ -6,19 +6,13 @@ import { updateProfile } from '../../lib/capital';
 import { TIMINGS, fmtUsd, countryName } from '../../lib/format';
 import { COUNTRY_CODES, marketCode } from '../../lib/countries';
 import { logEvent } from '../../lib/events';
+import { getRoutingCatalog } from '../../lib/routing';
+import { purposeOptions } from '../../lib/purposes';
+import useApi from '../../lib/useApi';
 
 const FALLBACK_INSTRUMENTS = ['Equity', 'SAFE', 'Convertible note', 'Venture debt', 'Revenue-based', 'Grant', 'Loan'];
 const NOT_SURE = '__not_sure__';
 const EARLY = ['Idea', 'Pre-seed'];
-// The routing engine's purpose vocabulary (api modules/routing/facts.js PURPOSES).
-// It drives which capital routes fit (D46); Find capital asks for it by name.
-const PURPOSES = [
-  { key: 'working_capital', label: 'Working capital' }, { key: 'product', label: 'Product and engineering' },
-  { key: 'hiring', label: 'Hiring' }, { key: 'marketing', label: 'Sales and marketing' },
-  { key: 'expansion', label: 'Expansion to new markets' }, { key: 'capex', label: 'Equipment or facilities' },
-  { key: 'rnd', label: 'R&D, pilots, certification' }, { key: 'refinancing', label: 'Refinancing debt' },
-  { key: 'acquisition', label: 'An acquisition' },
-];
 // api modules/routing/capital-need.js: dilution_tolerance none | low | open.
 const DILUTION = [
   { key: 'open', label: 'Yes' }, { key: 'low', label: 'A small stake only' }, { key: 'none', label: 'No, I keep full ownership' },
@@ -54,6 +48,9 @@ export default function CapitalNeedForm({ firstRun = false, onSaved, submitLabel
     willing_to_relocate: company?.willing_to_relocate === true ? 'yes' : company?.willing_to_relocate === false ? 'no' : 'unsure',
   }));
   const [edited, setEdited] = useState({});
+  // R-B5 / Architecture A12: the API owns the purpose keys; offline, the known list.
+  const catalogQ = useApi(() => getRoutingCatalog().then((c) => c?.purposes || null).catch(() => null), []);
+  const PURPOSES = purposeOptions(catalogQ.data);
   const [market, setMarket] = useState('');
   const [errors, setErrors] = useState({});
   const [busy, setBusy] = useState(null);
