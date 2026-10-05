@@ -6,6 +6,7 @@ import { afterSignIn } from '../lib/team';
 import PasswordInput from '../components/PasswordInput';
 import { publicAuthError } from '../lib/errorDetails';
 import { apiFetch, setSession } from '../lib/auth';
+import ResendConfirmation from '../components/ResendConfirmation';
 
 const DevRegister = import.meta.env.DEV ? lazy(() => import('../components/DevRegister')) : null;
 
@@ -48,6 +49,8 @@ export default function SignupPage() {
       <AuthLayout title="Check your email" subtitle={`We sent a confirmation link to ${form.email}.`}>
         <div className="ui-stack">
           <Alert tone="ok">{sent}</Alert>
+          <p className="login-alt">No email after a few minutes? Check your spam or junk folder, then:</p>
+          <ResendConfirmation email={form.email} />
           <p className="login-alt">Confirmed already? <Link to="/login">Sign in</Link></p>
         </div>
       </AuthLayout>
