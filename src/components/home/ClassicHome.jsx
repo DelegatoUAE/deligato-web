@@ -156,7 +156,7 @@ export default function ClassicHome() {
           <div className="ui-stat"><div className="ui-stat-label">In pipeline</div><div className="ui-stat-value ui-stat-value-text">Couldn't load</div><Button variant="link" size="sm" onClick={reloadPipeline}>Retry</Button></div>
         ) : (
           <StatTile as={Link} to="/capital/pipeline" label="In pipeline" loading={!pipeline}
-            value={pipeline ? pc.inPipeline : ''} foot={!pipeline ? '' : `${pc.saved} saved${pc.inPipeline === 0 ? ' · starts when you add a match' : staleN ? ` · ${staleN} need a reply` : ' · all up to date'}`} />
+            value={pipeline ? pc.inPipeline : ''} foot={!pipeline ? '' : `${pc.saved} shortlisted${pc.inPipeline === 0 ? ' · starts when you add a match' : staleN ? ` · ${staleN} need a reply` : ' · all up to date'}`} />
         )}
         <StatTile as={Link} to="/capital/readiness#gaps" label="Readiness gaps" loading={readinessLoading}
           value={r ? gaps : 'Not scored yet'} foot={!r ? 'Appears after scoring' : gaps === 0 ? 'No gaps flagged' : biggestLabel ? `First: ${biggestLabel}` : 'factors to strengthen'} />

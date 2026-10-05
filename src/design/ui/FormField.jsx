@@ -9,7 +9,12 @@ import Icon from './Icon.jsx';
  * required shows *, optional shows "Optional". wide spans a ui-form grid.
  */
 export default function FormField({ label, hint, error, required = false, optional = false, wide = false, className, children }) {
-  const id = useId();
+  const autoId = useId();
+  const only = typeof children === 'function' ? [] : Children.toArray(children);
+  const single = only.length === 1 && isValidElement(only[0]) ? only[0] : null;
+  // A control that brings its own id (e.g. a #target-date deep link) keeps
+  // it, and the label points at that id, so the two stay associated.
+  const id = (single && single.props.id) || autoId;
   const hintId = `${id}-hint`;
   const errId = `${id}-err`;
   const describedBy = error ? errId : hint ? hintId : undefined;
@@ -18,13 +23,12 @@ export default function FormField({ label, hint, error, required = false, option
   if (typeof children === 'function') {
     control = children(id, describedBy);
   } else {
-    const only = Children.toArray(children);
-    control = only.length === 1 && isValidElement(only[0])
-      ? cloneElement(only[0], {
-        id: only[0].props.id || id,
+    control = single
+      ? cloneElement(single, {
+        id,
         'aria-describedby': describedBy,
         'aria-invalid': error ? true : undefined,
-        required: required || only[0].props.required,
+        required: required || single.props.required,
       })
       : children;
   }

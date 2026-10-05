@@ -89,7 +89,7 @@ export default function ExpertDetailPage() {
             : <Tooltip text={onLeave ? 'On leave at the moment' : 'A short call to see if it fits'}><Button variant="primary" disabled={onLeave || !companyId} onClick={openRequest}>Request a conversation</Button></Tooltip>}
           {conversation
             ? <Button variant="secondary" onClick={() => { setProj({ title: `${(req?.labels || ['Expert help'])[0]} for ${company?.name || 'your company'}`, scope: brief?.needText || conversation.message || '', start_date: '', end_date: '' }); setDialog('project'); }}>Start a project</Button>
-            : <Tooltip text="Request a conversation first, so you can agree the scope."><Button variant="ghost" disabled>Start a project</Button></Tooltip>}
+            : <span className="xd-locked"><Button variant="ghost" disabled aria-describedby="xd-project-why">Start a project</Button><span id="xd-project-why" className="ui-faint">Request a conversation first, so you can agree the scope.</span></span>}
         </div>
       </Card>
 

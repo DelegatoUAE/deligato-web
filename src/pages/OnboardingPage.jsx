@@ -57,6 +57,8 @@ export default function OnboardingPage() {
       if (!f.sector) e.sector = 'Choose the closest sector.';
     }
     setErrors(e);
+    // UAT F29: focus moves to the first field to fix.
+    if (Object.keys(e).length) requestAnimationFrame(() => document.querySelector('.onboard [aria-invalid="true"], .onboard .has-error input, .onboard .has-error select, .onboard .has-error button')?.focus());
     return Object.keys(e).length === 0;
   }
   const next = () => { if (check(step)) setStep(step + 1); };

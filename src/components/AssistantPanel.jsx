@@ -9,7 +9,8 @@ import { ASK_EVENT } from '../lib/ask';
 import { gateFor } from '../lib/plan';
 import { UpgradeNote } from './capital/AiBlocks';
 
-// Page → assistant screen key and starter chips (ia.md §3.1). Screen ids follow
+// Page → assistant screen key and starter chips (ia.md §3.1). Every chip must get a real
+// rules-based answer (api intelligence/tasks/_assistant_faq.js; UAT #13). Screen ids follow
 // the assistant contract (api modules/intelligence _assistant_intent.js SCREENS):
 // Home is 'home' (the Command Center), the new Company screens have their own ids.
 const PAGES = [
@@ -19,16 +20,16 @@ const PAGES = [
   ['/company/intelligence', 'company_intelligence', ['What changed this month?', "What's stopping me being more capital-ready?", 'When should I start raising?']],
   ['/settings/*', 'settings', ['What does my plan include?', 'What data goes to the AI provider?']],
   ['/packages', 'billing', ['What does Capital Raising add?', 'What does my plan include?']],
-  ['/capital/matches/:recordId', 'investor_profile', ['Why is this a strong fit?', "What don't we know about them?", 'Draft a first note']],
+  ['/capital/matches/:recordId', 'investor_profile', ['Why does this investor fit?', "What don't we know about them?", 'How do I contact them?']],
   ['/capital/readiness/*', 'readiness', ['Explain my biggest gap', 'What do investors read into my runway?', 'Who could help me with this?']],
-  ['/capital/find', 'find_capital', ['Why is venture debt recommended?', 'Why not VC?', 'What would change my routes?']],
-  ['/capital/matches', 'matches', ['Why is this a strong fit?', "What don't we know about them?", 'Which should I contact first?']],
+  ['/capital/find', 'find_capital', ['Why these capital types?', 'Why not VC?', 'What would change my routes?']],
+  ['/capital/matches', 'matches', ['Which should I contact first?', 'Why are most matches possible?', 'What would open more investors?']],
   ['/capital/pipeline', 'pipeline', ["Who haven't I followed up with?", 'Summarise my pipeline']],
   ['/capital/saved', 'pipeline', ['Which saved provider should I approach first?', 'Summarise my pipeline']],
   ['/capital/data-room', 'data_room', ["What's missing from my data room?", 'What do investors ask for at my stage?']],
   ['/capital/improve', 'advice', ['Which change opens the most investors?', 'Explain my biggest blocker']],
   ['/capital/*', 'matches', ['What should I do this week?', 'Which capital types fit us?']],
-  ['/experts/*', 'experts', ['What kind of expert do I need?', 'Compare these two experts']],
+  ['/experts/*', 'experts', ['What kind of expert do I need?', 'How do expert requests work?']],
   ['/company/*', 'company', ["What's missing from my profile?"]],
   ['/', 'home', ['What changed this month?', 'Why did my Financial Health change?', "What's stopping me being more capital-ready?"]],
 ];
@@ -70,7 +71,8 @@ export default function AssistantPanel({ open, onClose }) {
         ...(keepContext && (params.get('run') || run?.run_id) ? { run_id: params.get('run') || run.run_id } : {}),
       };
       const { company_id: cid, ...input } = body;
-      const out = await runTask('assistant', { input, company_id: cid });
+      // The API reads the investor and run in view from the top-level ids (intelligence router pickIds).
+      const out = await runTask('assistant', { input, company_id: cid, record_id: input.record_id, run_id: input.run_id });
       setState({ busy: false, result: out, error: null, asked: text });
       setQuestion('');
     } catch (e) {

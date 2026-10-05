@@ -59,7 +59,7 @@ function ReadinessDial({ value, band, bandTone, label, caption, size, showBands,
           {known && <circle className="ui-dial-needle" cx={nx} cy={ny} r="9" />}
         </svg>
         <div className="ui-dial-value">
-          <strong>{known ? Math.round(v) : '–'}</strong>
+          <strong>{known ? Math.round(v) : '?'}</strong>
           <span>/100</span>
         </div>
       </div>

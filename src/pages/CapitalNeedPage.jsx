@@ -12,6 +12,13 @@ export default function CapitalNeedPage() {
   const { hash } = useLocation();
   // "Set a target date" (Company Intelligence) lands on the field.
   useEffect(() => {
+    // "Say what the money is for" (Find capital) lands on the purpose chips.
+    if (['#purpose', '#collateral', '#dilution'].includes(hash)) {
+      const el = document.getElementById(hash.slice(1));
+      el?.scrollIntoView({ block: 'center' });
+      el?.closest('.ui-field')?.querySelector('.ui-chip')?.focus({ preventScroll: true });
+      return;
+    }
     if (hash !== '#target-date') return;
     const el = document.getElementById('target-date');
     el?.scrollIntoView({ block: 'center' });

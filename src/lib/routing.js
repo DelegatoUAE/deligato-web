@@ -39,3 +39,6 @@ export function normaliseRoute(r) {
     recommended: r.fit ? r.fit !== 'unlikely' : true,
   };
 }
+
+/** GET /api/v1/routing/catalog: the routes, and the purpose keys Capital need may store (R-B5). */
+export const getRoutingCatalog = () => apiFetch('/api/v1/routing/catalog');
