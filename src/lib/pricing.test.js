@@ -142,7 +142,8 @@ const D68 = {
     { id: 'capital-raising', name: 'Capital Raising', tier: 'capital_raising',
       prices: [{ key: 'cr_monthly', billing: 'monthly', amount_usd: 99 }, { key: 'cr_annual', billing: 'annual', amount_usd: 990, note: '2 months free' }],
       display: { max_results: 'Full access / plan limits', ai_explanations: 'Full access / plan limits', investor_profile_depth: 'Full profile with contact routes',
-        pipeline_items: 'Full access / plan limits', outreach_drafts_per_month: '60 drafts a month', crm: 'Included' } },
+        pipeline_items: 'Full access / plan limits', outreach_drafts_per_month: '60 drafts a month', crm: 'Included', match_refresh: 'Monthly', export: 'Included',
+        data_room: 'Private document storage (investor sharing coming later)' } },
   ],
 };
 
@@ -180,4 +181,18 @@ test('D68: compare cells read the API values honestly', () => {
   assert.deepEqual(compareCell('Not included'), { kind: 'no', text: 'Not included' });
   assert.deepEqual(compareCell('Up to 5'), { kind: 'text', text: 'Up to 5' });
   assert.equal(compareCell('unlimited').text, 'Full access / plan limits');
+});
+
+test('plan honesty: the Capital Raising card claims export, monthly refresh and a private data room only when the API grants them, and never share links', () => {
+  const cr = platformOf(D68)[2];
+  const bullets = planBullets(cr);
+  assert.ok(bullets.includes('Export to CSV for Excel'));
+  assert.ok(bullets.includes('Matches refreshed monthly'));
+  assert.ok(bullets.includes('Private data room (investor sharing coming later)'));
+  assert.ok(!bullets.some((b) => /secure share|share link/i.test(b)));
+  const without = { ...cr, display: { ...cr.display, export: 'Not included', match_refresh: 'Not included' } };
+  assert.ok(!planBullets(without).includes('Export to CSV for Excel'), 'dropped when the API does not grant it');
+  assert.ok(!planBullets(without).includes('Matches refreshed monthly'));
+  assert.ok(!planBullets(platformOf(D68)[1]).some((b) => /export|refresh|data room/i.test(b)), 'Company Intelligence claims none of them');
+  assert.equal(isLaunching('Private document storage (investor sharing coming later)'), false, 'no "Launching" badge on the honest label');
 });

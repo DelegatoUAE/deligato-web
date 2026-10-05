@@ -234,6 +234,18 @@ export function PricingFaq({ data }) {
       q: 'Does Free include investor matching?',
       a: 'No. Free shows where your company stands and which types of capital fit your need, without naming providers. Matching investors and capital providers, why each one fits, your shortlist, pipeline and outreach are part of Capital Raising. If you saved investors before, they stay visible, read-only.',
     },
+    cr && {
+      q: 'Can I share my data room with investors?',
+      a: 'Not yet. On Capital Raising your data room is private document storage: you upload, view, replace and delete your fundraising documents, and only your company can open them. Sharing with investors (invite links, permissions and activity) is coming later.',
+    },
+    cr && {
+      q: 'Can I export my matches and pipeline?',
+      a: 'Yes, on Capital Raising. Matches, Shortlist and Pipeline each have an Export button that downloads a CSV file that opens in Excel: provider, type, region, stages, cheque range, fit and why it fits, contact routes where known, pipeline stage, next action, notes and dates.',
+    },
+    cr && {
+      q: 'How are matches refreshed?',
+      a: 'Once a month, Capital Raising re-runs your matches with your current company details and shows what changed since the last run: new fits, removed fits and changed fit. You can still re-run them yourself at any time.',
+    },
     paid && {
       q: 'How does the credit work?',
       a: `If you bought a Capital Readiness Report or Capital Readiness + Advisor and move to Capital Raising within ${paid.credit.window_days} days, ${money(paid.credit.amount_usd)} counts toward it, monthly or yearly. For Capital Readiness + Advisor, ${money(paid.credit.amount_usd)} is credited and the advisor session is not. It is the only credit, it applies once, and it does not apply to Company Intelligence.`,

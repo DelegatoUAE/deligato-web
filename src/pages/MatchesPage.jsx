@@ -11,6 +11,8 @@ import useAiConsent from '../lib/useAiConsent';
 import { toggleCompare, COMPARE_MAX, sortMatches } from '../lib/matchview';
 const sortByEvidence = (rows) => sortMatches(rows, null);
 import { GateCard, ProviderBadge, LoadError, MatchingUpgrade } from '../components/capital/bits';
+import ExportButton from '../components/capital/ExportButton';
+import RefreshNote from '../components/capital/RefreshNote';
 import useApi from '../lib/useApi';
 import {
   getRunNormalised, getLatestRun, runMatch, getUnlocks, listPipeline, addToPipeline, previewMatch,
@@ -234,7 +236,9 @@ export default function MatchesPage() {
         <>
           <ProviderBadge provider={run.provider} />
           {run.created_at && <span className="ui-muted">Run {fmtDateTime(run.created_at)}</span>}
+          <RefreshNote />
           <Button variant="secondary" size="sm" onClick={rerun} loading={running}>Re-run</Button>
+          <ExportButton kind="matches" />
         </>
       )}
       actions={!run ? <Button variant="secondary" size="sm" onClick={rerun} loading={running}>Re-run</Button> : null}

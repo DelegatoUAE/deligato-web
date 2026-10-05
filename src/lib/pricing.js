@@ -91,7 +91,7 @@ export const LIMIT_ROWS = [
   ['outreach_drafts_per_month', 'Outreach drafts'],
   ['ai_calls_per_month', 'Ask AI and AI explanations'],
   ['seats', 'Team members'],
-  ['deal_room_storage_gb', 'Deal room storage'],
+  ['deal_room_storage_gb', 'Data room storage'],
 ];
 
 /**
@@ -200,7 +200,8 @@ export const PLAN_STORY = {
     label: 'Raise', promise: 'Find the right capital and execute your raise.', cta: 'Start raising', badge: 'Most complete',
     bullets: [['Everything in Company Intelligence', null], ['Investor & capital-provider matching', 'max_results'], ['Why-this-fits explanations', 'ai_explanations'],
       ['Evidence behind matches', 'investor_profile_depth'], ['Shortlist & pipeline', 'pipeline_items'], ['Outreach & meeting preparation', 'outreach_drafts_per_month'],
-      ['Raise CRM & workflow', 'crm']],
+      ['Raise CRM & workflow', 'crm'], ['Matches refreshed monthly', 'match_refresh'], ['Export to CSV for Excel', 'export'],
+      ['Private data room (investor sharing coming later)', 'data_room']],
   },
   'capital-readiness': {
     label: 'Capital Readiness Report', promise: 'A structured assessment of what is ready, what is missing and what to fix next.', cta: 'Get your report',

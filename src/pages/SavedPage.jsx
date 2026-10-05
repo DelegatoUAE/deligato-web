@@ -13,6 +13,7 @@ import { recordOutcome } from '../lib/fundraising';
 import { FEEDBACK_DOWN_REASONS } from '../lib/learning';
 import { fmtDate } from '../lib/format';
 import { ShortlistSummary } from '../components/capital/AiBlocks';
+import ExportButton from '../components/capital/ExportButton';
 
 const nameOf = (p) => p.capital_sources?.name || p.record_id;
 
@@ -51,7 +52,7 @@ export default function SavedPage() {
     } catch (e) { toast.error(`Couldn't remove: ${e.message}`); } finally { setBusy(null); setRemoving(null); }
   }
 
-  const head = <><SubNav section="capital" /><PageHeader title="Shortlist" subtitle="Providers you shortlisted from your matches, to compare and decide who to approach first." /></>;
+  const head = <><SubNav section="capital" /><PageHeader title="Shortlist" subtitle="Providers you shortlisted from your matches, to compare and decide who to approach first." actions={<ExportButton kind="shortlist" />} /></>;
   if (q.error?.status === 402) return <div>{head}<GateCard title="Save investors and track your raise." body="Included in Capital Raising." /></div>;
   if (q.error) return <div>{head}<LoadError error={q.error} onRetry={q.reload} what="your saved investors" /></div>;
   if (!q.data) return <div>{head}<SkeletonCards count={3} height={72} /></div>;

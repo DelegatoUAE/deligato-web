@@ -15,6 +15,7 @@ import { recordOutcome, createActivity, getTimeline, PASS_REASONS, passReasonLab
 import { apiFetch } from '../lib/auth';
 import { daysSince, fmtDate, todayIso, humanise } from '../lib/format';
 import { canShortlist, gateFor, MATCHING_UPGRADE } from '../lib/plan';
+import ExportButton from '../components/capital/ExportButton';
 
 const OUTCOME_STAGES = ['passed', 'not_now', 'term_sheet', 'closed_won'];
 const TONE = { shortlisted: 'neutral', researching: 'neutral', intro_requested: 'info', contacted: 'info', in_conversation: 'navy', diligence: 'navy', term_sheet: 'gold', closed_won: 'ok', passed: 'bad', not_now: 'neutral' };
@@ -258,7 +259,7 @@ export default function PipelinePage() {
       <SubNav section="capital" />
       <PageHeader title="Pipeline" subtitle={headline}
         meta={savedN > 0 && <Link to="/capital/saved">{savedN} saved, not in your pipeline yet</Link>}
-        actions={<Tabs variant="pill" label="View" value={view} onChange={setView} items={[{ id: 'board', label: 'Board' }, { id: 'list', label: 'List' }]} />} />
+        actions={<><ExportButton kind="pipeline" /><Tabs variant="pill" label="View" value={view} onChange={setView} items={[{ id: 'board', label: 'Board' }, { id: 'list', label: 'List' }]} /></>} />
       {readOnly && (items.length ? <ReadOnlyNote /> : <MatchingUpgrade />)}
       {q.data === undefined ? <Skeleton h="300px" /> : readOnly && !items.length ? null : tracked.length === 0 ? (
         <EmptyState icon="kanban" title="Nothing tracked yet." body={savedN ? "Move a saved provider into your pipeline when you start working on it." : "Shortlist investors from your matches to start."} action={<Button as={Link} to={savedN ? "/capital/saved" : "/capital/matches"} variant="primary">{savedN ? "Open saved" : "Open matches"}</Button>} />
