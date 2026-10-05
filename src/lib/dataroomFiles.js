@@ -67,3 +67,14 @@ export function usageLine(files) {
   if (!files || typeof files.quota_bytes !== 'number' || files.quota_bytes <= 0) return null;
   return `${fmtBytes(files.used_bytes || 0)} of ${fmtBytes(files.quota_bytes)} used`;
 }
+
+/** The item holds a stored file (even an expired one, which the API counts as missing). */
+export const hasStoredFile = (item) => (item?.documents || []).some((d) => d.stored);
+
+/**
+ * Which "not done yet" actions an item offers. An item that is not done
+ * because its stored file EXPIRED is renewed through that file (Replace or
+ * Details), not by adding a second file, "I have this" or N/A (the API refuses
+ * N/A or "I have this" while a document is attached).
+ */
+export const showsMissingActions = (item) => !item?.done && !hasStoredFile(item);

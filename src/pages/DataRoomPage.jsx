@@ -6,7 +6,7 @@ import { useCompany } from '../components/company-context';
 import { LoadError } from '../components/capital/bits';
 import useApi from '../lib/useApi';
 import { getDataRoom, setDataRoomItemStatus, deleteDataRoomDoc, updateDataRoomDoc, uploadDataRoomFile, replaceDataRoomFile, getDataRoomFileUrl } from '../lib/fundraising';
-import { acceptFor, checkFile, expiryState, fmtBytes, typeLabel, typesSentence, usageLine, viewsInline, DEFAULT_EXTENSIONS } from '../lib/dataroomFiles';
+import { showsMissingActions, acceptFor, checkFile, expiryState, fmtBytes, typeLabel, typesSentence, usageLine, viewsInline, DEFAULT_EXTENSIONS } from '../lib/dataroomFiles';
 import { includedIn, upgradeHref } from '../lib/plan';
 import { isMissingEndpoint } from '../lib/auth';
 import { fmtDate } from '../lib/format';
@@ -197,7 +197,7 @@ export default function DataRoomPage({ mode = 'dataroom' }) {
                   {i.done && i.status !== 'not_applicable' && canUpload && storageLive && !(i.documents || []).some((d) => d.stored) && (
                     <Button size="sm" variant="ghost" iconLeft="plus" onClick={() => openUpload(i)} loading={busy === `up-${i.key}`}>Add file</Button>
                   )}
-                  {!i.done && (
+                  {showsMissingActions(i) && (
                     <>
                       {!canUpload
                         ? <Button size="sm" variant="ghost" iconLeft="lock" as={Link} to="/packages?highlight=capital-raising">Add file</Button>

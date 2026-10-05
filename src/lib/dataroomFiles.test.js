@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { acceptFor, checkFile, expiryState, fmtBytes, typeLabel, typesSentence, usageLine, viewsInline } from './dataroomFiles.js';
+import { showsMissingActions, hasStoredFile, acceptFor, checkFile, expiryState, fmtBytes, typeLabel, typesSentence, usageLine, viewsInline } from './dataroomFiles.js';
 
 test('checkFile mirrors the API allowlist and size cap', () => {
   const f = (name, size = 10) => ({ name, size });
@@ -36,4 +36,13 @@ test('expiry states and the usage line', () => {
   assert.equal(expiryState('2027-01-01T00:00:00Z', now).state, 'valid');
   assert.equal(usageLine({ used_bytes: 0, quota_bytes: 10 * 1024 ** 3 }), '0 B of 10.0 GB used');
   assert.equal(usageLine({ used_bytes: 5, quota_bytes: null }), null);
+});
+
+test('an item that is missing because its stored file expired is renewed through the file, not re-added', () => {
+  const expired = { done: false, status: 'missing', document_status: 'expired', documents: [{ id: 'a', stored: true, status: 'uploaded', expires_at: '2026-01-01' }] };
+  assert.equal(hasStoredFile(expired), true);
+  assert.equal(showsMissingActions(expired), false);
+  assert.equal(showsMissingActions({ done: false, documents: [] }), true);
+  assert.equal(showsMissingActions({ done: false, documents: [{ status: 'self_declared', expires_at: '2026-01-01' }] }), true, 'expired "I have this" can be re-ticked with new dates');
+  assert.equal(showsMissingActions({ done: true, documents: [] }), false);
 });
