@@ -12,6 +12,12 @@
 .coswitch .ui-input { background: rgba(255,255,255,0.06); color: #fff; border-color: rgba(255,255,255,0.18); }
 .signout { color: var(--navy-200) !important; }
 .planlink { text-decoration: none !important; }
+/* combined-rc2 F-1: on phones the plan badge gives way (ellipsis) so the top bar never pushes past the
+   viewport; a long plan name ("Company Intelligence") used to overflow by ~20px at 390. */
+@media (max-width: 639px) {
+  .ui-shell-top-actions > .planlink { min-width: 0; flex: 0 1 auto; overflow: hidden; }
+  .ui-shell-top-actions > .planlink .ui-badge { display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+}
 .page { min-width: 0; }
 .page > div > .ui-page-head, .page .ui-page-head { margin-bottom: var(--s-6); }
 .page .ui-card + .ui-card, .page .ui-card + .ui-alert, .page .ui-alert + .ui-card { margin-top: var(--s-4); }
