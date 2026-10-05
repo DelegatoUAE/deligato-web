@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Alert, Button, FormField, Input } from '../design/ui';
 import AuthLayout from '../components/AuthLayout';
+import { publicAuthError } from '../lib/errorDetails';
 import { apiFetch } from '../lib/auth';
 
 export default function ForgotPasswordPage() {
@@ -18,7 +19,7 @@ export default function ForgotPasswordPage() {
       await apiFetch('/auth/forgot-password', { method: 'POST', body: JSON.stringify({ email }) });
       setSent(true);
     } catch (err) {
-      setError(err.message);
+      setError(publicAuthError(err, "Couldn't send the reset link right now. Try again shortly."));
     } finally {
       setBusy(false);
     }

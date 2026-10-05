@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Alert, Button, ChipToggle, FormField, Input } from '../design/ui';
 import AuthLayout from '../components/AuthLayout';
 import PasswordInput from '../components/PasswordInput';
+import { publicAuthError } from '../lib/errorDetails';
 import { apiFetch, setSession } from '../lib/auth';
 
 const DevRegister = import.meta.env.DEV ? lazy(() => import('../components/DevRegister')) : null;
@@ -14,11 +15,14 @@ export default function SignupPage() {
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(null);
+  const [pwError, setPwError] = useState(null);
   const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });
 
   async function onSubmit(e) {
     e.preventDefault();
-    if (form.password.length < 8) { setError('Use at least 8 characters for your password.'); return; }
+    // UAT F29: the error sits on the field, and focus moves there.
+    if (form.password.length < 8) { setPwError('Use at least 8 characters for your password.'); document.getElementById('signup-password')?.focus(); return; }
+    setPwError(null);
     setError(null);
     setBusy(true);
     try {
@@ -31,7 +35,8 @@ export default function SignupPage() {
         setSent(data && data.message ? data.message : 'Check your email to confirm your address, then sign in.');
       }
     } catch (err) {
-      setError(err.message);
+      // UAT F16: a server fault never shows its internals (e.g. an env variable name).
+      setError(publicAuthError(err, 'Sign-up is unavailable right now. Try again shortly.'));
     } finally {
       setBusy(false);
     }
@@ -53,7 +58,7 @@ export default function SignupPage() {
       <form className="ui-stack" onSubmit={onSubmit}>
         <FormField label="Your name" required><Input autoComplete="name" value={form.full_name} onChange={set('full_name')} required /></FormField>
         <FormField label="Work email" required><Input type="email" autoComplete="email" value={form.email} onChange={set('email')} required /></FormField>
-        <FormField label="Password" required hint="At least 8 characters."><PasswordInput autoComplete="new-password" value={form.password} onChange={set('password')} required /></FormField>
+        <FormField label="Password" required hint="At least 8 characters." error={pwError}><PasswordInput id="signup-password" autoComplete="new-password" value={form.password} onChange={set('password')} required /></FormField>
         <FormField label="Company name" optional><Input autoComplete="organization" value={form.organization} onChange={set('organization')} /></FormField>
         <FormField label="Which describes you?">
           {() => <ChipToggle single label="Account type" value={[form.account_type]} onChange={(v) => setForm({ ...form, account_type: v[0] || 'founder' })}

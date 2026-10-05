@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Badge, Button, EmptyState, PageHeader, Skeleton } from '../design/ui';
+import { Alert, Badge, Button, EmptyState, PageHeader, Skeleton } from '../design/ui';
 import SubNav from '../components/SubNav';
 import { useCompany } from '../components/company-context';
 import useApi from '../lib/useApi';
@@ -103,6 +103,8 @@ function Timing({ q, company }) {
   const t = q.data.timing || {};
   const need = q.data.capital_need || {};
   const setTarget = <Button as={Link} to="/capital/need#target-date" variant={t.status === 'no_target_date' ? 'accent' : 'link'} size="sm">{need.target_funding_date ? 'Change target date' : 'Set a target date'}</Button>;
+  // UAT F03: a start date behind today reads "Now", never a past date on its own.
+  const startPassed = typeof t.start_passed === 'boolean' ? t.start_passed : Boolean(t.start_by) && (t.days_until_start < 0 || t.start_by < todayIso());
   if (t.status === 'no_target_date') {
     return (
       <div className="timing">
@@ -114,9 +116,19 @@ function Timing({ q, company }) {
   }
   return (
     <div className="timing">
-      <p className="timing-k">Start raising by</p>
-      <p className="timing-date">{fmtDate(t.start_by)}</p>
-      {t.attention && <Badge tone={t.attention.code === 'start_passed' || t.attention.code === 'target_infeasible' ? 'bad' : 'warn'} dot>{plainIntel(t.attention.text)}</Badge>}
+      {startPassed ? (
+        <>
+          <p className="timing-k">Start raising</p>
+          <p className="timing-date">Now</p>
+          <p className="ui-muted">The latest start date, {fmtDate(t.start_by)}, has passed.</p>
+        </>
+      ) : (
+        <>
+          <p className="timing-k">Start raising by</p>
+          <p className="timing-date">{fmtDate(t.start_by)}</p>
+        </>
+      )}
+      {t.attention && <Alert tone={['start_passed', 'target_infeasible', 'target_passed'].includes(t.attention.code) || t.attention.start_passed ? 'bad' : 'warn'}>{plainIntel(t.attention.text)}</Alert>}
       <p className="timing-why">{plainIntel(t.reason)}</p>
       {t.note && <p className="ui-muted">{plainIntel(t.note)}</p>}
       <dl className="timing-facts">
@@ -151,7 +163,7 @@ function Reassessment({ q, readiness }) {
   const cs = d.current_score;
   return (
     <div className="reas">
-      {cs ? <p>Current score <strong>{cs.score}</strong>{cs.band ? ` · ${cs.band}` : ''} <span className="ui-faint">· {plainIntel(cs.label)}</span></p> : <p className="ui-muted">No paid Capital Readiness assessment yet.</p>}
+      {cs ? <p>Current score <strong>{Math.round(Number(cs.score))}</strong>{cs.band ? ` · ${cs.band}` : ''} <span className="ui-faint">· {plainIntel(cs.label)}</span></p> : <p className="ui-muted">No paid Capital Readiness assessment yet.</p>}
       {d.recommended ? (
         <>
           <p className="reas-rec"><Badge tone="warn" dot>Reassessment recommended</Badge></p>

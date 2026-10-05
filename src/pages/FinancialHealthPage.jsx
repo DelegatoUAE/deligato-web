@@ -62,7 +62,7 @@ export default function FinancialHealthPage() {
       {head}
       <section className={`fh-hero fh-${tone}`} aria-label="Your result">
         <div className="fh-score">
-          {r.status === 'not_applicable' ? <span className="fh-num">N/A</span> : <span className="fh-num">{r.score}</span>}
+          {r.status === 'not_applicable' ? <span className="fh-num">Not scored</span> : <span className="fh-num">{r.score}</span>}
           <span className="fh-of">{r.status === 'not_applicable' ? '' : 'of 100'}</span>
         </div>
         <div className="fh-what">
@@ -119,7 +119,7 @@ export default function FinancialHealthPage() {
         <h2 id="fh-hist" className="cc-h">History</h2>
         {d.history ? <History points={d.history} trend={d.trend} /> : (
           <>
-            {d.previous ? <p>Previous result: <strong>{d.previous.score ?? 'N/A'}</strong> {d.previous.band ? `· ${d.previous.band}` : ''} on {fmtDate(d.previous.computed_at)}.</p> : <p className="ui-muted">Your first result. The next check-in shows what changed.</p>}
+            {d.previous ? <p>Previous result: <strong>{d.previous.score ?? 'not scored'}</strong> {d.previous.band ? `· ${d.previous.band}` : ''} on {fmtDate(d.previous.computed_at)}.</p> : <p className="ui-muted">Your first result. The next check-in shows what changed.</p>}
             <UpgradeLine note={d.locked?.note || 'Company Intelligence adds full history, trends and state-change alerts.'} />
           </>
         )}

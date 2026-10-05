@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Alert, Button, FormField, useToast } from '../design/ui';
 import AuthLayout from '../components/AuthLayout';
 import PasswordInput from '../components/PasswordInput';
+import { publicAuthError } from '../lib/errorDetails';
 import { apiFetch } from '../lib/auth';
 
 export default function ResetPasswordPage() {
@@ -26,7 +27,7 @@ export default function ResetPasswordPage() {
       toast.success('Password updated. Sign in with your new password.');
       navigate('/login');
     } catch (err) {
-      setError(err.message);
+      setError(publicAuthError(err, "Couldn't reset your password right now. Try again shortly."));
     } finally {
       setBusy(false);
     }

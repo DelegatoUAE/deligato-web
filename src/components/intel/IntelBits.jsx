@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Badge, Button, Icon } from '../../design/ui';
-import { fmtDate, plainIntel } from '../../lib/format';
+import { fmtDate, plainIntel, changeTitle } from '../../lib/format';
 import { askAi } from '../../lib/ask';
 import { upgradeHref } from '../../lib/plan';
 
@@ -51,7 +51,7 @@ export function ChangeList({ items, empty = 'Nothing material has changed recent
         <li key={c.id} className={`change change-${c.direction || 'none'}`}>
           <span className="change-mark" aria-hidden="true" />
           <div>
-            <p className="change-title">{plainIntel(c.title)}</p>
+            <p className="change-title">{changeTitle(c)}</p>
             {c.detail && <p className="change-detail">{plainIntel(c.detail)}</p>}
           </div>
           <time className="change-at" dateTime={c.at}>{fmtDate(c.at)}</time>

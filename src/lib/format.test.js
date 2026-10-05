@@ -44,3 +44,31 @@ test('engine sentences show dates, periods and timing as words (D57)', () => {
   assert.equal(plainIntel('Runway is 11.4 months, $1.5M raise'), 'Runway is 11.4 months, $1.5M raise');
   assert.equal(plainIntel(null), null);
 });
+
+test('founder-typed revenue, burn and runway carry the "You told us" label (R-F1)', async () => {
+  const { DECLARED_LABEL, isDeclaredFigure } = await import('./format.js');
+  assert.equal(DECLARED_LABEL, 'You told us');
+  for (const f of ['revenue_usd', 'burn_usd', 'runway_months']) assert.equal(isDeclaredFigure(f), true);
+  assert.equal(isDeclaredFigure('stage'), false);
+});
+
+test('exclusion reasons read country names and the right article', async () => {
+  const { plainExclusion } = await import('./format.js');
+  assert.equal(plainExclusion('No AE mandate — invests in GB'), 'No mandate for United Arab Emirates — invests in United Kingdom');
+  assert.equal(plainExclusion('Is a Incubator; you asked for VC'), 'Is an Incubator; you asked for VC');
+  assert.equal(plainExclusion('Invests at Growth, not Seed'), 'Invests at Growth, not Seed');
+});
+
+test('capital-need changes are titled by the field name founders know', async () => {
+  const { changeTitle } = await import('./format.js');
+  assert.equal(changeTitle({ type: 'capital_need', title: 'Raise usd: not set → $1.5M', cite: { field: 'raise_usd' } }), 'Raise amount: not set → $1.5M');
+  assert.equal(changeTitle({ type: 'pipeline', title: 'X moved to contacted', cite: { field: 'stage' } }), 'X moved to contacted');
+});
+
+test('SMEs read "your business", everyone else "your company" (positioning §2.9)', async () => {
+  const { companyWord } = await import('./format.js');
+  assert.equal(companyWord({ company_kind: 'sme' }), 'business');
+  assert.equal(companyWord({ company_kind: 'startup' }), 'company');
+  assert.equal(companyWord({}), 'company');
+  assert.equal(companyWord(null), 'company');
+});

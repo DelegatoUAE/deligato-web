@@ -10,9 +10,9 @@ const SPOKEN = { yes: 'fits', partial: 'partly fits', no: 'does not fit', unknow
 const norm = (s) => (['yes', 'partial', 'no', 'unknown'].includes(s) ? s : 'unknown');
 const COLS = 7 + FIT_DIMENSIONS.length;
 const BUCKET_TONE = { eligible: 'ok', possible: 'warn', likely_outside: 'bad' };
-const BUCKET_HEAD = { eligible: 'Verified eligible', possible: 'Possible: insufficient evidence', likely_outside: 'Likely outside their mandate' };
-const BUCKET_NOTE = { eligible: 'Every decisive fit rests on verified evidence.', possible: 'At least one decisive fact is unknown, which lowers the score.', likely_outside: "Their own criteria suggest they don't back companies like yours." };
-const BUCKET_SHORT = { eligible: 'Verified eligible', possible: 'Possible', likely_outside: 'Likely outside' };
+const BUCKET_HEAD = { eligible: 'Verified fit', possible: 'Possible: insufficient evidence', likely_outside: 'Likely outside their mandate' };
+const BUCKET_NOTE = { eligible: 'Every decisive fact is on record; check each evidence label.', possible: 'At least one decisive fact is unknown, which lowers the score.', likely_outside: "Their own criteria suggest they don't back companies like yours." };
+const BUCKET_SHORT = { eligible: 'Verified fit', possible: 'Possible', likely_outside: 'Likely outside' };
 const CONF = { high: 'High', medium: 'Medium', low: 'Low' };
 
 function SortHeader({ k, label, sort, onSort, align }) {

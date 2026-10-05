@@ -187,7 +187,7 @@ export default function OutreachPage() {
                 </li>
               ))}
             </ul>
-          ) : <p className="ui-muted">No drafts yet.</p>}
+          ) : recordParam ? <p className="ui-muted">No drafts yet.</p> : null /* the main column's empty state already says it */}
           <Button as={Link} to="/capital/pipeline" variant="ghost" size="sm" iconLeft="plus">New draft from pipeline</Button>
         </aside>
 

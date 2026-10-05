@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Alert, Badge, Button, Card, Drawer, EmptyState, Icon, PageHeader, Select, SkeletonCards, Tag, useToast } from '../design/ui';
 import SubNav from '../components/SubNav';
@@ -8,32 +8,25 @@ import MatchTable from '../components/capital/MatchTable';
 import CompareDrawer from '../components/capital/CompareDrawer';
 import WhyThisFits, { AiConsentCard } from '../components/capital/WhyThisFits';
 import useAiConsent from '../lib/useAiConsent';
-import { toggleCompare, COMPARE_MAX, sortMatches } from '../lib/matchview';
+import { toggleCompare, COMPARE_MAX, sortMatches, MATCH_SCORE_EXPLAINER, runBelowPlan } from '../lib/matchview';
 const sortByEvidence = (rows) => sortMatches(rows, null);
 import { GateCard, ProviderBadge, LoadError } from '../components/capital/bits';
 import useApi from '../lib/useApi';
 import {
-  getRunNormalised, getLatestRun, runMatch, getUnlocks, listPipeline, addToPipeline, previewMatch,
+  getRunNormalised, getLatestRun, runMatch, isRouteScoped, getUnlocks, listPipeline, addToPipeline, previewMatch,
   completeness, TIERS, BUCKETS, filterLabel, AI_ERROR_TEXT,
 } from '../lib/capital';
 import { sendFeedback, listFeedback } from '../lib/learning';
 import { getRouting, normaliseRoute } from '../lib/routing';
-import { fmtUsd, fmtDateTime, fmtInt, countryName, plural } from '../lib/format';
+import { fmtUsd, fmtDate, fmtDateTime, fmtInt, countryName, plural, plainExclusion } from '../lib/format';
 import { logEvent } from '../lib/events';
 import { gateFor } from '../lib/plan';
-
-function inRoutes(r, routes) {
-  if (!routes.length) return true;
-  if (Array.isArray(r.route_keys) && r.route_keys.length) return routes.some((rt) => r.route_keys.includes(rt.key));
-  const types = new Set([r.type, ...(r.investor_types || [])].filter(Boolean).map((t) => t.toLowerCase()));
-  return routes.some((rt) => !rt.investor_types.length || rt.investor_types.some((t) => types.has(String(t).toLowerCase())));
-}
 
 function ScoreExplainer() {
   return (
     <details className="explainer">
       <summary>What the Match score means</summary>
-      <p>How strongly the evidence supports this fit, out of 100. Facts we can't confirm lower it, so a strong fit with gaps in our data can score lower. It is not your chance of raising.</p>
+      <p>{MATCH_SCORE_EXPLAINER}</p>
     </details>
   );
 }
@@ -144,7 +137,31 @@ export default function MatchesPage() {
   }, [routingQ.data, routeParam]);
   const tierParam = params.get('tier');
 
-  const runQ = useApi(() => (runId ? getRunNormalised(runId) : getLatestRun(companyId)), [runId, companyId]);
+  // R-CI-F1: a route view is a server-scoped run (POST …/match { routes }), so the
+  // cards, headline counts and buckets all describe the same scoped set. The web
+  // never filters a plan-truncated list by route on its own.
+  const routeKeys = useMemo(() => routes.map((r) => r.key), [routes]);
+  // An unknown route key, or routing that can't load, falls back to the whole market.
+  const routeView = Boolean(routeParam) && !routingQ.error && !(routingQ.data && routes.length === 0);
+  const runQ = useApi(() => (runId ? getRunNormalised(runId) : routeView ? null : getLatestRun(companyId)), [runId, companyId, routeView]);
+  const [scoping, setScoping] = useState(null);
+  const [scopeTry, setScopeTry] = useState(0);
+  const scopedFor = useRef('');
+  useEffect(() => {
+    if (!routeView || !routeKeys.length) return;
+    const loaded = runId ? runQ.data : null;
+    if (runId && (!loaded || isRouteScoped(loaded))) return;
+    const want = `${companyId}|${routeKeys.join(',')}|${scopeTry}`;
+    if (scopedFor.current === want) return;
+    scopedFor.current = want;
+    setScoping({ busy: true, error: null });
+    runMatch(companyId, { routes: routeKeys })
+      .then((res) => {
+        setScoping(null);
+        if (res?.run_id) setParams((p) => { const q = new URLSearchParams(p); q.set('run', res.run_id); return q; }, { replace: true });
+      })
+      .catch((e) => setScoping({ busy: false, error: e }));
+  }, [routeView, routeKeys, runId, runQ.data, companyId, setParams, scopeTry]);
   const unlocksQ = useApi(() => getUnlocks(companyId), [companyId, runQ.data?.run_id]);
   const pipeQ = useApi(() => listPipeline(companyId).then((x) => x.pipeline || []), [companyId]);
   const fbQ = useApi(() => listFeedback(companyId).then((x) => x.feedback || []).catch(() => []), [companyId]);
@@ -176,7 +193,7 @@ export default function MatchesPage() {
   async function rerun() {
     setRunning(true);
     try {
-      const res = await runMatch(companyId);
+      const res = await runMatch(companyId, routeKeys.length ? { routes: routeKeys } : {});
       reloadRun();
       setParams((p) => { const q = new URLSearchParams(p); if (res.run_id) q.set('run', res.run_id); return q; });
       toast.success('Matches updated.');
@@ -193,7 +210,7 @@ export default function MatchesPage() {
       const { item } = await addToPipeline({ profile_id: companyId, record_id: r.record_id, match_score_at_add: r.match_score, stage, fit_tier_at_add: r.fit_tier, run_id: run?.run_id });
       pipeQ.setData((list) => [...(list || []), item]);
       reloadPipeline();
-      toast.success(stage === 'shortlisted' ? `Saved ${r.name}.` : `${r.name} is in your pipeline.`);
+      toast.success(stage === 'shortlisted' ? `${r.name} is on your shortlist.` : `${r.name} is in your pipeline.`);
     } catch (e) {
       toast.error(e.upgradeRequired ? (e.code === 'fair_use_limit' ? gateFor(e).message : 'Pipeline tracking is included in Capital Raising.') : `Couldn't save ${r.name}: ${e.message}`);
     } finally {
@@ -242,7 +259,10 @@ export default function MatchesPage() {
   if (runQ.error && runQ.error.status !== 404) {
     return <div><SubNav section="capital" />{header}<LoadError error={runQ.error} onRetry={runQ.reload} what="your matches" /></div>;
   }
-  if (!run && runQ.loading) {
+  if (scoping?.error) {
+    return <div><SubNav section="capital" />{header}<LoadError error={scoping.error} onRetry={() => { setScopeTry((n) => n + 1); setScoping(null); setParams((p) => { const q = new URLSearchParams(p); q.delete('run'); return q; }, { replace: true }); }} what="matches for these routes" /></div>;
+  }
+  if (!run && (runQ.loading || (routeView && !runId))) {
     return <div><SubNav section="capital" />{header}<p className="ui-muted">Checking capital sources…</p><SkeletonCards count={5} height={150} /></div>;
   }
   if (!run) {
@@ -255,8 +275,7 @@ export default function MatchesPage() {
   }
 
   const types = [...new Set(run.results.map((r) => r.type).filter(Boolean))].sort();
-  const shown = run.results.filter((r) => inRoutes(r, routes)
-    && (!filters.type || r.type === filters.type)
+  const shown = run.results.filter((r) => (!filters.type || r.type === filters.type)
     && (!filters.confidence || String(r.data_confidence).toLowerCase() === filters.confidence)
     && (!filters.tier || r.fit_tier === filters.tier)
     && (!tierParam || r.fit_tier === tierParam)
@@ -268,6 +287,8 @@ export default function MatchesPage() {
   const topMissing = completeness(company).missing[0];
   // I-03: AI explanations on the top 3 cards (D32 covers the top 5 on trial).
   const topIds = new Set(sortByEvidence(shown).slice(0, 3).map((r) => r.record_id));
+  // UAT F33: picking the "Likely outside" tier opens it; no second click.
+  const outsideOpen = showOutside || bucketFilter === 'likely_outside';
   const tableRows = shown.filter((r) => (bucketFilter ? r.bucket === bucketFilter : r.bucket !== 'likely_outside'));
   const activeFilters = [
     filters.type && { key: 'type', label: `Type: ${filters.type}`, clear: () => setFilters((f) => ({ ...f, type: '' })) },
@@ -297,14 +318,21 @@ export default function MatchesPage() {
           {routes.length === 1 && routes[0].coverage && (routes[0].coverage.level === 'thin' || (routes[0].coverage.provider_count ?? 99) < 10) && (
             <span className="rcard-thin">Thin coverage: only {plural(routes[0].coverage.provider_count, 'provider')} on record for this route. Treat these as a starting point, not the whole market.</span>
           )}
-          <Button variant="link" size="sm" onClick={() => setParams((p) => { const q = new URLSearchParams(p); q.delete('routes'); q.delete('route'); return q; })}>Show every route</Button>
+          <Button variant="link" size="sm" onClick={() => setParams((p) => { const q = new URLSearchParams(p); q.delete('routes'); q.delete('route'); q.delete('run'); return q; })}>Show every route</Button>
         </div>
+      )}
+
+      {!trial && entitlements && runBelowPlan(run, entitlements.max_results) && (
+        <Alert tone="info" action={<Button size="sm" variant="secondary" onClick={rerun} loading={running}>Re-run</Button>}>
+          This run was made on a smaller plan and holds {fmtInt(run.results.length)} of {fmtInt(eligible)}. Your plan now includes more matches. Re-run to see them.
+        </Alert>
       )}
 
       {/* I-07: investors first. One summary line; the statistics open on demand. */}
       <div className="msummary">
         <p>
-          <strong>{fmtInt(eligible)}</strong> open to you
+          <strong>{fmtInt(eligible)}</strong> open to you{isRouteScoped(run) ? ' on these routes' : ''}
+          {isRouteScoped(run) && <> · {fmtInt(run.counts.filtered_out_by_route)} on other routes</>}
           {run.counts?.excluded != null && <> · {fmtInt(run.counts.excluded)} excluded by a hard filter</>}
           {' · '}
           <button type="button" className="msummary-toggle" aria-expanded={showStats} aria-controls="mstats" onClick={() => setShowStats((v) => !v)}>
@@ -377,8 +405,8 @@ export default function MatchesPage() {
           ) : (
           <>
           {(!bucketFilter || bucketFilter === 'eligible') && <section className="tier" aria-labelledby="b-eligible">
-            <h2 id="b-eligible" className="tier-h tier-h-strong">Verified eligible <span>({byBucket.eligible.length}{bucketCount('eligible') > byBucket.eligible.length ? ` shown of ${fmtInt(bucketCount('eligible'))}` : ''})</span></h2>
-            <p className="ui-muted">Every decisive fit (stage, sector, geography, ticket) rests on researched evidence.</p>
+            <h2 id="b-eligible" className="tier-h tier-h-strong">Verified fit <span>({byBucket.eligible.length}{bucketCount('eligible') > byBucket.eligible.length ? ` shown of ${fmtInt(bucketCount('eligible'))}` : ''})</span></h2>
+            <p className="ui-muted">Every decisive fact (stage, sector, geography, ticket) is on record and nothing on record rules them out. Check each fact's evidence label: some are AI-inferred, not verified.</p>
             {byBucket.eligible.length ? byBucket.eligible.map(card) : (
               bucketCount('eligible') > 0 ? (
                 <p className="tier-empty">{fmtInt(bucketCount('eligible'))} verified {bucketCount('eligible') === 1 ? 'fit is' : 'fits are'} outside the top {run.results.length} your plan shows. <Link to="/packages?highlight=capital-raising">See every match with Capital Raising</Link>.</p>
@@ -399,12 +427,15 @@ export default function MatchesPage() {
           </section>}
           {(!bucketFilter || bucketFilter === 'likely_outside') && <section className="tier tier-outside" aria-labelledby="b-outside">
             <h2 id="b-outside" className="tier-h">
-              <button type="button" className="tier-toggle" aria-expanded={showOutside} onClick={() => setShowOutside((v) => !v)}>
-                Likely outside their mandate <span>({byBucket.likely_outside.length}{bucketCount('likely_outside') > byBucket.likely_outside.length ? ` shown of ${fmtInt(bucketCount('likely_outside'))}` : ''})</span> <span aria-hidden="true">{showOutside ? '▾' : '▸'}</span>
+              <button type="button" className="tier-toggle" aria-expanded={outsideOpen} onClick={() => setShowOutside(!outsideOpen)}>
+                Likely outside their mandate <span>({byBucket.likely_outside.length}{bucketCount('likely_outside') > byBucket.likely_outside.length ? ` shown of ${fmtInt(bucketCount('likely_outside'))}` : ''})</span> <span aria-hidden="true">{outsideOpen ? '▾' : '▸'}</span>
               </button>
             </h2>
             <p className="ui-muted">Their own published criteria suggest they don't back companies like yours. This isn't verified, so we show the reason rather than hide them.</p>
-            {(showOutside || bucketFilter === 'likely_outside') && byBucket.likely_outside.map(card)}
+            {outsideOpen && byBucket.likely_outside.map(card)}
+            {outsideOpen && !byBucket.likely_outside.length && bucketCount('likely_outside') > 0 && (
+              <p className="tier-empty">None of the {fmtInt(bucketCount('likely_outside'))} are among the {fmtInt(run.results.length)} results this run kept; stronger fits fill those places first.</p>
+            )}
           </section>}
           </>
           )}
@@ -433,14 +464,20 @@ export default function MatchesPage() {
         {excluded.error && <Alert tone="bad">Couldn't load excluded sources. {excluded.error}</Alert>}
         {!excluded.rows && !excluded.error && <SkeletonCards count={4} height={56} />}
         {excluded.rows && (
+          <>
+          <p className="ui-muted">Showing {excluded.rows.length > 100 ? 'the first 100' : fmtInt(excluded.rows.length)} of {fmtInt(run?.counts?.excluded ?? excluded.rows.length)} excluded sources.</p>
           <ul className="excluded">
             {excluded.rows.slice(0, 100).map((x) => (
               <li key={x.record_id || x.name}>
                 <strong>{x.name}</strong> <span className="ui-muted">{[x.type, x.country].filter(Boolean).join(', ')}</span>
-                <ul>{(x.why_not || []).map((w, i) => <li key={i}>{w}</li>)}</ul>
+                {/* R-CI-F2: each reason with its source label and date when the API sends them (R-CI-4). */}
+                <ul>{(x.why_not_detail?.length ? x.why_not_detail : (x.why_not || []).map((w) => ({ reason: w }))).map((w, i) => (
+                  <li key={i}>{plainExclusion(w.reason)}{w.label ? <> <Badge tone="outline" size="sm">{w.label}{w.as_of ? ` · ${fmtDate(w.as_of)}` : ''}</Badge></> : null}</li>
+                ))}</ul>
               </li>
             ))}
           </ul>
+          </>
         )}
       </Drawer>
       <p className="ui-faint">Missing something? <Button variant="link" size="sm" onClick={() => navigate('/capital/improve')}>See what would open more investors</Button></p>

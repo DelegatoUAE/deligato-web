@@ -8,7 +8,7 @@ import { getInsights } from '../lib/learning';
 import { isMissingEndpoint } from '../lib/auth';
 import { passReasonLabel } from '../lib/fundraising';
 import { tierLabel } from '../lib/capital';
-import { fmtUsd, humanise, pct } from '../lib/format';
+import { fmtUsd, humanise, pct, plural } from '../lib/format';
 
 const READINESS_LINK = { traction_insufficient: 'revenue', valuation: 'dilution', team: 'experience' };
 
@@ -41,12 +41,12 @@ export default function InsightsPage() {
         <StatTile label="Meetings" value={t.meetings ?? 0} />
         <StatTile label="Term sheets" value={t.term_sheets ?? 0} foot={t.term_sheet_amount_usd ? fmtUsd(t.term_sheet_amount_usd) : ''} />
       </section>
-      {d.sample?.small && t.contacted > 0 && <p className="ui-muted">Based on {d.sample.contacted} investors. Treat as directional.</p>}
+      {d.sample?.small && t.contacted > 0 && <p className="ui-muted">Based on {plural(d.sample.contacted, 'investor')}. Treat as directional.</p>}
       <Card title="Funnel">
-        <ol className="funnel">{(d.funnel || []).map((s) => <li key={s.stage}><span>{humanise(s.stage)}</span><strong>{s.count}</strong></li>)}</ol>
+        <ol className="funnel">{(d.funnel || []).map((s) => <li key={s.stage}><span>{s.stage === 'saved' ? 'Shortlisted' : humanise(s.stage)}</span><strong>{s.count}</strong></li>)}</ol>
       </Card>
       {(d.tier_outcomes || []).length > 0 && (
-        <Card title="Did our fit prediction hold?" subtitle="By the fit tier when you saved each provider.">
+        <Card title="Did our fit prediction hold?" subtitle="By the fit tier when you shortlisted each provider.">
           <Table dense rowKey="tier" rows={d.tier_outcomes} columns={[
             { key: 'tier', header: 'Tier at save', render: (r) => tierLabel(r.tier) },
             { key: 'contacted', header: 'Contacted', numeric: true }, { key: 'replied', header: 'Replied', numeric: true },

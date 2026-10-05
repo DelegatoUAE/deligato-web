@@ -529,7 +529,7 @@ a.ui-step-link, button.ui-step-link { all: unset; display: flex; flex-direction:
   border-radius: var(--r-lg); background: var(--brand-tint); color: var(--on-brand-tint); font-size: var(--text-xl);
 }
 .ui-empty-icon .ui-icon { width: 22px; height: 22px; }
-.ui-empty h3 { margin: 0; font-size: var(--text-lg); font-weight: var(--fw-semibold); color: var(--text-strong); }
+.ui-empty .ui-empty-title { margin: 0; font-size: var(--text-lg); font-weight: var(--fw-semibold); color: var(--text-strong); }
 .ui-empty p { margin: 0; max-width: 46ch; color: var(--text-soft); font-size: var(--text-md); line-height: var(--lh-normal); }
 .ui-empty-action { margin-top: var(--s-3); display: flex; gap: var(--s-2); flex-wrap: wrap; justify-content: center; }
 .ui-empty-gold .ui-empty-icon { background: var(--gold-tint); color: var(--on-gold-tint); }
@@ -826,6 +826,21 @@ button.ui-kcard:hover, a.ui-kcard:hover { border-color: var(--border-strong); bo
 .ui-shell-top-title { font-size: var(--text-md); font-weight: var(--fw-semibold); color: var(--text-strong); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ui-shell-top-actions { margin-left: auto; display: flex; align-items: center; gap: var(--s-2); }
 .ui-shell-burger { display: none; }
+.ui-skip {
+  position: fixed; top: var(--s-2); left: var(--s-2); z-index: calc(var(--z-drawer) + 2);
+  padding: var(--s-2) var(--s-4); border-radius: var(--r-md); background: var(--surface-raised); color: var(--text-strong);
+  font-weight: var(--fw-semibold); box-shadow: var(--shadow-lg); transform: translateY(-200%);
+}
+.ui-skip:focus, .ui-skip:focus-visible { transform: none; outline: none; box-shadow: var(--ring); }
+.ui-shell-content:focus { outline: none; }
+/* Phones: the page's own h1 names the screen, so the top-bar title steps
+   aside rather than being squeezed to a sliver beside the actions. */
+@media (max-width: 639px) {
+  .ui-shell-top { gap: var(--s-2); }
+  .ui-shell-top-title { display: none; }
+  .ui-shell-burger { flex: none; }
+  .ui-shell-top-actions { min-width: 0; }
+}
 .ui-shell-content { width: 100%; max-width: var(--content-max); margin: 0 auto; padding: var(--s-8) var(--gutter) var(--s-16); min-width: 0; }
 .ui-shell-scrim { display: none; }
 

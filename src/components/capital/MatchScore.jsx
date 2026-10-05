@@ -21,7 +21,7 @@ export default function MatchScore({ score, confidence, size = 'md', label = 'Ma
       title={known ? `Match score ${n}: how strongly the evidence supports this fit. Unknown facts lower it.` : undefined}
     >
       <div className="ms-tile">
-        <span className="ms-num">{known ? n : '–'}</span>
+        <span className="ms-num">{known ? n : '?'}</span>
         {size !== 'sm' && <span className="ms-label">{label}</span>}
       </div>
       <div className="ms-conf" aria-hidden="true">

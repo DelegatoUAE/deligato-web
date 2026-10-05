@@ -9,6 +9,8 @@
 // ============================================================
 
 import { apiFetch } from './auth';
+import { serverOrder, serverTier, isRouteScoped } from './matchview';
+export { serverOrder, isRouteScoped };
 import { fmtUsd, fmtDate, stealthLabel } from './format';
 
 export { fmtUsd };
@@ -67,9 +69,14 @@ export function getUnlocks(companyId) {
 }
 
 /** Latest run for a company, normalised, or null when none exists. */
+/**
+ * The latest whole-market run. Route-scoped runs (Matches ?route=) are views of
+ * part of the market, so Home, the shell and plain Matches never read their
+ * counts as the company's totals.
+ */
 export async function getLatestRun(companyId) {
   const { runs } = await listRuns(companyId);
-  const latest = (runs || []).slice().sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
+  const latest = (runs || []).filter((r) => !isRouteScoped(r)).sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
   if (!latest) return null;
   return getRunNormalised(latest.id);
 }
@@ -95,7 +102,7 @@ export function normaliseRun(run, results, extra = {}) {
     counts: run?.counts || extra.counts || {},
     plan: extra.plan || cached?.plan || null,
     ai_gated: cached?.ai_gated || null,
-    results: sortByTier(items),
+    results: serverOrder(items),
   };
 }
 
@@ -166,26 +173,6 @@ export const tierLabel = (k) => ({ strong: 'Strong fit', possible: 'Possible fit
 
 const normState = (s) => (['yes', 'partial', 'no', 'unknown'].includes(s) ? s : 'unknown');
 
-export function fitTier(r) {
-  const fits = r?.fits || {};
-  const states = FIT_DIMENSIONS.map((d) => normState(fits[d.key]));
-  const unknown = states.filter((s) => s === 'unknown').length;
-  const conf = String(r?.data_confidence || '').toLowerCase();
-  const lowConf = conf === 'low' || !conf;
-  if (!states.includes('no') && normState(fits.stage) === 'yes' && normState(fits.geography) === 'yes' && unknown <= 1 && !lowConf) return 'strong';
-  if (unknown <= 3 && !lowConf) return 'possible';
-  return 'lead';
-}
-
-const TIER_ORDER = { strong: 0, possible: 1, lead: 2 };
-const BUCKET_ORDER = { eligible: 0, possible: 1, likely_outside: 2 };
-export function sortByTier(results) {
-  return results.slice().sort((a, b) => ((BUCKET_ORDER[a.bucket] ?? 1) - (BUCKET_ORDER[b.bucket] ?? 1))
-    || (TIER_ORDER[a.fit_tier] - TIER_ORDER[b.fit_tier])
-    || ((b.match_score ?? -1) - (a.match_score ?? -1))
-    || ((b.data_confidence_score ?? -1) - (a.data_confidence_score ?? -1)));
-}
-
 /** The one-line reason for a fit dimension, whichever shape the engine sent. */
 export function fitReasonText(r, dim) {
   const fr = r?.fit_reasons?.[dim];
@@ -234,7 +221,8 @@ export function normaliseResult(r) {
     route_keys: r.route_keys || null,
     headline: r.headline || null,
   };
-  out.fit_tier = r.fit_tier || fitTier(out);
+  out.rank = r.rank === undefined || r.rank === null ? null : Number(r.rank);
+  out.fit_tier = serverTier(r);
   out.bucket = out.bucket || bucketOf(out);
   return out;
 }
@@ -243,7 +231,7 @@ export function normaliseResult(r) {
 // eligible: fits on verified or asserted evidence · possible: unknown or
 // soft · likely_outside: their own published text suggests no (collapsed).
 export const BUCKETS = [
-  { key: 'eligible', label: 'Verified eligible', short: 'verified fits' },
+  { key: 'eligible', label: 'Verified fit', short: 'verified fits' },
   { key: 'possible', label: 'Possible: insufficient evidence', short: 'possible' },
   { key: 'likely_outside', label: 'Likely outside their mandate', short: 'likely outside mandate' },
 ];
@@ -261,7 +249,7 @@ const DIM_WORD = { stage: 'stage', sector: 'sector', geography: 'geography', tic
 
 /** One concept per screen (D24): the evidence bucket first, the fit tier only inside it. */
 export function bucketHeadline(r) {
-  if (r?.bucket === 'eligible') return 'Verified eligible';
+  if (r?.bucket === 'eligible') return 'Verified fit';
   if (r?.bucket === 'likely_outside') return 'Likely outside their mandate';
   const unknown = FIT_DIMENSIONS.map((d) => d.key).filter((k) => normState(r?.fits?.[k]) === 'unknown').map((k) => DIM_WORD[k]);
   return unknown.length ? `Possible: ${unknown.join(', ')} unknown` : 'Possible: insufficient evidence';

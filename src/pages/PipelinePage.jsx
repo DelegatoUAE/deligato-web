@@ -11,10 +11,11 @@ import MatchScore from '../components/capital/MatchScore';
 import { GateCard, LoadError } from '../components/capital/bits';
 import useApi from '../lib/useApi';
 import { listPipeline, updatePipelineItem, removeFromPipeline, PIPELINE_STAGES, ACTIVE_STAGES, stageLabel, investorHref, tierLabel } from '../lib/capital';
-import { recordOutcome, createActivity, getTimeline, PASS_REASONS, passReasonLabel } from '../lib/fundraising';
+import { recordOutcome, getTimeline, PASS_REASONS, passReasonLabel } from '../lib/fundraising';
 import { apiFetch } from '../lib/auth';
-import { daysSince, fmtDate, todayIso, humanise } from '../lib/format';
+import { daysSince, fmtDate, todayIso } from '../lib/format';
 import { gateFor } from '../lib/plan';
+import { timelineRows } from '../lib/timeline';
 
 const OUTCOME_STAGES = ['passed', 'not_now', 'term_sheet', 'closed_won'];
 const TONE = { shortlisted: 'neutral', researching: 'neutral', intro_requested: 'info', contacted: 'info', in_conversation: 'navy', diligence: 'navy', term_sheet: 'gold', closed_won: 'ok', passed: 'bad', not_now: 'neutral' };
@@ -88,14 +89,14 @@ function ItemDrawer({ item, companyId, onClose, onChanged, onMove, onRemove }) {
   async function log(kind) {
     setBusy(kind);
     try {
-      if (kind === 'meeting') await createActivity(companyId, { kind: 'meeting', record_id: item.record_id, title: 'Meeting', occurred_at: new Date().toISOString() }).catch(() => null);
+      // One logged meeting is one outcome event (UAT F14: it used to write a CRM activity too).
       await recordOutcome(companyId, { record_id: item.record_id, pipeline_item_id: item.id, outcome: kind === 'meeting' ? 'meeting' : 'replied' });
       toast.success(kind === 'meeting' ? 'Meeting logged.' : 'Reply logged.');
       tl.reload();
     } catch (e) { toast.error(`Couldn't log that: ${e.message}`); } finally { setBusy(null); }
   }
 
-  const events = tl.data?.events || tl.data?.timeline || [];
+  const events = timelineRows(tl.data, { stageLabel });
   return (
     <Drawer open onClose={onClose} title={nameOf(item)} description={`${stageLabel(item.stage)} · ${daysSince(enteredAt(item)) ?? 0} days in stage`}
       footer={<><Button variant="danger" onClick={() => onRemove(item)}>Remove from pipeline</Button><Button variant="primary" onClick={save} loading={busy === 'save'}>Save</Button></>}>
@@ -121,7 +122,7 @@ function ItemDrawer({ item, companyId, onClose, onChanged, onMove, onRemove }) {
           <h4 className="sub-h">History</h4>
           {tl.data === undefined ? <Skeleton variant="text" lines={3} /> : events.length ? (
             <ul className="timeline">{events.slice(0, 20).map((ev, i) => (
-              <li key={ev.id || i}><span>{fmtDate(ev.at || ev.occurred_at || ev.created_at)}</span> {humanise(ev.event || ev.kind || ev.type)}{ev.reason ? ` · ${passReasonLabel(ev.reason)}` : ''}</li>
+              <li key={ev.key || i}><span>{fmtDate(ev.at)}</span> {ev.label}{ev.reason ? ` · ${passReasonLabel(ev.reason)}` : ''}</li>
             ))}</ul>
           ) : <p className="ui-faint">No history yet.</p>}
         </div>
@@ -253,10 +254,10 @@ export default function PipelinePage() {
     <div className="pipeline">
       <SubNav section="capital" />
       <PageHeader title="Pipeline" subtitle={headline}
-        meta={savedN > 0 && <Link to="/capital/saved">{savedN} saved, not in your pipeline yet</Link>}
+        meta={savedN > 0 && <Link to="/capital/saved">{savedN} shortlisted, not in your pipeline yet</Link>}
         actions={<Tabs variant="pill" label="View" value={view} onChange={setView} items={[{ id: 'board', label: 'Board' }, { id: 'list', label: 'List' }]} />} />
       {q.data === undefined ? <Skeleton h="300px" /> : tracked.length === 0 ? (
-        <EmptyState icon="kanban" title="Nothing tracked yet." body={savedN ? "Move a saved provider into your pipeline when you start working on it." : "Shortlist investors from your matches to start."} action={<Button as={Link} to={savedN ? "/capital/saved" : "/capital/matches"} variant="primary">{savedN ? "Open saved" : "Open matches"}</Button>} />
+        <EmptyState icon="kanban" title="Nothing tracked yet." body={savedN ? "Move a shortlisted provider into your pipeline when you start working on it." : "Shortlist investors from your matches to start."} action={<Button as={Link} to={savedN ? "/capital/saved" : "/capital/matches"} variant="primary">{savedN ? "Open your shortlist" : "Open matches"}</Button>} />
       ) : view === 'board' ? (
         <>
           <div ref={boardRef}><KanbanBoard label="Fundraising pipeline">

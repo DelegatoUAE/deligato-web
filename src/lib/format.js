@@ -149,3 +149,39 @@ export function plainIntel(text) {
     .replace(/\b(0_3m|3_6m|6_12m)\b/g, (m) => timingLabel(m) || m)
     .replace(/(→\s*)(now|exploring)\b/g, (m, a, k) => `${a}${timingLabel(k).toLowerCase()}`);
 }
+
+// R-F1 (Architecture, 5 Oct): founder-typed profile figures carry the declared
+// provenance label, so they never read as Financial Health's computed values.
+export const DECLARED_LABEL = 'You told us';
+export const DECLARED_PROFILE_FIGURES = ['revenue_usd', 'burn_usd', 'runway_months'];
+export const isDeclaredFigure = (field) => DECLARED_PROFILE_FIGURES.includes(field);
+
+/**
+ * Exclusion reasons arrive as engine sentences with ISO country codes
+ * ("No AE mandate — invests in GB, US") and a fixed article ("Is a Incubator").
+ * Founders read country names and correct articles; the reason is unchanged.
+ */
+export function plainExclusion(text) {
+  if (typeof text !== 'string') return text;
+  return wordsForCodes(text)
+    .replace(/\bNo ([A-Z]{2}) mandate\b/g, (m, cc) => `No mandate for ${countryName(cc)}`)
+    .replace(/\binvests in ((?:[A-Z]{2})(?:, [A-Z]{2})*)\b/g, (m, list) => `invests in ${joinWords(list.split(', ').map((c) => countryName(c)))}`)
+    .replace(/\bIs a ([AEIOU])/g, 'Is an $1');
+}
+
+// A capital-need change arrives as "Raise usd: not set → $1.5M" (the column
+// name). Founders read the field's own name; the values are as sent.
+const CHANGE_FIELD = {
+  raise_usd: 'Raise amount', instrument: 'Instrument', raise_timing: 'Timing', purpose: 'Use of the money',
+  target_funding_date: 'Target date', stage: 'Stage',
+};
+export function changeTitle(c) {
+  const t = plainIntel(c?.title);
+  const f = c?.cite?.field;
+  if (typeof t !== 'string' || c?.type !== 'capital_need' || !CHANGE_FIELD[f]) return t;
+  const i = t.indexOf(':');
+  return i > 0 ? `${CHANGE_FIELD[f]}${t.slice(i)}` : t;
+}
+
+/** Positioning §2.9: SME accounts read "your business"; startups "your company". API `company_kind` (R-FE-4). */
+export const companyWord = (company) => (company?.company_kind === 'sme' ? 'business' : 'company');
