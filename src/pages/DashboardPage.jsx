@@ -5,7 +5,8 @@ import useApi from '../lib/useApi';
 import { getCommandCenter, isUnavailable } from '../lib/companyIntel';
 import { firstName, countryName, fmtUsd, fmtDate, fmtMonths, timingLabel, plural, plainIntel, todayIso, companyWord } from '../lib/format';
 import { partOfDay } from '../lib/home';
-import { LoadError, FundraisingNotice } from '../components/capital/bits';
+import { LoadError, FundraisingNotice, MatchPreview } from '../components/capital/bits';
+import { hasMatching } from '../lib/plan';
 import ClassicHome, { Waiting } from '../components/home/ClassicHome';
 import { ChangeList, AttentionList, AskPrompts, SpecialistLink, Delta, UpgradeLine } from '../components/intel/IntelBits';
 
@@ -18,7 +19,8 @@ import { ChangeList, AttentionList, AskPrompts, SpecialistLink, Delta, UpgradeLi
  * there is no combined score (D40). Prominence follows the API's order.
  */
 export default function DashboardPage() {
-  const { me, staff, company, companyId, companiesLoading, dataRoom } = useCompany();
+  const { me, staff, company, companyId, companiesLoading, dataRoom, entitlements, entitlementsKnown } = useCompany();
+  const noMatching = entitlementsKnown && !hasMatching(entitlements); // D69: Free and Company Intelligence
   const q = useApi(() => (companyId ? getCommandCenter(companyId) : null), [companyId]);
   const name = firstName(me?.profile?.full_name || me?.user?.user_metadata?.full_name);
 
@@ -40,6 +42,7 @@ export default function DashboardPage() {
       <Greeting name={name} company={company} snapshot={cc.snapshot} />
 
       <NextBlock next={cc.next} />
+      {noMatching && <MatchPreview companyId={companyId} />}
 
       <section aria-label={`Your ${companyWord(company)}'s signals`} className="cc-signals">
         <h2 className="cc-h">Where you stand <span className="cc-h-note">Each signal is measured on its own. There is no combined score.</span></h2>
@@ -54,7 +57,7 @@ export default function DashboardPage() {
         <section aria-labelledby="cc-changed">
           <h2 id="cc-changed" className="cc-h">What changed</h2>
           <ChangeList items={dedupe(cc.what_changed, cc.attention)} limit={5} empty="Nothing material has changed recently. Your monthly check-in is the main source of change." />
-          {cc.what_changed_scope === 'last_change_only' && <UpgradeLine note="Your plan shows your last Financial Health change. Company Intelligence follows your record, readiness, matches and pipeline too." />}
+          {cc.what_changed_scope === 'last_change_only' && <UpgradeLine note="Your plan shows your last Financial Health change. Company Intelligence follows your record, readiness and finances continuously." />}
           {cc.what_changed?.length > 0 && <Link to="/company/intelligence" className="cc-more">All changes and attention →</Link>}
         </section>
         <section aria-labelledby="cc-attn">

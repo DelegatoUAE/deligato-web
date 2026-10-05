@@ -10,7 +10,9 @@ import WhyThisFits, { AiConsentCard } from '../components/capital/WhyThisFits';
 import useAiConsent from '../lib/useAiConsent';
 import { toggleCompare, COMPARE_MAX, sortMatches, MATCH_SCORE_EXPLAINER, runBelowPlan } from '../lib/matchview';
 const sortByEvidence = (rows) => sortMatches(rows, null);
-import { GateCard, ProviderBadge, LoadError } from '../components/capital/bits';
+import { GateCard, ProviderBadge, LoadError, MatchingUpgrade } from '../components/capital/bits';
+import ExportButton from '../components/capital/ExportButton';
+import RefreshNote from '../components/capital/RefreshNote';
 import useApi from '../lib/useApi';
 import {
   getRunNormalised, getLatestRun, runMatch, isRouteScoped, getUnlocks, listPipeline, addToPipeline, previewMatch,
@@ -20,7 +22,7 @@ import { sendFeedback, listFeedback } from '../lib/learning';
 import { getRouting, normaliseRoute } from '../lib/routing';
 import { fmtUsd, fmtDate, fmtDateTime, fmtInt, countryName, plural, plainExclusion } from '../lib/format';
 import { logEvent } from '../lib/events';
-import { gateFor } from '../lib/plan';
+import { gateFor, hasMatching } from '../lib/plan';
 
 function ScoreExplainer() {
   return (
@@ -121,7 +123,9 @@ function NoVerifiedFits({ company, counts = {}, unlocks, topMissing }) {
 }
 
 export default function MatchesPage() {
-  const { company, companyId, entitlements, reloadRun, reloadPipeline } = useCompany();
+  const { company, companyId, entitlements, entitlementsKnown, reloadRun, reloadPipeline } = useCompany();
+  // D68: Free has no matching. The server answers 402 either way; this only avoids asking.
+  const noMatching = entitlementsKnown && !hasMatching(entitlements);
   const [params, setParams] = useSearchParams();
   const navigate = useNavigate();
   const toast = useToast();
@@ -140,15 +144,16 @@ export default function MatchesPage() {
   // R-CI-F1: a route view is a server-scoped run (POST …/match { routes }), so the
   // cards, headline counts and buckets all describe the same scoped set. The web
   // never filters a plan-truncated list by route on its own.
+  // D68/D69: a plan without matching never loads, runs or scopes a match.
   const routeKeys = useMemo(() => routes.map((r) => r.key), [routes]);
   // An unknown route key, or routing that can't load, falls back to the whole market.
   const routeView = Boolean(routeParam) && !routingQ.error && !(routingQ.data && routes.length === 0);
-  const runQ = useApi(() => (runId ? getRunNormalised(runId) : routeView ? null : getLatestRun(companyId)), [runId, companyId, routeView]);
+  const runQ = useApi(() => (noMatching ? null : runId ? getRunNormalised(runId) : routeView ? null : getLatestRun(companyId)), [runId, companyId, routeView, noMatching]);
   const [scoping, setScoping] = useState(null);
   const [scopeTry, setScopeTry] = useState(0);
   const scopedFor = useRef('');
   useEffect(() => {
-    if (!routeView || !routeKeys.length) return;
+    if (noMatching || !routeView || !routeKeys.length) return;
     const loaded = runId ? runQ.data : null;
     if (runId && (!loaded || isRouteScoped(loaded))) return;
     const want = `${companyId}|${routeKeys.join(',')}|${scopeTry}`;
@@ -161,8 +166,8 @@ export default function MatchesPage() {
         if (res?.run_id) setParams((p) => { const q = new URLSearchParams(p); q.set('run', res.run_id); return q; }, { replace: true });
       })
       .catch((e) => setScoping({ busy: false, error: e }));
-  }, [routeView, routeKeys, runId, runQ.data, companyId, setParams, scopeTry]);
-  const unlocksQ = useApi(() => getUnlocks(companyId), [companyId, runQ.data?.run_id]);
+  }, [noMatching, routeView, routeKeys, runId, runQ.data, companyId, setParams, scopeTry]);
+  const unlocksQ = useApi(() => (noMatching ? null : getUnlocks(companyId)), [companyId, runQ.data?.run_id, noMatching]);
   const pipeQ = useApi(() => listPipeline(companyId).then((x) => x.pipeline || []), [companyId]);
   const fbQ = useApi(() => listFeedback(companyId).then((x) => x.feedback || []).catch(() => []), [companyId]);
 
@@ -249,13 +254,23 @@ export default function MatchesPage() {
         <>
           <ProviderBadge provider={run.provider} />
           {run.created_at && <span className="ui-muted">Run {fmtDateTime(run.created_at)}</span>}
+          <RefreshNote />
           <Button variant="secondary" size="sm" onClick={rerun} loading={running}>Re-run</Button>
+          <ExportButton kind="matches" />
         </>
       )}
       actions={!run ? <Button variant="secondary" size="sm" onClick={rerun} loading={running}>Re-run</Button> : null}
     />
   );
 
+  if (noMatching || runQ.error?.status === 402) {
+    return (
+      <div><SubNav section="capital" />
+        <PageHeader title="Capital matches" subtitle={company.name} />
+        <MatchingUpgrade savedCount={(pipeQ.data || []).length} companyId={companyId} />
+      </div>
+    );
+  }
   if (runQ.error && runQ.error.status !== 404) {
     return <div><SubNav section="capital" />{header}<LoadError error={runQ.error} onRetry={runQ.reload} what="your matches" /></div>;
   }

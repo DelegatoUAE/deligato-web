@@ -12,9 +12,9 @@ import { rankActions, partOfDay, pipelineCounts } from '../../lib/home';
 import { bandLabel, readinessSource, readinessGaps } from '../../lib/readiness';
 import NextActions from '../capital/NextActions';
 import MatchRow from '../capital/MatchRow';
-import { FundraisingNotice, GateCard, LoadError } from '../capital/bits';
+import { FundraisingNotice, GateCard, LoadError, MatchPreview } from '../capital/bits';
 import { logEvent } from '../../lib/events';
-import { includedIn, upgradeHref } from '../../lib/plan';
+import { hasMatching, includedIn, MATCHING_UPGRADE, upgradeHref } from '../../lib/plan';
 
 const ACTIVE = ['researching', 'intro_requested', 'contacted', 'in_conversation', 'diligence', 'term_sheet'];
 const TIMING = { now: 'Raising now', '0_3m': 'In 0–3 months', '3_6m': 'In 3–6 months', '6_12m': 'In 6–12 months', exploring: 'Exploring' };
@@ -67,7 +67,9 @@ export function Waiting({ staff, name }) {
  */
 export default function ClassicHome() {
   const { me, staff, company, companyId, companiesLoading, readiness, readinessLoading, readinessError, reloadReadiness,
-    run, runLoading, capitalNeedConfirmed, pipeline, pipelineError, reloadPipeline } = useCompany();
+    run, runLoading, capitalNeedConfirmed, pipeline, pipelineError, reloadPipeline, entitlements, entitlementsKnown } = useCompany();
+  // D68: Free has no investor matching (Capital Raising); its routes stay free.
+  const noMatching = entitlementsKnown && !hasMatching(entitlements);
   const unlocksQ = useApi(() => (companyId && run ? getUnlocks(companyId) : null), [companyId, run?.run_id]);
   const deltaQ = useApi(() => (companyId && run ? strongDelta(companyId, run) : null), [companyId, run?.run_id]);
   const routesQ = useApi(() => (companyId ? getRouting(companyId) : null), [companyId]);
@@ -148,8 +150,10 @@ export default function ClassicHome() {
         )}
         <StatTile as={Link} to="/capital/need" label="Current raise" value={company.raise_usd != null ? fmtUsd(company.raise_usd) : 'Not set'}
           foot={[company.instrument, TIMING[company.raise_timing] || (capitalNeedConfirmed ? 'timing not set' : 'Confirm your raise')].filter(Boolean).join(' · ')} />
-        <StatTile as={Link} to={run ? '/capital/matches?evidence=eligible' : '/capital/find'} label="Verified fits" loading={runLoading}
-          value={run ? fmtInt(bucket('eligible')) : 'Not yet'} foot={!run ? 'Appears after your first match' : `${deltaQ.data?.n ? `+${deltaQ.data.n} since ${deltaQ.data.since} · ` : ''}${fmtInt(bucket('possible'))} possible · ${fmtInt(bucket('likely_outside'))} likely outside`} />
+        {noMatching ? (
+          <StatTile as={Link} to={upgradeHref('capital-raising')} label="Investor matches" value="Capital Raising" foot="Matching is part of Capital Raising" />
+        ) : <StatTile as={Link} to={run ? '/capital/matches?evidence=eligible' : '/capital/find'} label="Verified fits" loading={runLoading}
+          value={run ? fmtInt(bucket('eligible')) : 'Not yet'} foot={!run ? 'Appears after your first match' : `${deltaQ.data?.n ? `+${deltaQ.data.n} since ${deltaQ.data.since} · ` : ''}${fmtInt(bucket('possible'))} possible · ${fmtInt(bucket('likely_outside'))} likely outside`} />}
         {pipelineGated ? (
           <StatTile as={Link} to={upgradeHref()} label="In pipeline" value="Locked" foot={includedIn()} />
         ) : pipelineError ? (
@@ -184,8 +188,8 @@ export default function ClassicHome() {
           )}
         </Card>
 
-        <Card title="Top matches" action={run && <Button as={Link} to="/capital/matches" variant="link" size="sm">See all matches</Button>}>
-          {runLoading ? <Skeleton h="140px" /> : !run ? (
+        <Card title="Top matches" action={run && !noMatching && <Button as={Link} to="/capital/matches" variant="link" size="sm">See all matches</Button>}>
+          {noMatching ? <><MatchPreview companyId={companyId} compact /><GateCard compact title={MATCHING_UPGRADE.title} body="Your plan shows the capital routes that fit, without naming providers." cta={MATCHING_UPGRADE.cta} /></> : runLoading ? <Skeleton h="140px" /> : !run ? (
             <p className="ui-muted">Your matches will appear here. <Link to="/capital/find">Find capital</Link></p>
           ) : <ul className="mrows">{run.results.slice(0, 3).map((x) => <MatchRow key={x.record_id} r={x} runId={run.run_id} />)}</ul>}
         </Card>

@@ -8,14 +8,15 @@ import SubNav from '../components/SubNav';
 import { MeetingPrep } from '../components/capital/AiBlocks';
 import { useCompany } from '../components/company-context';
 import MatchScore from '../components/capital/MatchScore';
-import { GateCard, LoadError } from '../components/capital/bits';
+import { GateCard, LoadError, MatchingUpgrade, ReadOnlyNote } from '../components/capital/bits';
 import useApi from '../lib/useApi';
 import { listPipeline, updatePipelineItem, removeFromPipeline, PIPELINE_STAGES, ACTIVE_STAGES, stageLabel, investorHref, savedFitLabel } from '../lib/capital';
 import { recordOutcome, getTimeline, PASS_REASONS, passReasonLabel } from '../lib/fundraising';
 import { apiFetch } from '../lib/auth';
 import { daysSince, fmtDate, todayIso } from '../lib/format';
-import { gateFor } from '../lib/plan';
+import { canShortlist, gateFor, MATCHING_UPGRADE } from '../lib/plan';
 import { timelineRows } from '../lib/timeline';
+import ExportButton from '../components/capital/ExportButton';
 
 const OUTCOME_STAGES = ['passed', 'not_now', 'term_sheet', 'closed_won'];
 const TONE = { shortlisted: 'neutral', researching: 'neutral', intro_requested: 'info', contacted: 'info', in_conversation: 'navy', diligence: 'navy', term_sheet: 'gold', closed_won: 'ok', passed: 'bad', not_now: 'neutral' };
@@ -72,7 +73,7 @@ function OutcomeDialog({ state, onCancel, onSave, busy }) {
   );
 }
 
-function ItemDrawer({ item, companyId, onClose, onChanged, onMove, onRemove }) {
+function ItemDrawer({ item, companyId, onClose, onChanged, onMove, onRemove, readOnly = false }) {
   const toast = useToast();
   const [form, setForm] = useState({ next_action: item.next_action || '', next_action_date: item.next_action_date || '', owner_note: item.owner_note || '' });
   const [busy, setBusy] = useState(null);
@@ -99,21 +100,22 @@ function ItemDrawer({ item, companyId, onClose, onChanged, onMove, onRemove }) {
   const events = timelineRows(tl.data, { stageLabel });
   return (
     <Drawer open onClose={onClose} title={nameOf(item)} description={`${stageLabel(item.stage)} · ${daysSince(enteredAt(item)) ?? 0} days in stage`}
-      footer={<><Button variant="danger" onClick={() => onRemove(item)}>Remove from pipeline</Button><Button variant="primary" onClick={save} loading={busy === 'save'}>Save</Button></>}>
+      footer={<><Button variant="danger" onClick={() => onRemove(item)}>Remove from pipeline</Button>{!readOnly && <Button variant="primary" onClick={save} loading={busy === 'save'}>Save</Button>}</>}>
+      {/* D68/D69: on Free and Company Intelligence a saved investor is read-only (view or remove); the server refuses changes too. */}
       <div className="ui-stack">
         <FormField label="Stage">
-          <Select value={item.stage} onChange={(e) => onMove(item, e.target.value)} options={PIPELINE_STAGES.map((s) => ({ value: s.key, label: s.label }))} />
+          <Select value={item.stage} disabled={readOnly} onChange={(e) => onMove(item, e.target.value)} options={PIPELINE_STAGES.map((s) => ({ value: s.key, label: s.label }))} />
         </FormField>
         <div className="ui-form ui-form-2">
-          <FormField label="Next action"><Input value={form.next_action} onChange={(e) => setForm({ ...form, next_action: e.target.value })} placeholder="e.g. Send deck" /></FormField>
-          <FormField label="By"><Input type="date" value={form.next_action_date || ''} onChange={(e) => setForm({ ...form, next_action_date: e.target.value })} /></FormField>
+          <FormField label="Next action"><Input disabled={readOnly} value={form.next_action} onChange={(e) => setForm({ ...form, next_action: e.target.value })} placeholder="e.g. Send deck" /></FormField>
+          <FormField label="By"><Input disabled={readOnly} type="date" value={form.next_action_date || ''} onChange={(e) => setForm({ ...form, next_action_date: e.target.value })} /></FormField>
         </div>
-        <FormField label="Private notes"><Textarea rows={3} value={form.owner_note} onChange={(e) => setForm({ ...form, owner_note: e.target.value })} /></FormField>
-        <div className="ui-row">
+        <FormField label="Private notes"><Textarea disabled={readOnly} rows={3} value={form.owner_note} onChange={(e) => setForm({ ...form, owner_note: e.target.value })} /></FormField>
+        {!readOnly && <div className="ui-row">
           <Button variant="secondary" size="sm" onClick={() => log('meeting')} loading={busy === 'meeting'}>Log a meeting</Button>
           <Button variant="secondary" size="sm" onClick={() => log('reply')} loading={busy === 'reply'}>Log a reply</Button>
-        </div>
-        <MeetingPrep key={item.record_id} companyId={companyId} recordId={item.record_id} compact />
+        </div>}
+        {!readOnly && <MeetingPrep key={item.record_id} companyId={companyId} recordId={item.record_id} compact />}
         <div className="ui-row">
           <Link to={investorHref(item.record_id)}>Open investor profile</Link>
           <Link to={`/capital/outreach?record=${encodeURIComponent(item.record_id)}`}>Drafts for this investor</Link>
@@ -132,7 +134,7 @@ function ItemDrawer({ item, companyId, onClose, onChanged, onMove, onRemove }) {
 }
 
 export default function PipelinePage() {
-  const { companyId, reloadPipeline, run } = useCompany();
+  const { companyId, reloadPipeline, run, entitlements, entitlementsKnown } = useCompany();
   const runByRecord = new Map((run?.results || []).map((r) => [r.record_id, r]));
   const toast = useToast();
   const q = useApi(() => listPipeline(companyId).then((x) => x.pipeline || []), [companyId]);
@@ -146,6 +148,8 @@ export default function PipelinePage() {
   const [removing, setRemoving] = useState(null);
 
   const items = q.data || [];
+  // D68: on Free, investors saved earlier stay visible but read-only (the server enforces it).
+  const readOnly = items.some((x) => x.read_only) || (entitlementsKnown && !canShortlist(entitlements));
   const boardRef = useRef(null);
   const firstStage = items.find((p) => p.stage !== 'shortlisted')?.stage;
   // Bring the first column with cards into view (later stages sit off to the right).
@@ -172,6 +176,7 @@ export default function PipelinePage() {
 
   function move(item, to) {
     if (!to || to === item.stage) return;
+    if (readOnly) { toast.info(MATCHING_UPGRADE.readOnly); return; } // D68: the server refuses it too
     if (OUTCOME_STAGES.includes(to)) { setOutcome({ item, to }); return; }
     applyMove(item, to);
   }
@@ -236,7 +241,7 @@ export default function PipelinePage() {
     const overdue = p.next_action_date && p.next_action_date < todayIso();
     return (
       <KanbanCard key={p.id} title={nameOf(p)} stale={stale} dragging={dragId === p.id}
-        draggable onDragStart={(e) => { setDragId(p.id); e.dataTransfer.effectAllowed = 'move'; }} onDragEnd={() => { setDragId(null); setOverStage(null); }}
+        draggable={!readOnly} onDragStart={(e) => { setDragId(p.id); e.dataTransfer.effectAllowed = 'move'; }} onDragEnd={() => { setDragId(null); setOverStage(null); }}
         onClick={() => setOpenId(p.id)}
         leading={<MatchScore score={p.match_score_at_add} confidence={p.capital_sources?.data_confidence} size="sm" />}
         meta={[savedFitLabel(p, runByRecord.get(p.record_id)), p.capital_sources?.type].filter(Boolean).join(' · ')}
@@ -256,8 +261,9 @@ export default function PipelinePage() {
       <SubNav section="capital" />
       <PageHeader title="Pipeline" subtitle={headline}
         meta={savedN > 0 && <Link to="/capital/saved">{savedN} shortlisted, not in your pipeline yet</Link>}
-        actions={<Tabs variant="pill" label="View" value={view} onChange={setView} items={[{ id: 'board', label: 'Board' }, { id: 'list', label: 'List' }]} />} />
-      {q.data === undefined ? <Skeleton h="300px" /> : tracked.length === 0 ? (
+        actions={<><ExportButton kind="pipeline" /><Tabs variant="pill" label="View" value={view} onChange={setView} items={[{ id: 'board', label: 'Board' }, { id: 'list', label: 'List' }]} /></>} />
+      {readOnly && (items.length ? <ReadOnlyNote /> : <MatchingUpgrade />)}
+      {q.data === undefined ? <Skeleton h="300px" /> : readOnly && !items.length ? null : tracked.length === 0 ? (
         <EmptyState icon="kanban" title="Nothing tracked yet." body={savedN ? "Move a shortlisted provider into your pipeline when you start working on it." : "Shortlist investors from your matches to start."} action={<Button as={Link} to={savedN ? "/capital/saved" : "/capital/matches"} variant="primary">{savedN ? "Open your shortlist" : "Open matches"}</Button>} />
       ) : view === 'board' ? (
         <>
@@ -301,7 +307,7 @@ export default function PipelinePage() {
       <p className="ui-faint">Drag a card, or open it and use Stage, to move it. Passed, Not now, Term sheet and Closed ask what happened.</p>
 
       {outcome && <OutcomeDialog state={outcome} busy={busy} onCancel={() => setOutcome(null)} onSave={saveOutcome} />}
-      {openItem && <ItemDrawer key={openItem.id} item={openItem} companyId={companyId} onClose={() => setOpenId(null)} onChanged={replace} onMove={move} onRemove={setRemoving} />}
+      {openItem && <ItemDrawer key={openItem.id} item={openItem} companyId={companyId} onClose={() => setOpenId(null)} onChanged={replace} onMove={move} onRemove={setRemoving} readOnly={readOnly} />}
       <ConfirmDialog open={Boolean(removing)} title={`Remove ${removing ? nameOf(removing) : ''}?`} body="This removes the investor and its next action from your pipeline. Outcomes you've recorded are kept." confirmLabel="Remove from pipeline" busy={busy} onConfirm={remove} onCancel={() => setRemoving(null)} />
       {items.some((p) => p.stage === 'term_sheet') && <Alert tone="ok">You have a term sheet in play. Get legal advice before you sign anything.</Alert>}
     </div>

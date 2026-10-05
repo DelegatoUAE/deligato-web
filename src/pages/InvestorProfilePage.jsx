@@ -8,7 +8,7 @@ import MatchScore from '../components/capital/MatchScore';
 import WhyThisFits from '../components/capital/WhyThisFits';
 import { MeetingPrep } from '../components/capital/AiBlocks';
 import useAiConsent from '../lib/useAiConsent';
-import { FundraisingNotice, LoadError } from '../components/capital/bits';
+import { FundraisingNotice, LoadError, MatchingUpgrade, ReadOnlyNote } from '../components/capital/bits';
 import useApi from '../lib/useApi';
 import {
   getSource, getRunNormalised, listPipeline, addToPipeline, previewMatch, FIT_DIMENSIONS, confidenceLevel, stageLabel, fitReasonText, bucketHeadline, tierWithinBucket, investorHref, ticketRange,
@@ -153,6 +153,8 @@ export default function InvestorProfilePage() {
     if (srcQ.error.status === 404) {
       return <EmptyState icon="search" title="We couldn't find this capital source. It may have been retired." action={<Button as={Link} to="/capital/matches" variant="primary">Back to matches</Button>} />;
     }
+    // D68: on Free an investor profile opens only for an investor saved earlier.
+    if (srcQ.error.status === 402) return <MatchingUpgrade savedCount={(pipeQ.data || []).length} companyId={companyId} />;
     return <LoadError error={srcQ.error} onRetry={srcQ.reload} what="this investor" />;
   }
   const p = srcQ.data?.profile;
@@ -164,7 +166,7 @@ export default function InvestorProfilePage() {
   const fr = p.freshness || {};
   const id = p.identity || {};
   const pipelineItem = (pipeQ.data || []).find((x) => x.record_id === recordId);
-  const canTrack = pipeQ.error?.status !== 402;
+  const canTrack = pipeQ.error?.status !== 402 && !p.read_only; // D68: no new saves on Free
   const canDraft = Number(entitlements?.outreach_drafts_per_month || 0) > 0;
   const kind = kindForRoute(app.route);
   const locked = Boolean(p.locked);
@@ -257,6 +259,7 @@ export default function InvestorProfilePage() {
             <Button variant="ghost" iconLeft="spark" onClick={() => setDialog('brief')}>Prepare for the call</Button>
             <Button variant="ghost" onClick={() => setDialog('dismiss')}>Not for us</Button>
           </div>
+          {p.read_only && <ReadOnlyNote />}
         </div>
         <div className="inv-score">
           {result ? (

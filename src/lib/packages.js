@@ -13,6 +13,6 @@ export const setPocPlan = (companyId, plan) =>
 
 /** Free-tier defaults (catalog FREE_ENTITLEMENTS) used only to gate the UI when entitlements can't be read. */
 export const FREE_ENTITLEMENTS = {
-  max_results: 5, investor_profile_depth: 'summary', ai_matching: false, outreach_drafts_per_month: 0,
+  max_results: 0, pipeline_items: 0, investor_profile_depth: 'summary', ai_matching: false, outreach_drafts_per_month: 0, // D68
   data_room: 'checklist', crm: false, improvement_plan: 'top3', capital_plan: 'trial',
 };

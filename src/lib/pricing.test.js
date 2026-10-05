@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import {
   cleanCopy, columnsOf, foundingLabel, priceLine, priceParts, isLaunching, limitLabel, billingErrorCopy,
   refundable, creditUsedBy, bridgeExpiry, stageOf, planForTier, idempotencyKey,
+  platformOf, servicesOf, planBullets, priceFor, hasAnnual, serviceTerms, compareCell, PLAN_STORY,
 } from './pricing.js';
 import { gateFor } from './plan.js';
 
@@ -27,7 +28,7 @@ const PLANS = {
   checkout: { enabled: false, provider: null, live: false },
 };
 
-test('five columns in the API order, each with a price (D60)', () => {
+test('every priced item in the API order (D60 data; D68 groups them as 3 plans + 2 services)', () => {
   assert.deepEqual(columnsOf(PLANS).map((p) => p.id), ['readiness-free', 'capital-readiness', 'capital-assessment', 'company-intelligence', 'capital-raising']);
   assert.deepEqual(columnsOf({ plans: [{ id: 'x', prices: [] }] }), []);
   assert.deepEqual(columnsOf(null), []);
@@ -114,11 +115,84 @@ test('402 readings: one calm link, none for a ceiling with nowhere to go (D50)',
 });
 
 test('checkout never offers advisor or consulting products (D50) and never hard-codes a price', () => {
-  for (const f of ['components/billing/CheckoutDialog.jsx', 'components/billing/PlanColumns.jsx', 'components/billing/PlanBilling.jsx', 'pages/PricingPage.jsx', 'pages/PackagesPage.jsx', 'lib/pricing.js', 'lib/billing.js']) {
+  for (const f of ['components/billing/CheckoutDialog.jsx', 'components/billing/PricingPlans.jsx', 'components/billing/PlanBilling.jsx', 'pages/PricingPage.jsx', 'pages/PackagesPage.jsx', 'lib/pricing.js', 'lib/billing.js']) {
     const code = readFileSync(join(SRC, f), 'utf8').split('\n').filter((l) => !/^\s*(\/\/|\*|\/\*\*)/.test(l)).join('\n');
     assert.doesNotMatch(code, /\$\s?(29|54|99|129|290|549|699)\b/, `${f} hard-codes an approved price`);
     assert.doesNotMatch(code, /\bunlimited\b/i, `${f} says unlimited`);
   }
   const co = readFileSync(join(SRC, 'components/billing/CheckoutDialog.jsx'), 'utf8').split('\n').filter((l) => !/^\s*(\/\/|\*|\/\*\*)/.test(l)).join('\n');
   assert.doesNotMatch(co, /advisor-sessions|consulting|fractional/i);
+});
+
+// D68: the 3 platform plans and 2 services, as GET /billing/plans returns them (api pricing-d68), trimmed.
+const D68 = {
+  currency: 'USD',
+  platform: ['readiness-free', 'company-intelligence', 'capital-raising'],
+  services: ['capital-readiness', 'capital-assessment'],
+  plans: [
+    { id: 'readiness-free', name: 'Free', tier: 'free', prices: [{ key: 'free', billing: 'free', amount_usd: 0 }],
+      display: { company_profile: 'Included', checkin: 'Financial Health inputs only', improvement_plan: 'Top 3 actions', expert_access: 'Browse and request', max_results: 'Not included', pipeline_items: 'Not included' } },
+    { id: 'capital-readiness', name: 'Capital Readiness Report', tier: null, prices: [{ key: 'readiness_one_time', billing: 'one_time', amount_usd: 54 }],
+      display: { capital_readiness_report: 'Included' }, includes_company_intelligence_days: 30, credit: { amount_usd: 54, toward: ['capital-raising'], window_days: 30 } },
+    { id: 'capital-assessment', name: 'Capital Readiness + Advisor', tier: null, prices: [{ key: 'readiness_plus_one_time', billing: 'one_time', amount_usd: 99 }],
+      display: { capital_readiness_report: 'Included', expert_sessions: '1 included' }, includes_company_intelligence_days: 30, credit: { amount_usd: 54, toward: ['capital-raising'], window_days: 30 } },
+    { id: 'company-intelligence', name: 'Company Intelligence', tier: 'company_intelligence',
+      prices: [{ key: 'ci_monthly', billing: 'monthly', amount_usd: 29 }, { key: 'ci_annual', billing: 'annual', amount_usd: 290, note: '2 months free' }],
+      display: { company_intel_live: 'Included', financial_health_history: 'Included', score_history: 'Included', next_best_actions: 'Full', checkin: 'Full monthly check-in', max_results: 'Up to 5' } },
+    { id: 'capital-raising', name: 'Capital Raising', tier: 'capital_raising',
+      prices: [{ key: 'cr_monthly', billing: 'monthly', amount_usd: 99 }, { key: 'cr_annual', billing: 'annual', amount_usd: 990, note: '2 months free' }],
+      display: { max_results: 'Full access / plan limits', ai_explanations: 'Full access / plan limits', investor_profile_depth: 'Full profile with contact routes',
+        pipeline_items: 'Full access / plan limits', outreach_drafts_per_month: '60 drafts a month', crm: 'Included', match_refresh: 'Monthly', export: 'Included',
+        data_room: 'Private document storage (investor sharing coming later)' } },
+  ],
+};
+
+test('D68: three platform plans in ladder order, the two services apart (never tiers)', () => {
+  assert.deepEqual(platformOf(D68).map((p) => p.id), ['readiness-free', 'company-intelligence', 'capital-raising']);
+  assert.deepEqual(servicesOf(D68).map((p) => p.id), ['capital-readiness', 'capital-assessment']);
+  assert.ok(servicesOf(D68).every((p) => !p.tier));
+  assert.equal(stageOf('readiness-free'), 'Understand');
+  assert.equal(stageOf('company-intelligence'), 'Stay Ready');
+  assert.equal(stageOf('capital-raising'), 'Raise');
+});
+
+test('D68: card bullets are only shown when the API confirms them', () => {
+  assert.deepEqual(planBullets(platformOf(D68)[0]), ['IR / Investor Readiness Score', 'Financial Health Check', 'Company profile & portal', 'Basic readiness insights', '20-minute consultant session']);
+  assert.equal(planBullets(platformOf(D68)[2]).length, PLAN_STORY['capital-raising'].bullets.length, 'every Capital Raising bullet is true');
+  assert.ok(!planBullets(platformOf(D68)[0]).some((b) => /match|shortlist|pipeline|outreach|team/i.test(b)), 'Free never lists matching or team members (D69)');
+  assert.ok(!planBullets(platformOf(D68)[1]).some((b) => /match|shortlist|pipeline|outreach/i.test(b)), 'Company Intelligence never lists matching (D69)');
+  const pretend = { ...platformOf(D68)[1], display: { ...platformOf(D68)[1].display, score_history: 'Not included' } };
+  assert.ok(!planBullets(pretend).includes('Readiness history'), 'a bullet the API does not grant is dropped');
+  assert.deepEqual(planBullets(servicesOf(D68)[1]), ['Everything in the report', '+ 40-minute session with an advisor']);
+});
+
+test('D68: monthly / annual prices come from the API rows; the services line is worded from the API', () => {
+  const [free, ci, cr] = platformOf(D68);
+  assert.equal(priceLine(priceFor(ci, 'monthly')), '$29 / month');
+  assert.equal(priceLine(priceFor(cr, 'annual')), '$990 / year');
+  assert.equal(priceLine(priceFor(free, 'annual')), '$0', 'Free stays free');
+  assert.equal(hasAnnual(D68), true);
+  assert.equal(serviceTerms(D68), 'Includes 30 days of Company Intelligence · $54 credited if you upgrade to Capital Raising within 30 days');
+  assert.equal(serviceTerms({ plans: [] }), null);
+});
+
+test('D68: compare cells read the API values honestly', () => {
+  assert.deepEqual(compareCell('Included'), { kind: 'yes', text: 'Included' });
+  assert.deepEqual(compareCell('Not included'), { kind: 'no', text: 'Not included' });
+  assert.deepEqual(compareCell('Up to 5'), { kind: 'text', text: 'Up to 5' });
+  assert.equal(compareCell('unlimited').text, 'Full access / plan limits');
+});
+
+test('plan honesty: the Capital Raising card claims export, monthly refresh and a private data room only when the API grants them, and never share links', () => {
+  const cr = platformOf(D68)[2];
+  const bullets = planBullets(cr);
+  assert.ok(bullets.includes('Export to CSV for Excel'));
+  assert.ok(bullets.includes('Matches refreshed monthly'));
+  assert.ok(bullets.includes('Private data room (investor sharing coming later)'));
+  assert.ok(!bullets.some((b) => /secure share|share link/i.test(b)));
+  const without = { ...cr, display: { ...cr.display, export: 'Not included', match_refresh: 'Not included' } };
+  assert.ok(!planBullets(without).includes('Export to CSV for Excel'), 'dropped when the API does not grant it');
+  assert.ok(!planBullets(without).includes('Matches refreshed monthly'));
+  assert.ok(!planBullets(platformOf(D68)[1]).some((b) => /export|refresh|data room/i.test(b)), 'Company Intelligence claims none of them');
+  assert.equal(isLaunching('Private document storage (investor sharing coming later)'), false, 'no "Launching" badge on the honest label');
 });
