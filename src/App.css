@@ -998,6 +998,18 @@
 .dr-mode { margin: 0; font-size: var(--text-sm); color: var(--text-soft); line-height: 1.7; }
 .dr-mode .ui-badge { margin-right: var(--s-2); }
 .dr-dates { display: inline-flex; flex-wrap: wrap; gap: var(--s-2); align-items: center; font-size: var(--text-xs); color: var(--text-soft); }
+/* U-1 stored files */
+.dr-file { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px var(--s-3); align-items: start; margin-top: var(--s-2); padding: var(--s-2) var(--s-3); border: 1px solid var(--border-soft); border-left: 3px solid var(--border); border-radius: var(--r-sm); background: var(--surface-warm); }
+.dr-file > .ui-icon { margin-top: 2px; color: var(--text-soft); }
+.dr-file.is-expiring { border-left-color: var(--warn-solid); }
+.dr-file.is-expired { border-left-color: var(--bad-solid); }
+.dr-file-main { display: grid; gap: 2px; min-width: 0; }
+.dr-file-name { font-size: var(--text-sm); font-weight: var(--fw-semibold); color: var(--text-strong); overflow-wrap: anywhere; }
+.dr-file-meta { font-size: var(--text-xs); color: var(--text-soft); }
+.dr-file-actions { grid-column: 2; display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin-top: 4px; }
+.dr-pick { display: flex; flex-wrap: wrap; gap: var(--s-2); align-items: center; min-width: 0; }
+.dr-pick .ui-muted { font-size: var(--text-xs); overflow-wrap: anywhere; }
+@media (max-width: 700px) { .dr-file-actions { grid-column: 1 / -1; } }
 .dealroom-soon { display: grid; grid-template-columns: auto 1fr auto; gap: var(--s-4); align-items: center; margin-top: var(--s-6); padding: var(--s-5) var(--s-6); border-radius: var(--r-lg); background: var(--surface-warm); border: 1px solid var(--border-soft); }
 .dealroom-soon p { margin: 0; }
 .dealroom-soon .ui-icon { color: var(--text-accent); }
