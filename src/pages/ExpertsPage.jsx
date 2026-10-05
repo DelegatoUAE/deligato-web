@@ -5,7 +5,8 @@ import SubNav from '../components/SubNav';
 import ExpertCard from '../components/ExpertCard';
 import { useCompany } from '../components/company-context';
 import useApi from '../lib/useApi';
-import { getTaxonomy, interpretNeed, matchExperts, listDirectory, requestExpertHelp, saveBrief, ENGAGEMENT, URGENCY, SENIORITY, INTRO_SESSION_TOPIC, listExpertRequests, requestIntroSession } from '../lib/experts';
+import { getTaxonomy, interpretNeed, matchExperts, listDirectory, requestExpertHelp, saveBrief, ENGAGEMENT, URGENCY, SENIORITY } from '../lib/experts';
+import { advisoryLabel } from '../lib/plan';
 import { getUnlocks } from '../lib/capital';
 import { readinessGapFactors } from '../lib/readiness';
 import { BRIDGE_LABEL, expertBridge } from '../lib/expertise';
@@ -14,34 +15,18 @@ import { fmtUsd } from '../lib/format';
 
 const EXAMPLES = ['a fractional CFO for 2 days a week', 'help with our cap table before a SAFE', 'UAE corporate tax registration'];
 
-/** D68: every company can request one 20-minute consultant session (arranged by our team). */
-function IntroSession({ companyId }) {
-  const toast = useToast();
-  const reqQ = useApi(() => (companyId ? listExpertRequests(companyId).then((x) => x.requests || []).catch(() => []) : []), [companyId]);
-  const [open, setOpen] = useState(false);
-  const [note, setNote] = useState('');
-  const [busy, setBusy] = useState(false);
-  const used = (reqQ.data || []).find((r) => r.topic === INTRO_SESSION_TOPIC && !['cancelled', 'declined'].includes(r.status));
-  async function send() {
-    setBusy(true);
-    try {
-      await requestIntroSession(companyId, note);
-      toast.success('Requested. Our team will confirm a time with you.');
-      setOpen(false);
-      reqQ.reload();
-    } catch (e) {
-      toast.error(e.code === 'intro_session_used' ? 'Your company has already requested its 20-minute session.'
-        : isMissingEndpoint(e) ? "Requests aren't connected in this environment yet." : `Couldn't send the request: ${e.message}`);
-    } finally { setBusy(false); }
-  }
+/**
+ * D73 annual expert time (40 minutes on Capital Intelligence, 2 hours on Capital Raising, from the
+ * API). D74 (4) removed the free 20-minute session. Booking against the allowance is RC3 phase 3
+ * (the ledger), so this card states the allowance and does not book.
+ */
+function PlanExpertTime({ minutes }) {
+  const label = advisoryLabel(minutes);
+  if (!label) return null;
   return (
-    <Card className="assess" title="Your free 20-minute consultant session"
-      action={used ? <Badge tone="ok">Requested</Badge> : <Button variant="secondary" onClick={() => setOpen(true)} disabled={!companyId || reqQ.data === undefined}>Request a session</Button>}>
-      <p className="ui-muted">One per company, on every plan. Talk through where your company stands with a consultant; our team confirms a time with you.</p>
-      <Modal open={open} onClose={() => setOpen(false)} title="Request your 20-minute session" description="A request to our team inside the platform. Nobody is emailed by the system, and nothing is charged."
-        footer={<><Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button><Button variant="primary" loading={busy} onClick={send}>Request a session</Button></>}>
-        <FormField label="What would you like to cover?" optional><Textarea rows={3} value={note} onChange={(e) => setNote(e.target.value)} /></FormField>
-      </Modal>
+    <Card className="assess" title="Expert time in your plan">
+      <p><strong>{label} per subscription year</strong> with an advisor, included in your plan.</p>
+      <p className="ui-muted">Booking against it opens soon. Until then, request help below and our team arranges it.</p>
     </Card>
   );
 }
@@ -112,7 +97,7 @@ function BriefCard({ brief, taxonomy, company, onChange, onSee, seeing, onEdit }
 
 /** 20 · Find an Expert. Describe a need, or start from a gap; confirm the brief; then results (21). */
 export default function ExpertsPage() {
-  const { companyId, company, readiness, run, dataRoom } = useCompany();
+  const { companyId, company, readiness, run, dataRoom, entitlements } = useCompany();
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const gapKind = params.get('gap_kind');
@@ -201,8 +186,9 @@ export default function ExpertsPage() {
         </section>
       )}
 
-      <IntroSession companyId={companyId} />
-      <CapitalAssessment companyId={companyId} />
+      <PlanExpertTime minutes={entitlements?.advisory_minutes_per_year} />
+      {/* D73: a plan that includes the Capital Readiness Report is never prompted to buy it. */}
+      {!entitlements?.capital_readiness_included && <CapitalAssessment companyId={companyId} />}
 
       <section aria-labelledby="dir-h">
         <h2 id="dir-h" className="sec-h">Browse all experts</h2>
@@ -210,7 +196,7 @@ export default function ExpertsPage() {
           <Alert tone="warn">{isMissingEndpoint(dirQ.error) ? "The expert directory isn't connected in this environment yet." : `Couldn't load experts: ${dirQ.error.message}`}</Alert>
         ) : !dirQ.data ? <Skeleton h="160px" /> : dirQ.data.length ? (
           <div className="ui-grid ui-grid-3">{dirQ.data.slice(0, 12).map((e) => <ExpertCard key={e.id} expert={e} />)}</div>
-        ) : <p className="ui-muted">No experts listed yet. Request your 20-minute session or Capital Readiness + Advisor and we'll route you.</p>}
+        ) : <p className="ui-muted">No experts listed yet. Describe what you need above and we'll route you.</p>}
       </section>
     </div>
   );

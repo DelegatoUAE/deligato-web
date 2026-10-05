@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Badge, Button, Card, Modal, PageHeader, Skeleton, useToast } from '../design/ui';
 import { useCompany } from '../components/company-context';
-import { FundraisingNotice, LoadError, MatchPreview } from '../components/capital/bits';
-import { hasMatching } from '../lib/plan';
+import { FundraisingNotice, LoadError } from '../components/capital/bits';
+import { planLimitRows, tierLabel } from '../lib/plan';
 import { BillingToggle, CompareTable, PlatformPlans, PricingFaq, ServicesSection } from '../components/billing/PricingPlans';
 import CheckoutDialog from '../components/billing/CheckoutDialog';
 import useApi from '../lib/useApi';
@@ -32,13 +32,14 @@ export default function PackagesPage() {
   const [requested, setRequested] = useState({});
   const [billing, setBilling] = useState('monthly');
 
-  const head = <PageHeader title="Plans" subtitle="Start free. Upgrade when you need more: Company Intelligence keeps you ready, Capital Raising adds investor matching and execution. Prices in USD." />;
+  const head = <PageHeader title="Plans" subtitle="Start free with your first ranked matches. Capital Intelligence prepares and manages your raise; Capital Raising runs it end-to-end. Prices in USD." />;
   if (plansQ.error) return <div>{head}<LoadError error={plansQ.error} onRetry={plansQ.reload} what="plans" /></div>;
   if (!plansQ.data) return <div>{head}<Skeleton h="480px" /></div>;
 
   const data = plansQ.data;
+  const catalog = catQ.data || null;
   const cols = columnsOf(data);
-  const byId = (id) => cols.find((p) => p.id === id);
+  const byId = (id) => cols.find((p) => p.id === id) || platformOf(data, catalog).find((p) => p.id === id);
   const currentTier = subQ.data?.plan?.ladder_tier || entitlementsRaw?.ladder_tier || 'free';
   const activeIds = new Set((entitlementsRaw?.grants || []).map((g) => g.package_id));
   const isCurrent = (p) => (p.tier && p.tier === currentTier) || (!p.tier && activeIds.has(p.id));
@@ -55,6 +56,8 @@ export default function PackagesPage() {
   const cta = (plan, price, story = {}) => {
     if (isCurrent(plan)) return <Badge tone="ok">{plan.tier ? 'Your plan' : 'Bought'}</Badge>;
     if (Number(price?.amount_usd) === 0) return <Badge tone="neutral">Included</Badge>;
+    // D73: Capital Intelligence is shown with its real limits but billing sells it only from RC3 phase 3.
+    if (plan.checkout === false) return <Button variant="secondary" block disabled>Opens with payments</Button>;
     return (
       <Button variant={plan.id === 'capital-raising' ? 'accent' : plan.id === 'capital-assessment' ? 'primary' : 'secondary'} iconRight="arrowRight" block
         onClick={() => setChoosing({ id: plan.id, price: price.key })}>
@@ -62,7 +65,7 @@ export default function PackagesPage() {
       </Button>
     );
   };
-  const annualNote = platformOf(data).flatMap((p) => p.prices || []).find((x) => x.billing === 'annual')?.note || null;
+  const annualNote = platformOf(data, catalog).flatMap((p) => p.prices || []).find((x) => x.billing === 'annual')?.note || null;
 
   // Optional support items (catalog): interest only, never checkout (D50).
   const optional = (catQ.data?.optional_support?.items || []).map((i) => ({ ...i, ...((catQ.data?.packages || []).concat(catQ.data?.add_ons || []).find((p) => p.id === i.id) || {}) }));
@@ -93,25 +96,26 @@ export default function PackagesPage() {
       {!data.checkout?.enabled && (
         <p className="pr-payments-off" role="status"><strong>Payments open soon.</strong> Your plan isn&apos;t charged yet.</p>
       )}
-      {entitlementsRaw && !hasMatching(entitlementsRaw.entitlements) && (
-        <>
-          <MatchPreview companyId={companyId} />
-          <p className="pr-credit-banner" role="note"><strong>Your plan has no investor matching.</strong> Company Intelligence is continuous intelligence on your company; matched investors and capital providers, why each fits, your shortlist, pipeline and outreach are part of Capital Raising. Investors you shortlisted earlier stay visible, read-only.</p>
-        </>
+      {entitlementsRaw && (
+        <Card className="plan-now" eyebrow="Your plan" title={tierLabel(currentTier) || 'Free'}>
+          <dl className="bill-limits">
+            {planLimitRows(entitlementsRaw).map((r) => <div key={r.key}><dt>{r.label}</dt><dd>{r.value}</dd></div>)}
+          </dl>
+        </Card>
       )}
 
-      {hasAnnual(data) && <div className="pr2-bar"><BillingToggle value={billing} onChange={setBilling} note={annualNote} /></div>}
-      <PlatformPlans data={data} cta={cta} billing={billing} highlight={highlight} isCurrent={isCurrent} />
+      {hasAnnual(data, catalog) && <div className="pr2-bar"><BillingToggle value={billing} onChange={setBilling} note={annualNote} /></div>}
+      <PlatformPlans data={data} catalog={catalog} cta={cta} billing={billing} highlight={highlight} isCurrent={isCurrent} />
       {data.fair_use?.footnote && <p className="pr-foot">“Full access / plan limits”: {cleanCopy(data.fair_use.footnote)}</p>}
 
-      <ServicesSection data={data} cta={cta} highlight={highlight} isCurrent={isCurrent} />
-      <CompareTable data={data} />
+      <ServicesSection data={data} cta={cta} highlight={highlight} isCurrent={isCurrent} included={Boolean(entitlementsRaw?.entitlements?.capital_readiness_included)} />
+      <CompareTable data={data} catalog={catalog} />
 
       <section className="pr-optional" aria-labelledby="pr-opt-h">
         <div>
           <p className="pr-stage">Optional</p>
           <h3 id="pr-opt-h" className="pr-name">{cleanCopy(data.optional_support?.label) || 'Need specialist help?'}</h3>
-          <p className="pr-tag">Every company can request one free 20-minute consultant session through Expert Access. Other expert and advisor help is priced separately and entirely optional: every plan above works without it.</p>
+          <p className="pr-tag">Capital Intelligence and Capital Raising include expert time each subscription year. Other expert and advisor help is priced separately and entirely optional: every plan above works without it.</p>
         </div>
         <Button as={Link} to="/experts" variant="secondary">Find an expert</Button>
       </section>
@@ -127,7 +131,7 @@ export default function PackagesPage() {
         </ul>
       )}
 
-      <PricingFaq data={data} />
+      <PricingFaq data={data} catalog={catalog} />
       <FundraisingNotice />
 
       {choosingPlan && (

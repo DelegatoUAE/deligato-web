@@ -65,9 +65,6 @@ export function getRun(runId) {
   return apiFetch(`/capital/runs/${runId}`);
 }
 
-/** D68/D69 locked teaser (Free and Company Intelligence): { preview: { potential_fits, regions } | null }. Aggregate only. */
-export const getMatchPreview = (companyId) => apiFetch(`/capital/profiles/${companyId}/preview`);
-
 export function getUnlocks(companyId) {
   return apiFetch(`/capital/profiles/${companyId}/unlocks`);
 }
@@ -87,7 +84,8 @@ export async function getLatestRun(companyId) {
 
 export async function getRunNormalised(runId) {
   const out = await getRun(runId);
-  return normaliseRun(out.run, out.results);
+  // D73: `shown` = { limit, stored, upgrade_to }: a stored run is read at the current plan's depth.
+  return normaliseRun(out.run, out.results, { shown: out.shown || null });
 }
 
 export function normaliseRun(run, results, extra = {}) {
@@ -106,6 +104,7 @@ export function normaliseRun(run, results, extra = {}) {
     counts: run?.counts || extra.counts || {},
     plan: extra.plan || cached?.plan || null,
     ai_gated: cached?.ai_gated || null,
+    shown: extra.shown || null,
     results: serverOrder(items),
   };
 }
@@ -154,6 +153,7 @@ export const PIPELINE_STAGES = [
   { key: 'closed_won', label: 'Closed — won' },
   { key: 'passed', label: 'Passed' },
   { key: 'not_now', label: 'Not now' },
+  { key: 'rejected', label: 'Rejected' }, // D73 / OD-6 A (api migration 021): history, frees a slot
 ];
 export const ACTIVE_STAGES = PIPELINE_STAGES.slice(0, 7).map((s) => s.key);
 export const stageLabel = (k) => PIPELINE_STAGES.find((s) => s.key === k)?.label || k;

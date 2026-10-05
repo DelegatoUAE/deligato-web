@@ -19,7 +19,7 @@ const PAGES = [
   ['/company/record', 'company_record', ["What's missing from my record?", 'What expires soon?', 'Why does the record matter to investors?']],
   ['/company/intelligence', 'company_intelligence', ['What changed this month?', "What's stopping me being more capital-ready?", 'When should I start raising?']],
   ['/settings/*', 'settings', ['What does my plan include?', 'What data goes to the AI provider?']],
-  ['/packages', 'billing', ['What does Capital Raising add?', 'What does my plan include?']],
+  ['/packages', 'billing', ['What does Capital Intelligence add?', 'What does my plan include?']],
   ['/capital/matches/:recordId', 'investor_profile', ['Why does this investor fit?', "What don't we know about them?", 'How do I contact them?']],
   ['/capital/readiness/*', 'readiness', ['Explain my biggest gap', 'What do investors read into my runway?', 'Who could help me with this?']],
   ['/capital/find', 'find_capital', ['Why these capital types?', 'Why not VC?', 'What would change my routes?']],

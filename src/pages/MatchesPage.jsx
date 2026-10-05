@@ -10,7 +10,7 @@ import WhyThisFits, { AiConsentCard } from '../components/capital/WhyThisFits';
 import useAiConsent from '../lib/useAiConsent';
 import { toggleCompare, COMPARE_MAX, sortMatches, MATCH_SCORE_EXPLAINER, runBelowPlan } from '../lib/matchview';
 const sortByEvidence = (rows) => sortMatches(rows, null);
-import { GateCard, ProviderBadge, LoadError, MatchingUpgrade } from '../components/capital/bits';
+import { GateCard, MoreMatchesNote, PlanLevels, ProviderBadge, LoadError } from '../components/capital/bits';
 import ExportButton from '../components/capital/ExportButton';
 import RefreshNote from '../components/capital/RefreshNote';
 import useApi from '../lib/useApi';
@@ -22,7 +22,7 @@ import { sendFeedback, listFeedback } from '../lib/learning';
 import { getRouting, normaliseRoute } from '../lib/routing';
 import { fmtUsd, fmtDate, fmtDateTime, fmtInt, countryName, plural, plainExclusion } from '../lib/format';
 import { logEvent } from '../lib/events';
-import { gateFor, hasMatching } from '../lib/plan';
+import { basicMatching, canCompare, canOutreach, gateFor, nextPlanFor, packageName, upgradeHref } from '../lib/plan';
 
 function ScoreExplainer() {
   return (
@@ -86,7 +86,7 @@ function EligibilityPanel({ counts, unlocks, company, onShowExcluded }) {
           </ul>
         </>
       )}
-      <Button variant="link" size="sm" onClick={onShowExcluded}>See excluded sources</Button>
+      {onShowExcluded && <Button variant="link" size="sm" onClick={onShowExcluded}>See excluded sources</Button>}
     </Card>
   );
 }
@@ -123,9 +123,13 @@ function NoVerifiedFits({ company, counts = {}, unlocks, topMissing }) {
 }
 
 export default function MatchesPage() {
-  const { company, companyId, entitlements, entitlementsKnown, reloadRun, reloadPipeline } = useCompany();
-  // D68: Free has no matching. The server answers 402 either way; this only avoids asking.
-  const noMatching = entitlementsKnown && !hasMatching(entitlements);
+  const { company, companyId, entitlements, entitlementsRaw, reloadRun, reloadPipeline } = useCompany();
+  // D73 (supersedes D68/D69): every plan sees its ranked matches (Free 5, Capital Intelligence 50,
+  // Capital Raising 200); the server decides how many and masks contact routes below Capital Intelligence.
+  const tier = entitlementsRaw?.ladder_tier || 'free';
+  const nextPlan = nextPlanFor(tier);
+  const basic = basicMatching(entitlements);
+  const compareOn = canCompare(entitlements);
   const [params, setParams] = useSearchParams();
   const navigate = useNavigate();
   const toast = useToast();
@@ -144,16 +148,15 @@ export default function MatchesPage() {
   // R-CI-F1: a route view is a server-scoped run (POST …/match { routes }), so the
   // cards, headline counts and buckets all describe the same scoped set. The web
   // never filters a plan-truncated list by route on its own.
-  // D68/D69: a plan without matching never loads, runs or scopes a match.
   const routeKeys = useMemo(() => routes.map((r) => r.key), [routes]);
   // An unknown route key, or routing that can't load, falls back to the whole market.
   const routeView = Boolean(routeParam) && !routingQ.error && !(routingQ.data && routes.length === 0);
-  const runQ = useApi(() => (noMatching ? null : runId ? getRunNormalised(runId) : routeView ? null : getLatestRun(companyId)), [runId, companyId, routeView, noMatching]);
+  const runQ = useApi(() => (runId ? getRunNormalised(runId) : routeView ? null : getLatestRun(companyId)), [runId, companyId, routeView]);
   const [scoping, setScoping] = useState(null);
   const [scopeTry, setScopeTry] = useState(0);
   const scopedFor = useRef('');
   useEffect(() => {
-    if (noMatching || !routeView || !routeKeys.length) return;
+    if (!routeView || !routeKeys.length) return;
     const loaded = runId ? runQ.data : null;
     if (runId && (!loaded || isRouteScoped(loaded))) return;
     const want = `${companyId}|${routeKeys.join(',')}|${scopeTry}`;
@@ -166,8 +169,8 @@ export default function MatchesPage() {
         if (res?.run_id) setParams((p) => { const q = new URLSearchParams(p); q.set('run', res.run_id); return q; }, { replace: true });
       })
       .catch((e) => setScoping({ busy: false, error: e }));
-  }, [noMatching, routeView, routeKeys, runId, runQ.data, companyId, setParams, scopeTry]);
-  const unlocksQ = useApi(() => (noMatching ? null : getUnlocks(companyId)), [companyId, runQ.data?.run_id, noMatching]);
+  }, [routeView, routeKeys, runId, runQ.data, companyId, setParams, scopeTry]);
+  const unlocksQ = useApi(() => getUnlocks(companyId), [companyId, runQ.data?.run_id]);
   const pipeQ = useApi(() => listPipeline(companyId).then((x) => x.pipeline || []), [companyId]);
   const fbQ = useApi(() => listFeedback(companyId).then((x) => x.feedback || []).catch(() => []), [companyId]);
 
@@ -191,7 +194,7 @@ export default function MatchesPage() {
   const viewedRun = run?.run_id;
   useEffect(() => { if (viewedRun) logEvent('match.viewed', { run_id: viewedRun }, companyId); }, [viewedRun, companyId]);
   const canTrack = pipeQ.error?.status !== 402;
-  const canDraft = Number(entitlements?.outreach_drafts_per_month || 0) > 0;
+  const canDraft = canOutreach(entitlements);
   const pipeByRecord = new Map((pipeQ.data || []).map((p) => [p.record_id, p]));
   const fbByResult = new Map((fbQ.data || []).map((f) => [f.match_result_id, f.rating]));
 
@@ -203,7 +206,7 @@ export default function MatchesPage() {
       setParams((p) => { const q = new URLSearchParams(p); if (res.run_id) q.set('run', res.run_id); return q; });
       toast.success('Matches updated.');
     } catch (e) {
-      toast.error(e.status === 503 ? 'Matching is temporarily unavailable. Try again shortly.' : `Couldn't re-run: ${e.message}`);
+      toast.error(e.status === 503 ? 'Matching is temporarily unavailable. Try again shortly.' : e.status === 402 ? gateFor(e).message : `Couldn't re-run: ${e.message}`);
     } finally {
       setRunning(false);
     }
@@ -217,7 +220,7 @@ export default function MatchesPage() {
       reloadPipeline();
       toast.success(stage === 'shortlisted' ? `${r.name} is on your shortlist.` : `${r.name} is in your pipeline.`);
     } catch (e) {
-      toast.error(e.upgradeRequired ? (e.code === 'fair_use_limit' ? gateFor(e).message : 'Pipeline tracking is included in Capital Raising.') : `Couldn't save ${r.name}: ${e.message}`);
+      toast.error(e.upgradeRequired || e.status === 402 ? gateFor(e).message : `Couldn't save ${r.name}: ${e.message}`);
     } finally {
       setBusy((b) => ({ ...b, [r.record_id]: null }));
     }
@@ -263,11 +266,12 @@ export default function MatchesPage() {
     />
   );
 
-  if (noMatching || runQ.error?.status === 402) {
+  if (runQ.error?.status === 402) {
+    const g = gateFor(runQ.error);
     return (
       <div><SubNav section="capital" />
         <PageHeader title="Capital matches" subtitle={company.name} />
-        <MatchingUpgrade savedCount={(pipeQ.data || []).length} companyId={companyId} />
+        <GateCard title="This run isn't available on your plan." body={g.message} code={nextPlan || 'capital-raising'} />
       </div>
     );
   }
@@ -337,6 +341,8 @@ export default function MatchesPage() {
         </div>
       )}
 
+      <MoreMatchesNote shown={run.results.length} eligible={eligible} ents={entitlements} tier={tier} />
+      <PlanLevels display={entitlementsRaw?.display} />
       {!trial && entitlements && runBelowPlan(run, entitlements.max_results) && (
         <Alert tone="info" action={<Button size="sm" variant="secondary" onClick={rerun} loading={running}>Re-run</Button>}>
           This run was made on a smaller plan and holds {fmtInt(run.results.length)} of {fmtInt(eligible)}. Your plan now includes more matches. Re-run to see them.
@@ -358,7 +364,7 @@ export default function MatchesPage() {
       {showStats && (
         <div className="matches-top" id="mstats">
           {unlocksQ.data ? <ImprovePanel unlocks={unlocksQ.data} /> : null}
-          <EligibilityPanel counts={run.counts} unlocks={unlocksQ.data} company={company} onShowExcluded={showExcluded} />
+          <EligibilityPanel counts={run.counts} unlocks={unlocksQ.data} company={company} onShowExcluded={basic ? null : showExcluded} />
         </div>
       )}
 
@@ -414,7 +420,7 @@ export default function MatchesPage() {
           {view === 'table' ? (
             <>
               <p className="ui-muted mt-note">Sorting applies inside each evidence tier, so a possible match never sits above a verified one. Hover or focus a fit mark to see its evidence.{!bucketFilter && byBucket.likely_outside.length > 0 ? ' Likely-outside results are hidden; pick that tier above to see them.' : ''}</p>
-              {tableRows.length ? <MatchTable rows={tableRows} runId={run.run_id} selected={compare} onToggle={(id) => setCompare((c) => toggleCompare(c, id))} />
+              {tableRows.length ? <MatchTable rows={tableRows} runId={run.run_id} selected={compare} onToggle={compareOn ? (id) => setCompare((c) => toggleCompare(c, id)) : null} />
                 : <EmptyState icon="search" title="No matches with these filters." body="Your filters hide every result in this tier." action={<Button variant="secondary" onClick={() => { setFilters({ type: '', confidence: '', tier: '', open: false }); setParam('evidence', ''); }}>Clear filters</Button>} />}
             </>
           ) : (
@@ -424,7 +430,7 @@ export default function MatchesPage() {
             <p className="ui-muted">Every decisive fact (stage, sector, geography, ticket) is on record and nothing on record rules them out. Check each fact's evidence label: some are AI-inferred, not verified.</p>
             {byBucket.eligible.length ? byBucket.eligible.map(card) : (
               bucketCount('eligible') > 0 ? (
-                <p className="tier-empty">{fmtInt(bucketCount('eligible'))} verified {bucketCount('eligible') === 1 ? 'fit is' : 'fits are'} outside the top {run.results.length} your plan shows. <Link to="/packages?highlight=capital-raising">See every match with Capital Raising</Link>.</p>
+                <p className="tier-empty">{fmtInt(bucketCount('eligible'))} verified {bucketCount('eligible') === 1 ? 'fit is' : 'fits are'} outside the top {run.results.length} your plan shows.{nextPlan ? <> <Link to={upgradeHref(nextPlan)}>See more with {packageName(nextPlan)}</Link>.</> : ''}</p>
               ) : (
                 <NoVerifiedFits company={company} counts={run.counts} unlocks={unlocksQ.data} topMissing={topMissing} />
               )
@@ -470,10 +476,6 @@ export default function MatchesPage() {
         rows={run.results.filter((r) => compare.includes(r.record_id))}
         onRemove={(id) => setCompare((c) => { const next = c.filter((x) => x !== id); if (next.length < 2) setCompareOpen(false); return next; })} />
 
-      {trial && (
-        <GateCard title={`You're seeing your top ${run.results.length} of ${fmtInt(eligible)}`}
-          body="See all matches, how to reach each one, and track them in a pipeline. Included in Capital Raising." />
-      )}
 
       <Drawer open={excluded.open} onClose={() => setExcluded({ open: false, rows: null, error: null })} title="Excluded sources" description="Sources that fail at least one hard filter for your profile, with the reason.">
         {excluded.error && <Alert tone="bad">Couldn't load excluded sources. {excluded.error}</Alert>}

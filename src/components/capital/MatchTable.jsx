@@ -50,6 +50,8 @@ export default function MatchTable({ rows, runId, selected = [], onToggle }) {
   const sorted = useMemo(() => sortMatches(rows, sort.key, sort.dir), [rows, sort]);
   const onSort = (k) => setSort((s) => (s.key === k ? (s.dir === 'desc' ? { key: k, dir: 'asc' } : { key: null, dir: 'desc' }) : { key: k, dir: k === 'name' || k === 'type' || k === 'location' || k === 'deadline' ? 'asc' : 'desc' }));
   const full = selected.length >= COMPARE_MAX;
+  // D73: comparison is part of Capital Raising (compare_tools); without onToggle there is nothing to pick.
+  const canPick = typeof onToggle === 'function';
 
   return (
     <div className="ui-table-wrap mt-wrap">
@@ -86,8 +88,8 @@ export default function MatchTable({ rows, runId, selected = [], onToggle }) {
               )}
               <tr className={on ? 'is-selected' : undefined}>
                 <td className="mt-check">
-                  <input type="checkbox" checked={on} disabled={!on && full} onChange={() => onToggle?.(r.record_id)}
-                    aria-label={on ? `Remove ${r.name} from compare` : `Add ${r.name} to compare`} title={!on && full ? `Compare up to ${COMPARE_MAX} at a time` : undefined} />
+                  {canPick && <input type="checkbox" checked={on} disabled={!on && full} onChange={() => onToggle?.(r.record_id)}
+                    aria-label={on ? `Remove ${r.name} from compare` : `Add ${r.name} to compare`} title={!on && full ? `Compare up to ${COMPARE_MAX} at a time` : undefined} />}
                 </td>
                 <td className="mt-name">
                   <Link to={investorHref(r.record_id, runId)} className="ui-cell-main">{r.name}</Link>

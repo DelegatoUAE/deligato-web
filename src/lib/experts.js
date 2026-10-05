@@ -17,9 +17,8 @@ export const listDirectory = (params = {}) => {
 };
 export const getExpert = (id, { companyId, requestId } = {}) =>
   apiFetch(`${base}/directory/${id}${requestId && companyId ? `?company_id=${companyId}&request_id=${requestId}` : ''}`);
-/** D68: the one free 20-minute consultant session per company (api modules/experts INTRO_SESSION_TOPIC). */
-export const INTRO_SESSION_TOPIC = '20-minute consultant session';
-export const requestIntroSession = (companyId, note) => post('/requests', { company_id: companyId, intro_session: true, note });
+// D74 (4): the free 20-minute consultant session is removed (the api answers 410 for new requests;
+// requests made earlier are honoured and listed like any other request).
 export const listExpertRequests = (companyId) => apiFetch(`${base}/requests?company_id=${encodeURIComponent(companyId)}`);
 export const getExpertRequest = (companyId, id) => apiFetch(`${base}/requests/${id}?company_id=${encodeURIComponent(companyId)}`);
 export const requestExpertHelp = (body) => post('/requests', body);

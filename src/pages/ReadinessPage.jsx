@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Alert, Button, Card, EmptyState, PageHeader, Skeleton } from '../design/ui';
+import { Alert, Badge, Button, Card, EmptyState, PageHeader, Skeleton } from '../design/ui';
 import SubNav from '../components/SubNav';
 import ExpertBridgeLink from '../components/ExpertBridgeLink';
 import { useCompany } from '../components/company-context';
@@ -11,9 +11,21 @@ import { fmtDate } from '../lib/format';
 
 const WHO = { founder: 'you', expert: 'an expert', conncct_service: 'a readiness partner' };
 
+/**
+ * D73: the Capital Readiness Report is included in Capital Intelligence and Capital Raising
+ * (capital_readiness_included); a plan that includes it is never prompted to buy the $54 service.
+ * Delivery and the monthly-plan timing (OD-8) are RC3 phase 3.
+ */
+function ReportLine({ ents }) {
+  if (ents?.capital_readiness_included) {
+    return <p className="ready-report"><Badge tone="ok" size="sm">Included</Badge> The Capital Readiness Report is included in your plan.</p>;
+  }
+  return <p className="ready-report ui-muted">Want a structured report on what to fix? The <Link to="/packages?highlight=capital-readiness">Capital Readiness Report</Link> is a one-time service, and it is included in Capital Intelligence and Capital Raising.</p>;
+}
+
 /** 15 · Capital readiness: the winning snapshot, gaps, all factors, history. */
 export default function ReadinessPage() {
-  const { company, readiness, readinessLoading, readinessError } = useCompany();
+  const { company, readiness, readinessLoading, readinessError, entitlements } = useCompany();
   const [showAll, setShowAll] = useState(false);
   const r = readiness?.readiness;
   const src = readinessSource(readiness);
@@ -55,6 +67,7 @@ export default function ReadinessPage() {
       <Card className="ready-top">
         <ReadinessSnapshot readiness={r} variant="full" conncctHref={bridge || null} source={readiness} />
       </Card>
+      <ReportLine ents={entitlements} />
       {dilution && <Alert tone="bad">Your raise is larger than your valuation. Investors will flag this.</Alert>}
       <Card id="gaps" title="Your gaps" subtitle="Suggestions from the readiness method, most important first.">
         {gaps.length ? (

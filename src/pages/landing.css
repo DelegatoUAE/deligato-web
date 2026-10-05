@@ -1,4 +1,4 @@
-/* ==== LANDING (public "/", signed-out) · Capital Intelligence, 5 Oct 2026 ====
+/* ==== LANDING (public "/", signed-out) · 5 Oct 2026 ====
    Conncct family (navy / gold / cream, Poppins), pushed toward a more technical,
    instrument-like Deligato: grid hero, product panels, mono-ish numerals.
    Tokens only (design/tokens.css); every class is prefixed lp-. */
@@ -107,14 +107,7 @@
 .lp-journey-strip a:hover { color: var(--gold-300); text-decoration: none; }
 .lp-js-n { font-size: var(--text-xs); color: var(--gold); font-weight: var(--fw-semibold); letter-spacing: 0.08em; font-variant-numeric: tabular-nums; }
 
-/* ---- proof band ---- */
-.lp-proofband { background: var(--navy-900); padding: var(--s-8) 0; border-top: 1px solid rgba(255, 255, 255, 0.06); }
-.lp-proof { margin: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
-.lp-proof > div { padding: 0 var(--s-6) 0 0; display: flex; flex-direction: column; gap: var(--s-2); }
-.lp-proof > div + div { padding-left: var(--s-6); border-left: 1px solid rgba(255, 255, 255, 0.12); }
-.lp-proof dd { order: -1; margin: 0; font-size: clamp(1.7rem, 1.3rem + 1.4vw, 2.4rem); font-weight: var(--fw-semibold); color: #fff; letter-spacing: var(--tracking-tight); line-height: 1; }
-.lp-proof dt { font-size: var(--text-sm); color: var(--navy-200); line-height: var(--lh-snug); max-width: 26ch; }
-.lp-asof { margin: var(--s-5) 0 0; font-size: var(--text-xs); color: var(--navy-300); }
+/* ---- proof band: removed (D73 / OD-15, no live provider-count tiles) ---- */
 
 /* ---- not a directory ---- */
 .lp-compare { display: grid; grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr); gap: var(--s-4); max-width: 1040px; margin: 0 auto; }
@@ -253,8 +246,6 @@
   .lp-app { max-width: 600px; }
   .lp-journey-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: var(--s-4); }
   .lp-journey-strip li + li a { padding-left: 0; border-left: 0; }
-  .lp-proof { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: var(--s-6); }
-  .lp-proof > div:nth-child(3) { padding-left: 0; border-left: 0; }
 }
 @media (max-width: 640px) {
   .lp-cta-row .ui-btn { width: 100%; }
@@ -269,9 +260,7 @@
   .lp-journey-strip a { flex-direction: row; align-items: baseline; gap: var(--s-3); padding-top: var(--s-2); }
   .lp-v-kanban { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .lp-step-body { font-size: var(--text-md); }
-  .lp-proof > div { padding-right: var(--s-3); }
-  .lp-proof > div + div { padding-left: var(--s-3); }
-  .lp-proof > div:nth-child(3) { padding-left: 0; }
+
   .lp-data { padding: var(--s-5); flex-direction: column; }
   .lp-final::before { background: rgba(5, 28, 56, 0.9); }
 }
@@ -333,12 +322,6 @@
 .lp-journey-strip li + li a { border-left-color: var(--border); }
 .lp-journey-strip a:hover { color: var(--text-accent); }
 .lp-js-n { color: var(--text-accent); }
-
-.lp-proofband { background: var(--surface); border-block: 1px solid var(--border-soft); }
-.lp-proof > div + div { border-left-color: var(--border); }
-.lp-proof dd { color: var(--text-strong); }
-.lp-proof dt { color: var(--text-soft); }
-.lp-asof { color: var(--text-faint); }
 
 .lp-round { flex: none; width: 52px; height: 52px; border-radius: 50%; display: inline-grid; place-items: center; }
 .lp-round svg { width: 22px; height: 22px; }

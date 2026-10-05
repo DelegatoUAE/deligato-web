@@ -12,6 +12,7 @@ import { listPipeline, updatePipelineItem, stageIndex, investorHref } from '../l
 import { reachFor, NO_ADDRESS_NOTE } from '../lib/outreachRoute';
 import { fmtDate, humanise } from '../lib/format';
 import { logEvent } from '../lib/events';
+import { canOutreach, displayValue, gateFor } from '../lib/plan';
 
 const EXAMPLE = {
   subject: 'Example: Seed round, $1.5M, B2B fintech in the GCC',
@@ -64,10 +65,14 @@ function Composer({ draft, meta, investor, companyId, onUpdated, onPipelineMoved
       onUpdated(out.draft);
       const s = out.pipeline_suggestion;
       const target = kind === 'intro_request' ? 'intro_requested' : 'contacted';
+      // D73: moving into the active pipeline needs a free slot; when none is free the item stays where it
+      // is (the server refuses the move and says why) and the toast says so, never "moved".
+      let held = null;
       if (s?.pipeline_id && stageIndex(s.from) < stageIndex(target)) {
-        await updatePipelineItem(s.pipeline_id, { stage: target }).then(() => onPipelineMoved?.()).catch(() => null);
+        await updatePipelineItem(s.pipeline_id, { stage: target }).then(() => onPipelineMoved?.()).catch((e) => { held = e.status === 402 ? gateFor(e).message : null; });
       }
-      toast.success(`Marked as sent. ${investorName} is now ${kind === 'intro_request' ? "'Intro requested'" : "'Contacted'"} in your pipeline.`);
+      if (held) toast.info(`Marked as sent. ${investorName} stays on your shortlist: ${held}`);
+      else toast.success(`Marked as sent. ${investorName} is now ${kind === 'intro_request' ? "'Intro requested'" : "'Contacted'"} in your pipeline.`);
     } catch (e) { toast.error(`Couldn't mark it as sent: ${e.message}`); } finally { setBusy(null); setConfirmSent(false); }
   }
 
@@ -108,13 +113,16 @@ function Composer({ draft, meta, investor, companyId, onUpdated, onPipelineMoved
 }
 
 export default function OutreachPage() {
-  const { companyId, entitlements, run } = useCompany();
+  const { companyId, entitlements, entitlementsRaw, run } = useCompany();
   const { draftId } = useParams();
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const toast = useToast();
   const recordParam = params.get('record');
   const quota = Number(entitlements?.outreach_drafts_per_month || 0);
+  // D73 outreach_level: none (Free) · standard (Capital Intelligence) · full (Capital Raising). Server-enforced.
+  const allowed = canOutreach(entitlements);
+  const level = displayValue(entitlementsRaw?.display, 'outreach_level');
 
   const draftsQ = useApi(() => listDrafts(companyId).then((x) => x.drafts || []), [companyId]);
   const pipeQ = useApi(() => listPipeline(companyId).then((x) => x.pipeline || []).catch(() => []), [companyId]);
@@ -158,14 +166,14 @@ export default function OutreachPage() {
     <>
       <SubNav section="capital" />
       <PageHeader title="Outreach" subtitle="Drafts you send yourself. We never contact investors for you."
-        meta={quota > 0 && <Badge tone="neutral">{left} of {quota} drafts left this month</Badge>} />
+        meta={allowed && <>{level !== '–' && <Badge tone="brand">{level}</Badge>}<Badge tone="neutral">{left} of {quota} drafts left this month</Badge></>} />
     </>
   );
 
-  if (quota === 0) {
+  if (!allowed) {
     return (
       <div>{head}
-        <GateCard title="Outreach drafts are included in Capital Raising." body="Draft a first message to an investor you chose, through the route they accept. You edit it and send it yourself." />
+        <GateCard title="Contact routes and outreach drafts are part of Capital Intelligence and Capital Raising." body="Draft a first message to an investor you chose, through the route they accept. You edit it and send it yourself." code="capital-intelligence" />
         <section className="composer composer-example" aria-label="Example draft">
           <Badge tone="outline">Example</Badge>
           <h2>To: an example fund</h2>

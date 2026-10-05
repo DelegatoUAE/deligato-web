@@ -1,16 +1,17 @@
 import { Fragment, useState } from 'react';
 import { Badge, Icon } from '../../design/ui';
+import { advisoryLabel } from '../../lib/plan';
 import {
-  cleanCopy, compareCell, isLaunching, money, PLAN_STORY, planBullets, platformOf, priceFor, priceLine, priceParts, servicesOf, serviceTerms,
+  cleanCopy, compareCell, compareOf, isLaunching, money, PLAN_STORY, planBullets, platformOf, priceFor, priceLine, priceParts, servicesOf, serviceTerms,
 } from '../../lib/pricing';
 import './pricing.css';
 
 /**
- * D68 pricing: three platform plans (Understand → Stay Ready → Raise) and two one-time
- * Capital Readiness services shown apart. Every price, label and limit comes from
- * GET /billing/plans; the card words come from lib/pricing PLAN_STORY and are filtered by
- * what the API says each plan includes. `cta(plan, price, story)` renders each action, so the
- * public page and the signed-in Plans page keep their own behaviour (checkout stays as it is).
+ * D73 pricing: three platform plans (Free · Capital Intelligence · Capital Raising) and two one-time
+ * Capital Readiness services shown apart. Every price, label and limit comes from the API
+ * (GET /billing/plans, plus GET /packages/catalog for a D73 plan the price list does not price yet);
+ * the card words are lib/pricing D73 bullets, each reading an API value. `cta(plan, price, story)`
+ * renders each action, so the public page and the signed-in Plans page keep their own behaviour.
  */
 
 /** Monthly / annual switch (shown only when the API offers a yearly price). */
@@ -45,15 +46,15 @@ function Bullets({ items }) {
 }
 
 /** The three platform cards with a quiet connector between them. */
-export function PlatformPlans({ data, cta, billing = 'monthly', isCurrent = () => false, highlight }) {
-  const plans = platformOf(data);
+export function PlatformPlans({ data, catalog = null, cta, billing = 'monthly', isCurrent = () => false, highlight }) {
+  const plans = platformOf(data, catalog);
   return (
     <>
     <div className="pr2-plans" role="list" aria-label="Platform plans">
       {plans.map((plan, i) => {
         const story = PLAN_STORY[plan.id] || {};
         const price = priceFor(plan, billing);
-        const tone = plan.id === 'capital-raising' ? 'raise' : plan.id === 'company-intelligence' ? 'intel' : 'free';
+        const tone = plan.id === 'capital-raising' ? 'raise' : plan.id === 'capital-intelligence' ? 'intel' : 'free';
         return (
           <Fragment key={plan.id}>
             {i > 0 && <span className="pr2-link" aria-hidden="true"><Icon name="arrowRight" /></span>}
@@ -61,8 +62,8 @@ export function PlatformPlans({ data, cta, billing = 'monthly', isCurrent = () =
               className={`pr2-card pr2-card-${tone}${isCurrent(plan) ? ' is-current' : ''}${highlight === plan.id ? ' is-hl' : ''}`}>
               <header className="pr2-card-head">
                 <div className="pr2-card-top">
-                  <p className="pr2-label">{story.label || cleanCopy(plan.tagline)}</p>
-                  {story.badge && <span className="pr2-badge">{story.badge}</span>}
+                  <p className="pr2-label">{cleanCopy(plan.tagline) || story.label}</p>
+                  {plan.badge && <span className="pr2-badge">{cleanCopy(plan.badge)}</span>}
                 </div>
                 <h3 id={`pr2-${plan.id}`} className="pr2-name">{plan.name}</h3>
                 <Price price={price} />
@@ -76,7 +77,7 @@ export function PlatformPlans({ data, cta, billing = 'monthly', isCurrent = () =
         );
       })}
     </div>
-    <p className="pr2-boundary">Company Intelligence is continuous intelligence on your company. Investor and capital-provider matching, and the tools to run your raise, are in Capital Raising.</p>
+    <p className="pr2-boundary">Every plan includes ranked investor and capital-provider matches. Plans differ in how many you see, how deep the explanations go, your shortlist and active pipeline, outreach, AI, data room and expert time.</p>
     </>
   );
 }
@@ -133,7 +134,7 @@ export function ProductMoment() {
  * the billing toggle chooses "Report" ($54) or "Report + Advisor" ($99, 40-minute session). The
  * selected option shows its price, includes, the one terms line and its CTA. A service, not a tier.
  */
-export function ServicesSection({ data, cta, isCurrent = () => false, highlight }) {
+export function ServicesSection({ data, cta, isCurrent = () => false, highlight, included = false }) {
   const items = servicesOf(data);
   const [pick, setPick] = useState(() => (highlight && items.some((p) => p.id === highlight) ? highlight : items[0]?.id));
   if (!items.length) return null;
@@ -168,18 +169,19 @@ export function ServicesSection({ data, cta, isCurrent = () => false, highlight 
         <div className="pr2-svc-side">
           <Bullets items={planBullets(plan)} />
           {terms && <p className="pr2-svc-terms"><Icon name="spark" />{terms}</p>}
-          <div className="pr2-svc-cta">{cta(plan, price, story)}</div>
+          {/* D73: a plan that includes the report is never prompted to buy it. */}
+          <div className="pr2-svc-cta">{included ? <p className="pr2-svc-included"><Badge tone="ok">Included in your plan</Badge> Your plan already includes the Capital Readiness Report.</p> : cta(plan, price, story)}</div>
         </div>
       </article>
     </section>
   );
 }
 
-/** "Compare what's included": grouped rows from the API (catalog entitlements), never typed here. */
-export function CompareTable({ data }) {
-  const cmp = data?.compare;
-  if (!cmp || !Array.isArray(cmp.groups)) return null;
-  const names = cmp.plans.map((id) => (data.plans || []).find((p) => p.id === id)?.name || id);
+/** "Compare what's included": the API's groups and labels, each plan's own values (lib/pricing compareOf). */
+export function CompareTable({ data, catalog = null }) {
+  if (!data?.compare || !Array.isArray(data.compare.groups)) return null;
+  const cmp = compareOf(data, catalog);
+  const names = cmp.names;
   return (
     <section className="pr2-compare" aria-labelledby="pr2-compare-h">
       <header className="pr2-section-head">
@@ -206,7 +208,8 @@ export function CompareTable({ data }) {
                       <td key={names[i]} data-plan={names[i]} className={`is-${c.kind}`}>
                         {c.kind === 'yes' ? <><Icon name="check" /><span className="ui-sr">Included</span></>
                           : c.kind === 'no' ? <><span aria-hidden="true">–</span><span className="ui-sr">Not included</span></>
-                            : <span>{c.text}{isLaunching(c.text) && <> <Badge tone="outline" size="sm">Launching</Badge></>}</span>}
+                            : c.kind === 'pending' ? <><span aria-hidden="true">*</span><span className="ui-sr">Not published yet</span></>
+                              : <span>{c.text}{isLaunching(c.text) && <> <Badge tone="outline" size="sm">Launching</Badge></>}</span>}
                       </td>
                     );
                   })}
@@ -216,51 +219,53 @@ export function CompareTable({ data }) {
           </table>
         </details>
       ))}
+      {cmp.pending && <p className="pr2-compare-foot">* Published here when checkout opens for this plan.</p>}
     </section>
   );
 }
 
-/** The short FAQ (credit rule, 30-day inclusion, matching, step-down, yearly, USD). */
-export function PricingFaq({ data }) {
-  const plans = platformOf(data);
+/** The short FAQ (D73: matches on every plan, limits, history, data room, expert time, credit, yearly, USD). */
+export function PricingFaq({ data, catalog = null }) {
+  const plans = platformOf(data, catalog);
+  const free = plans.find((p) => p.id === 'readiness-free');
+  const ci = plans.find((p) => p.id === 'capital-intelligence');
   const cr = plans.find((p) => p.id === 'capital-raising');
-  const ci = plans.find((p) => p.id === 'company-intelligence');
   const paid = servicesOf(data).find((p) => p.credit);
   const days = servicesOf(data).find((p) => p.includes_company_intelligence_days)?.includes_company_intelligence_days;
-  const crPrices = (cr?.prices || []).map(priceLine).join(' or ');
   const refund = data?.refund;
+  const shown = (p, k) => (p?.display?.[k] && !/^not included$/i.test(p.display[k]) ? cleanCopy(p.display[k]).replace(/^Up to/, 'up to') : null);
   const items = [
-    cr && {
+    free && shown(free, 'max_results') && {
       q: 'Does Free include investor matching?',
-      a: 'No. Free shows where your company stands and which types of capital fit your need, without naming providers. Matching investors and capital providers, why each one fits, your shortlist, pipeline and outreach are part of Capital Raising. If you shortlisted investors before, they stay visible, read-only.',
+      a: `Yes. Free shows your top ranked matches (${shown(free, 'max_results')} per run) with basic explanations. Contact routes, outreach and an active pipeline start on ${ci ? ci.name : 'the paid plans'}.`,
+    },
+    (ci || cr) && {
+      q: 'What counts toward my pipeline limit?',
+      a: 'Only active opportunities: intro requested, contacted, in conversation, diligence and term sheet. Closed, passed and rejected investors stay in your history, never count, and free a slot. Nothing is deleted when you reach a limit or change plan.',
     },
     cr && {
       q: 'Can I share my data room with investors?',
-      a: 'Not yet. On Capital Raising your data room is private document storage: you upload, view, replace and delete your fundraising documents, and only your company can open them. Sharing with investors (invite links, permissions and activity) is coming later.',
+      a: 'Not yet. Your data room is private document storage: you upload, view, replace and delete your fundraising documents, and only your company can open them. Investor guest access (invite links, permissions and activity) is coming later.',
+    },
+    (ci || cr) && {
+      q: 'What is the expert time in my plan?',
+      a: `Paid plans include time with an advisor each subscription year: ${[ci, cr].filter(Boolean).map((p) => `${p.name}, ${advisoryLabel(p.entitlements?.advisory_minutes_per_year ?? p.display?.advisory_minutes_per_year) || 'none'}`).join('; ')}. It is separate from the one-time Capital Readiness services.`,
     },
     cr && {
       q: 'Can I export my matches and pipeline?',
-      a: 'Yes, on Capital Raising. Matches, Shortlist and Pipeline each have an Export button that downloads a CSV file that opens in Excel: provider, type, region, stages, cheque range, fit and why it fits, contact routes where known, pipeline stage, next action, notes and dates.',
-    },
-    cr && {
-      q: 'How are matches refreshed?',
-      a: 'Once a month, Capital Raising re-runs your matches with your current company details and shows what changed since the last run: new fits, removed fits and fits whose level changed. You can still re-run them yourself at any time.',
+      a: `Yes, on ${cr.name}. Matches, Shortlist and Pipeline each have an Export button that downloads a CSV file that opens in Excel.`,
     },
     paid && {
       q: 'How does the credit work?',
-      a: `If you bought a Capital Readiness Report or Capital Readiness + Advisor and move to Capital Raising within ${paid.credit.window_days} days, ${money(paid.credit.amount_usd)} counts toward it, monthly or yearly. For Capital Readiness + Advisor, ${money(paid.credit.amount_usd)} is credited and the advisor session is not. It is the only credit, it applies once, and it does not apply to Company Intelligence.`,
+      a: `If you bought a Capital Readiness Report or Capital Readiness + Advisor and move to Capital Raising within ${paid.credit.window_days} days, ${money(paid.credit.amount_usd)} counts toward it, monthly or yearly. For Capital Readiness + Advisor, ${money(paid.credit.amount_usd)} is credited and the advisor session is not. It is the only credit and it applies once.`,
     },
     days && {
-      q: `What are the ${days} days of Company Intelligence?`,
-      a: `Both Capital Readiness services include ${days} days of Company Intelligence from the day you buy. After that your report stays yours; the live layer continues only if you choose a plan.`,
+      q: `What are the ${days} days included with the report?`,
+      a: `Both Capital Readiness services include ${days} days of the Company Intelligence live layer (what changed and what needs attention) from the day you buy. After that your report stays yours.`,
     },
-    cr && ci && {
-      q: 'What happens when my raise ends?',
-      a: `You step down to Company Intelligence${ci.prices?.[0] ? ` (${priceLine(ci.prices[0])})` : ''} and keep all your data. A monthly or yearly plan steps down at the end of the period you have paid for. You can also step down to Free.`,
-    },
-    cr && {
+    (ci || cr) && {
       q: 'Can I pay yearly?',
-      a: `Yes. Company Intelligence and Capital Raising can be paid monthly or yearly, and yearly is 10 months' price for 12 months of access: two months free.${crPrices ? ` Capital Raising is ${crPrices}.` : ''}`,
+      a: `Yes. ${[ci, cr].filter(Boolean).map((p) => `${p.name} is ${(p.prices || []).filter((x) => ['monthly', 'annual'].includes(x.billing)).map(priceLine).join(' or ')}`).join('. ')}. Yearly is 10 months' price for 12 months of access: two months free.`,
     },
     {
       q: 'Which currency?',

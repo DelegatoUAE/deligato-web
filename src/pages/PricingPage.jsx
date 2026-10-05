@@ -4,22 +4,25 @@ import { Button, Skeleton } from '../design/ui';
 import { BillingToggle, CompareTable, PlatformPlans, PricingFaq, ProductMoment, ServicesSection } from '../components/billing/PricingPlans';
 import { getToken } from '../lib/auth';
 import { getPlans } from '../lib/billing';
+import { loadCatalog } from '../lib/ladder';
+import { PRODUCT_SUB_LABEL } from '../lib/brand';
 import useApi from '../lib/useApi';
 import { cleanCopy, hasAnnual, platformOf } from '../lib/pricing';
 import './landing.css';
 import '../components/billing/billing.css';
 
-// Public pricing at /pricing (D68: 3 platform plans + 2 one-time services, Bilal's 5 Oct brief).
-// Every price, label and limit is rendered from GET /api/v1/billing/plans; if it can't load,
+// Public pricing at /pricing (D73: Free · Capital Intelligence · Capital Raising + 2 one-time services).
+// Every price, label and limit is rendered from GET /api/v1/billing/plans (and GET /packages/catalog for
+// a D73 plan the price list does not price until RC3 phase 3); if it can't load,
 // no price is shown (never a hard-coded one). Checkout behaves exactly as before: signed out,
 // every action goes to sign-up; signed in, a paid choice opens the Plans page, where payments
 // stay off until billing is switched on.
 
 function Wordmark() {
   return (
-    <Link to="/" className="lp-wordmark" aria-label="Deligato, Capital Intelligence: home">
+    <Link to="/" className="lp-wordmark" aria-label={`Deligato, ${PRODUCT_SUB_LABEL}: home`}>
       <span className="lp-wordmark-name">Deligato</span>
-      <span className="lp-wordmark-sub">Capital Intelligence</span>
+      <span className="lp-wordmark-sub">{PRODUCT_SUB_LABEL}</span>
     </Link>
   );
 }
@@ -27,10 +30,12 @@ function Wordmark() {
 export default function PricingPage() {
   const signedIn = Boolean(getToken());
   const q = useApi(() => getPlans(), []);
+  const catQ = useApi(() => loadCatalog().catch(() => null), []);
+  const catalog = catQ.data || null;
   const [billing, setBilling] = useState('monthly');
   useEffect(() => { document.title = 'Pricing · Deligato'; }, []);
   const data = q.data;
-  const annualNote = data ? (platformOf(data).flatMap((p) => p.prices || []).find((x) => x.billing === 'annual')?.note || null) : null;
+  const annualNote = data ? (platformOf(data, catalog).flatMap((p) => p.prices || []).find((x) => x.billing === 'annual')?.note || null) : null;
 
   const cta = (plan, price, story = {}) => {
     const label = story.cta || `Choose ${plan.name}`;
@@ -38,6 +43,8 @@ export default function PricingPage() {
     const variant = plan.id === 'capital-raising' ? 'accent' : plan.id === 'capital-assessment' ? 'primary' : free ? 'primary' : 'secondary';
     if (!signedIn) return <Button as={Link} to="/signup" variant={variant} iconRight="arrowRight" block>{label}</Button>;
     if (free) return <Button as={Link} to="/" variant="secondary" iconRight="arrowRight" block>Open the app</Button>;
+    // D73: a plan billing does not sell yet (Capital Intelligence until RC3 phase 3) is shown, never sold.
+    if (plan.checkout === false) return <Button variant={variant} block disabled>Opens with payments</Button>;
     return (
       <Button as={Link} to={`/packages?choose=${encodeURIComponent(plan.id)}&price=${encodeURIComponent(price.key)}`} variant={variant} iconRight="arrowRight" block>
         {label}
@@ -71,11 +78,11 @@ export default function PricingPage() {
           <div className="lp-wrap">
             <p className="lp-eyebrow">Pricing</p>
             <h1 className="pr2-h1">Start free. Upgrade when you need more.</h1>
-            <p className="pr2-lede">Understand your company for free. Stay continuously ready with Company Intelligence. When it&apos;s time to raise, unlock capital matching and execution.</p>
+            <p className="pr2-lede">Explore for free with your first ranked matches. Prepare and manage your raise with Capital Intelligence. Run it end-to-end with Capital Raising.</p>
             <ol className="pr2-steps" aria-label="How the plans build">
-              <li><b>1</b>Understand</li>
-              <li><b>2</b>Stay Ready</li>
-              <li><b>3</b>Raise</li>
+              <li><b>1</b>Explore</li>
+              <li><b>2</b>Prepare &amp; manage</li>
+              <li><b>3</b>Run your raise</li>
             </ol>
           </div>
         </section>
@@ -94,12 +101,12 @@ export default function PricingPage() {
             ) : (
               <>
                 <div className="pr2-bar">
-                  {hasAnnual(data) ? <BillingToggle value={billing} onChange={setBilling} note={annualNote} /> : <span />}
+                  {hasAnnual(data, catalog) ? <BillingToggle value={billing} onChange={setBilling} note={annualNote} /> : <span />}
                   {!data.checkout?.enabled && (
                     <p className="pr2-payments" role="status"><strong>Payments open soon.</strong> Start free today; paid plans aren&apos;t charged yet. Prices in {data.currency || 'USD'}.</p>
                   )}
                 </div>
-                <PlatformPlans data={data} cta={cta} billing={billing} />
+                <PlatformPlans data={data} catalog={catalog} cta={cta} billing={billing} />
                 {data.fair_use?.footnote && <p className="pr-foot">“Full access / plan limits”: {cleanCopy(data.fair_use.footnote)}</p>}
               </>
             )}
@@ -116,11 +123,11 @@ export default function PricingPage() {
               <div className="lp-wrap"><ServicesSection data={data} cta={cta} /></div>
             </section>
             <section className="pr2-section">
-              <div className="lp-wrap"><CompareTable data={data} /></div>
+              <div className="lp-wrap"><CompareTable data={data} catalog={catalog} /></div>
             </section>
             <section className="pr2-section pr2-section-tight">
               <div className="lp-wrap">
-                <PricingFaq data={data} />
+                <PricingFaq data={data} catalog={catalog} />
                 {data.notice && <p className="pr2-notice">{cleanCopy(data.notice)}</p>}
               </div>
             </section>
@@ -130,7 +137,7 @@ export default function PricingPage() {
         <section className="pr2-final ui-on-navy" aria-labelledby="pr2-final-h">
           <div className="lp-wrap">
             <h2 id="pr2-final-h">Not sure where to start? Start free.</h2>
-            <p>Understand where your company stands today. Upgrade only when you need deeper intelligence or you&apos;re ready to raise.</p>
+            <p>See where your company stands and your first ranked matches today. Upgrade when you are ready to prepare and run your raise.</p>
             <div className="pr2-final-cta">
               <Button as={Link} to={signedIn ? '/' : '/signup'} variant="accent" size="lg" iconRight="arrowRight">{signedIn ? 'Open the app' : 'Start free'}</Button>
               <Button as={Link} to="/experts" variant="secondary" size="lg" className="pr2-btn-outline">Talk to an advisor</Button>

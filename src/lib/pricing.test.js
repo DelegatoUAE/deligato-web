@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import {
   cleanCopy, columnsOf, foundingLabel, priceLine, priceParts, isLaunching, limitLabel, billingErrorCopy,
   refundable, creditUsedBy, bridgeExpiry, stageOf, planForTier, idempotencyKey,
-  platformOf, servicesOf, planBullets, priceFor, hasAnnual, serviceTerms, compareCell, PLAN_STORY,
+  platformOf, servicesOf, planBullets, priceFor, hasAnnual, serviceTerms, compareCell, compareOf,
 } from './pricing.js';
 import { gateFor } from './plan.js';
 
@@ -60,7 +60,7 @@ test('customer copy: no decision refs, no "unlimited", launching deal room flagg
   assert.equal(isLaunching('Data room uploads and secure share links'), true);
   assert.equal(isLaunching('Living Deal Room'), true);
   assert.equal(isLaunching('Data room checklist'), false);
-  assert.equal(stageOf('company-intelligence'), 'Stay Ready');
+  assert.equal(stageOf('capital-intelligence'), 'Prepare & manage');
   assert.equal(planForTier(PLANS, 'capital_raising').id, 'capital-raising');
 });
 
@@ -100,13 +100,15 @@ test('402 readings: one calm link, none for a ceiling with nowhere to go (D50)',
   const up = gateFor({ status: 402, code: 'upgrade_required', message: 'Your current plan does not include outreach drafts.', body: { error: { code: 'upgrade_required', details: { upgrade_to: ['capital-raising'] } } } });
   assert.equal(up.href, '/packages?highlight=capital-raising');
   assert.equal(up.cta, 'See plans');
-  const ciUp = gateFor({ status: 402, code: 'upgrade_required', message: 'x', body: { error: { upgrade_to: ['company-intelligence'] } } });
-  assert.equal(ciUp.href, '/packages?highlight=company-intelligence');
+  const ciUp = gateFor({ status: 402, code: 'upgrade_required', message: 'x', body: { error: { upgrade_to: ['capital-intelligence'] } } });
+  assert.equal(ciUp.href, '/packages?highlight=capital-intelligence');
+  const bundle = gateFor({ status: 402, code: 'upgrade_required', message: 'x', body: { error: { upgrade_to: ['company-intelligence', 'capital-raising'] } } });
+  assert.equal(bundle.href, '/packages?highlight=capital-raising', 'the restricted bundle is never an upgrade target (D74 (2))');
   const fairCr = gateFor({ status: 402, code: 'fair_use_limit', message: "You've reached this plan's fair-use limit.", body: { error: { code: 'fair_use_limit', details: { fair_use: true, upgrade_to: [] } } } });
   assert.equal(fairCr.href, null);
   assert.match(fairCr.message, /fair-use limit/);
-  const fairFree = gateFor({ status: 402, code: 'fair_use_limit', message: 'm', body: { error: { code: 'fair_use_limit', details: { fair_use: true, upgrade_to: ['company-intelligence'] } } } });
-  assert.equal(fairFree.href, '/packages?highlight=company-intelligence');
+  const fairFree = gateFor({ status: 402, code: 'fair_use_limit', message: 'm', body: { error: { code: 'fair_use_limit', details: { fair_use: true, upgrade_to: ['capital-intelligence'] } } } });
+  assert.equal(fairFree.href, '/packages?highlight=capital-intelligence');
   const seats = gateFor({ status: 402, code: 'seat_limit', message: 'Your plan has 5 team members.', body: { error: { code: 'seat_limit', details: { upgrade_to: [] } } } });
   assert.equal(seats.href, null);
   const advisorOnly = gateFor({ status: 402, code: 'seat_limit', message: 'm', body: { error: { details: { upgrade_to: ['advisor-sessions'] } } } });
@@ -124,75 +126,111 @@ test('checkout never offers advisor or consulting products (D50) and never hard-
   assert.doesNotMatch(co, /advisor-sessions|consulting|fractional/i);
 });
 
-// D68: the 3 platform plans and 2 services, as GET /billing/plans returns them (api pricing-d68), trimmed.
-const D68 = {
-  currency: 'USD',
+// D73: GET /billing/plans (api rc3-d73 3dc573b) and GET /packages/catalog, trimmed to the keys the web reads.
+const D73 = {
+  currency: 'USD', price_version: 'founding',
   platform: ['readiness-free', 'company-intelligence', 'capital-raising'],
+  d73_platform: { plans: ['readiness-free', 'capital-intelligence', 'capital-raising'] },
   services: ['capital-readiness', 'capital-assessment'],
   plans: [
-    { id: 'readiness-free', name: 'Free', tier: 'free', prices: [{ key: 'free', billing: 'free', amount_usd: 0 }],
-      display: { company_profile: 'Included', checkin: 'Financial Health inputs only', improvement_plan: 'Top 3 actions', expert_access: 'Browse and request', max_results: 'Not included', pipeline_items: 'Not included' } },
+    { id: 'readiness-free', name: 'Free', tier: 'free', tagline: 'Explore', prices: [{ key: 'free', billing: 'free', amount_usd: 0 }],
+      display: { company_profile: 'Included', max_results: 'Up to 5', match_explanation_level: 'Basic explanations', investor_profile_depth: 'Summary (contact routes withheld)',
+        shortlist_limit: 'Up to 5', active_pipeline_limit: 'Not included', pipeline_level: 'Not included', outreach_level: 'Not included', outreach_drafts_per_month: 'Not included',
+        ai_level: 'Basic AI preview and guidance on your matches', data_room: 'Checklist', capital_readiness_included: 'Not included', advisory_minutes_per_year: 'Not included', company_intel_live: 'Not included' } },
     { id: 'capital-readiness', name: 'Capital Readiness Report', tier: null, prices: [{ key: 'readiness_one_time', billing: 'one_time', amount_usd: 54 }],
       display: { capital_readiness_report: 'Included' }, includes_company_intelligence_days: 30, credit: { amount_usd: 54, toward: ['capital-raising'], window_days: 30 } },
     { id: 'capital-assessment', name: 'Capital Readiness + Advisor', tier: null, prices: [{ key: 'readiness_plus_one_time', billing: 'one_time', amount_usd: 99 }],
       display: { capital_readiness_report: 'Included', expert_sessions: '1 included' }, includes_company_intelligence_days: 30, credit: { amount_usd: 54, toward: ['capital-raising'], window_days: 30 } },
-    { id: 'company-intelligence', name: 'Company Intelligence', tier: 'company_intelligence',
-      prices: [{ key: 'ci_monthly', billing: 'monthly', amount_usd: 29 }, { key: 'ci_annual', billing: 'annual', amount_usd: 290, note: '2 months free' }],
-      display: { company_intel_live: 'Included', financial_health_history: 'Included', score_history: 'Included', next_best_actions: 'Full', checkin: 'Full monthly check-in', max_results: 'Up to 5' } },
-    { id: 'capital-raising', name: 'Capital Raising', tier: 'capital_raising',
+    { id: 'company-intelligence', name: 'Company Intelligence', tier: 'company_intelligence', restricted_bundle: true,
+      prices: [{ key: 'ci_monthly', billing: 'monthly', amount_usd: 29 }], display: { max_results: 'Up to 5' }, limits: { seats: '3 team members', deal_room_storage_gb: 'Not included' } },
+    { id: 'capital-raising', name: 'Capital Raising', tier: 'capital_raising', tagline: 'Run your raise end-to-end', badge: 'Best for active fundraising',
       prices: [{ key: 'cr_monthly', billing: 'monthly', amount_usd: 99 }, { key: 'cr_annual', billing: 'annual', amount_usd: 990, note: '2 months free' }],
-      display: { max_results: 'Full access / plan limits', ai_explanations: 'Full access / plan limits', investor_profile_depth: 'Full profile with contact routes',
-        pipeline_items: 'Full access / plan limits', outreach_drafts_per_month: '60 drafts a month', crm: 'Included', match_refresh: 'Monthly', export: 'Included',
-        data_room: 'Private document storage (investor sharing coming later)' } },
+      limits: { max_results: 'Up to 200', seats: '5 team members', deal_room_storage_gb: '10 GB', ai_calls_per_month: 'Full access / plan limits' },
+      display: { company_intel_live: 'Included', max_results: 'Up to 200', match_explanation_level: 'Full explanations and advanced provider intelligence', investor_profile_depth: 'Full profile with contact routes',
+        shortlist_limit: 'Up to 250', active_pipeline_limit: 'Up to 100', pipeline_level: 'Advanced pipeline: plus comparison, meeting prep, export and monthly re-runs',
+        outreach_level: 'Full contact and outreach workflow', outreach_drafts_per_month: '60 drafts a month', ai_level: 'Advanced AI Capital Copilot',
+        data_room: 'Private document storage (investor sharing coming later)', capital_readiness_included: 'Included', advisory_minutes_per_year: 'Up to 120' } },
   ],
+  compare: { plans: ['readiness-free', 'company-intelligence', 'capital-raising'], groups: [
+    { label: 'Investor / capital matching', rows: [{ key: 'max_results', label: 'Ranked matches per run', values: ['Up to 5', 'Up to 5', 'Up to 200'] }] },
+    { label: 'Team access', rows: [{ key: 'seats', label: 'Team members', values: ['Owner only', '3 team members', '5 team members'] }] },
+    { label: 'Data / deal room', rows: [{ key: 'data_room', label: 'Data room', values: ['Checklist', 'Checklist with expiry alerts', 'Private document storage (investor sharing coming later)'] }] },
+  ] },
 };
+const CATALOG = { packages: [
+  { id: 'capital-intelligence', name: 'Capital Intelligence', tier: 'capital_intelligence', tagline: 'Prepare & manage your raise', price_usd: 29,
+    prices: [{ key: 'ci_monthly', billing: 'monthly', amount_usd: 29, versions: ['founding', 'standard'] }, { key: 'ci_annual', billing: 'annual', amount_usd: 290, versions: ['founding', 'standard'], note: '2 months free' },
+      { key: 'ci_old', billing: 'monthly', amount_usd: 39, versions: ['founding'], retired: true }],
+    entitlements: { max_results: 50, advisory_minutes_per_year: 40 },
+    display: { company_intel_live: 'Included', max_results: 'Up to 50', match_explanation_level: 'Full explanations', investor_profile_depth: 'Full profile with contact routes',
+      shortlist_limit: 'Up to 50', active_pipeline_limit: 'Up to 20', pipeline_level: 'Core pipeline: stages, notes and follow-ups', outreach_level: 'Contact and outreach workflow',
+      outreach_drafts_per_month: '20 drafts a month', ai_level: 'AI Capital Copilot', data_room: 'Checklist with expiry alerts', capital_readiness_included: 'Included', advisory_minutes_per_year: 'Up to 40' } },
+] };
 
-test('D68: three platform plans in ladder order, the two services apart (never tiers)', () => {
-  assert.deepEqual(platformOf(D68).map((p) => p.id), ['readiness-free', 'company-intelligence', 'capital-raising']);
-  assert.deepEqual(servicesOf(D68).map((p) => p.id), ['capital-readiness', 'capital-assessment']);
-  assert.ok(servicesOf(D68).every((p) => !p.tier));
-  assert.equal(stageOf('readiness-free'), 'Understand');
-  assert.equal(stageOf('company-intelligence'), 'Stay Ready');
-  assert.equal(stageOf('capital-raising'), 'Raise');
+test('D73: the ladder is Free · Capital Intelligence · Capital Raising; the restricted bundle is never a plan card', () => {
+  const ids = platformOf(D73, CATALOG).map((p) => p.id);
+  assert.deepEqual(ids, ['readiness-free', 'capital-intelligence', 'capital-raising']);
+  assert.ok(!ids.includes('company-intelligence'));
+  assert.deepEqual(platformOf(D73).map((p) => p.id), ['readiness-free', 'capital-raising'], 'without the catalog a plan the price list does not carry is left out, never invented');
+  assert.deepEqual(servicesOf(D73).map((p) => p.id), ['capital-readiness', 'capital-assessment']);
+  const ci = platformOf(D73, CATALOG)[1];
+  assert.equal(ci.checkout, false, 'Capital Intelligence is shown, not sold, until billing sells it (RC3 phase 3)');
+  assert.deepEqual(ci.prices.map((p) => p.amount_usd), [29, 290], 'offered prices only, from the catalog');
+  assert.equal(platformOf(D73, CATALOG)[2].checkout, true);
+  assert.equal(platformOf(D73, CATALOG)[0].limits.seats, 'Owner only', 'Free seats from the API compare block');
+  assert.equal(stageOf('readiness-free'), 'Explore');
 });
 
-test('D68: card bullets are only shown when the API confirms them', () => {
-  assert.deepEqual(planBullets(platformOf(D68)[0]), ['IR / Investor Readiness Score', 'Financial Health Check', 'Company profile & portal', 'Basic readiness insights', '20-minute consultant session']);
-  assert.equal(planBullets(platformOf(D68)[2]).length, PLAN_STORY['capital-raising'].bullets.length, 'every Capital Raising bullet is true');
-  assert.ok(!planBullets(platformOf(D68)[0]).some((b) => /match|shortlist|pipeline|outreach|team/i.test(b)), 'Free never lists matching or team members (D69)');
-  assert.ok(!planBullets(platformOf(D68)[1]).some((b) => /match|shortlist|pipeline|outreach/i.test(b)), 'Company Intelligence never lists matching (D69)');
-  const pretend = { ...platformOf(D68)[1], display: { ...platformOf(D68)[1].display, score_history: 'Not included' } };
-  assert.ok(!planBullets(pretend).includes('Readiness history'), 'a bullet the API does not grant is dropped');
-  assert.deepEqual(planBullets(servicesOf(D68)[1]), ['Everything in the report', '+ 40-minute session with an advisor']);
+test('D73: card bullets read API values (numbers never typed in the web)', () => {
+  const [free, ci, cr] = platformOf(D73, CATALOG);
+  const fb = planBullets(free);
+  assert.ok(fb.includes('Up to 5 ranked investor matches per run'));
+  assert.ok(fb.includes('Basic explanations'));
+  assert.ok(fb.includes('No contact routes'));
+  assert.ok(fb.includes('Shortlist: up to 5 investors'));
+  assert.ok(!fb.some((b) => /active pipeline|outreach|expert time|Readiness Report included|guest/i.test(b)), 'Free claims no pipeline, outreach, report, expert time or guests');
+  assert.ok(!fb.some((b) => /20-minute/i.test(b)), 'D74 (4): no free 20-minute session');
+  const cb = planBullets(ci);
+  assert.ok(cb.includes('Up to 50 ranked investor matches per run'));
+  assert.ok(cb.includes('Up to 20 active pipeline opportunities; closed, passed and rejected stay in your history'));
+  assert.ok(cb.includes('40 minutes of expert time per subscription year'));
+  assert.ok(cb.includes('Data room: private document storage coming later'), 'no storage number until the API publishes it');
+  assert.ok(cb.includes('Investor guest access: coming later'), 'D74 (5)');
+  const rb = planBullets(cr);
+  assert.ok(rb.includes('Everything in Capital Intelligence'));
+  assert.ok(rb.includes('Up to 200 ranked investor matches per run'));
+  assert.ok(rb.includes('Data room: 10 GB of private document storage'));
+  assert.ok(rb.includes('2 hours of expert time per subscription year'));
+  assert.ok(rb.includes('5 team members'));
+  assert.ok(!rb.some((b) => /plan limits|unlimited/i.test(b)), 'hidden fair-use limits (AI calls) never become a bullet');
+  const pretend = { ...cr, display: { ...cr.display, active_pipeline_limit: 'Not included' } };
+  assert.ok(!planBullets(pretend).some((b) => /active pipeline/.test(b)), 'a bullet the API does not grant is dropped');
+  assert.deepEqual(planBullets(servicesOf(D73)[1]), ['Everything in the report', '+ 40-minute session with an advisor']);
 });
 
-test('D68: monthly / annual prices come from the API rows; the services line is worded from the API', () => {
-  const [free, ci, cr] = platformOf(D68);
+test('D73: prices and the services line are the API rows', () => {
+  const [free, ci, cr] = platformOf(D73, CATALOG);
   assert.equal(priceLine(priceFor(ci, 'monthly')), '$29 / month');
+  assert.equal(priceLine(priceFor(ci, 'annual')), '$290 / year');
   assert.equal(priceLine(priceFor(cr, 'annual')), '$990 / year');
-  assert.equal(priceLine(priceFor(free, 'annual')), '$0', 'Free stays free');
-  assert.equal(hasAnnual(D68), true);
-  assert.equal(serviceTerms(D68), 'Includes 30 days of Company Intelligence · $54 credited if you upgrade to Capital Raising within 30 days');
+  assert.equal(priceLine(priceFor(free, 'annual')), '$0');
+  assert.equal(hasAnnual(D73, CATALOG), true);
+  assert.equal(serviceTerms(D73), 'Includes 30 days of the Company Intelligence live layer · $54 credited if you upgrade to Capital Raising within 30 days');
   assert.equal(serviceTerms({ plans: [] }), null);
 });
 
-test('D68: compare cells read the API values honestly', () => {
+test('D73: compare cells read each plan\'s own values; unpublished cells are flagged, never guessed', () => {
   assert.deepEqual(compareCell('Included'), { kind: 'yes', text: 'Included' });
   assert.deepEqual(compareCell('Not included'), { kind: 'no', text: 'Not included' });
-  assert.deepEqual(compareCell('Up to 5'), { kind: 'text', text: 'Up to 5' });
+  assert.deepEqual(compareCell(null), { kind: 'pending', text: 'Not published yet' });
   assert.equal(compareCell('unlimited').text, 'Full access / plan limits');
-});
-
-test('plan honesty: the Capital Raising card claims export, monthly refresh and a private data room only when the API grants them, and never share links', () => {
-  const cr = platformOf(D68)[2];
-  const bullets = planBullets(cr);
-  assert.ok(bullets.includes('Export to CSV for Excel'));
-  assert.ok(bullets.includes('Matches refreshed monthly'));
-  assert.ok(bullets.includes('Private data room (investor sharing coming later)'));
-  assert.ok(!bullets.some((b) => /secure share|share link/i.test(b)));
-  const without = { ...cr, display: { ...cr.display, export: 'Not included', match_refresh: 'Not included' } };
-  assert.ok(!planBullets(without).includes('Export to CSV for Excel'), 'dropped when the API does not grant it');
-  assert.ok(!planBullets(without).includes('Matches refreshed monthly'));
-  assert.ok(!planBullets(platformOf(D68)[1]).some((b) => /export|refresh|data room/i.test(b)), 'Company Intelligence claims none of them');
-  assert.equal(isLaunching('Private document storage (investor sharing coming later)'), false, 'no "Launching" badge on the honest label');
+  const cmp = compareOf(D73, CATALOG);
+  assert.deepEqual(cmp.names, ['Free', 'Capital Intelligence', 'Capital Raising']);
+  const row = (k) => cmp.groups.flatMap((g) => g.rows).find((r) => r.key === k);
+  assert.deepEqual(row('max_results').values, ['Up to 5', 'Up to 50', 'Up to 200'], 'never the restricted bundle\'s 5 in the $29 column');
+  assert.deepEqual(row('seats').values, ['Owner only', null, '5 team members']);
+  assert.deepEqual(row('deal_room_storage_gb').values, ['Not included', null, '10 GB']);
+  assert.deepEqual(row('dataroom_active_guests').values, ['Not included', 'Coming later', 'Coming later']);
+  assert.deepEqual(row('advisory_minutes_per_year').values, ['Not included', '40 minutes', '2 hours']);
+  assert.equal(cmp.pending, true);
 });

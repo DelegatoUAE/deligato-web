@@ -2,15 +2,15 @@
 // Every price, label and limit comes from GET /api/v1/billing/plans; nothing here
 // knows an amount. These helpers only arrange and word what the API returns.
 
-import { fullAccess } from './plan.js';
+import { advisoryLabel, fullAccess } from './plan.js';
 
-/** The stage each product answers (D68: Understand → Stay Ready → Raise; the two services assess). */
+/** The stage each product answers (D73: Explore → Prepare & manage → Run your raise; the two services assess). */
 const STAGE = {
-  'readiness-free': 'Understand',
+  'readiness-free': 'Explore',
   'capital-readiness': 'Assess',
   'capital-assessment': 'Assess',
-  'company-intelligence': 'Stay Ready',
-  'capital-raising': 'Raise',
+  'capital-intelligence': 'Prepare & manage',
+  'capital-raising': 'Run your raise',
 };
 export const stageOf = (id) => STAGE[id] || null;
 
@@ -75,7 +75,7 @@ export function limitLabel(v) {
   return fullAccess(v);
 }
 
-/** The plan whose ladder tier matches (free | company_intelligence | capital_raising). */
+/** The plan whose ladder tier matches (free | capital_intelligence | capital_raising). */
 export const planForTier = (data, tier) => columnsOf(data).find((p) => p.tier && p.tier === tier) || null;
 
 /** The name the API gives a product id, from the price list. */
@@ -84,15 +84,6 @@ export function productName(data, id) {
   return p ? p.name : null;
 }
 
-/** Labels for the limit keys the API returns under each plan's `limits`. */
-export const LIMIT_ROWS = [
-  ['max_results', 'Investor matches'],
-  ['pipeline_items', 'Shortlist and pipeline'],
-  ['outreach_drafts_per_month', 'Outreach drafts'],
-  ['ai_calls_per_month', 'Ask AI and AI explanations'],
-  ['seats', 'Team members'],
-  ['deal_room_storage_gb', 'Data room storage'],
-];
 
 /**
  * What a failed POST /checkout (or cancel/refund) means for the founder.
@@ -169,40 +160,100 @@ export function idempotencyKey(productId, priceKey, rand = Math.random) {
   return `web-${productId}-${priceKey}-${Date.now().toString(36)}-${rand().toString(36).slice(2, 10)}`;
 }
 
-// ---- D68: 3 platform plans + 2 one-time services ---------------------------------------
 
-const PLATFORM = ['readiness-free', 'company-intelligence', 'capital-raising'];
+// ---- D73: 3 platform plans (Free · Capital Intelligence · Capital Raising) + 2 one-time services ----
+//
+// GET /billing/plans prices only what checkout sells. Until RC3 phase 3 moves the $29 checkout to
+// `capital-intelligence`, the list publishes the D73 ladder unpriced in `d73_platform`, and the $29
+// column it prices is the restricted `company-intelligence` bundle. So a D73 plan the price list does
+// not carry is read from the public catalog (GET /packages/catalog: name, tagline, prices, display)
+// and marked `checkout: false` (it cannot be bought until billing sells it). Nothing here knows a
+// number: every limit and price is the API's.
+
+const LEGACY_PLATFORM = ['readiness-free', 'company-intelligence', 'capital-raising'];
 const SERVICES = ['capital-readiness', 'capital-assessment'];
-const pick = (data, ids) => ids.map((id) => columnsOf(data).find((p) => p.id === id)).filter(Boolean);
+const NOT_INCLUDED = /^not included$/i;
+const given = (v) => v !== undefined && v !== null && v !== '' && !NOT_INCLUDED.test(String(v));
 
-/** The three platform plans, in ladder order (the API's `platform` list when present). */
-export const platformOf = (data) => pick(data, Array.isArray(data?.platform) ? data.platform : PLATFORM);
+/** A catalog item (GET /packages/catalog) in the price-list shape, offered prices only. */
+function fromCatalog(p, version) {
+  const prices = (p.prices || [])
+    .filter((x) => !x.retired && (!Array.isArray(x.versions) || !version || x.versions.includes(version)))
+    .map((x) => ({ key: x.key, billing: x.billing, amount_usd: x.amount_usd, ...(x.note ? { note: x.note } : {}), ...(x.term_months ? { term_months: x.term_months } : {}) }));
+  if (!prices.length && Number(p.price_usd) === 0) prices.push({ key: 'free', billing: 'free', amount_usd: 0 });
+  return { id: p.id, name: p.name, tier: p.tier || null, tagline: p.tagline, includes: p.includes, prices, display: p.display || {}, entitlements: p.entitlements || {}, checkout: false, from_catalog: true };
+}
+
+/** Seats and other shown limits per plan id from the API's compare block (it covers the priced columns). */
+function compareLimit(data, id, key) {
+  const cmp = data?.compare;
+  const i = Array.isArray(cmp?.plans) ? cmp.plans.indexOf(id) : -1;
+  if (i < 0) return undefined;
+  for (const g of cmp.groups || []) for (const r of g.rows || []) if (r.key === key) return r.values?.[i];
+  return undefined;
+}
+
+/**
+ * The three platform plans, in ladder order: the API's `d73_platform` when present (RC3), else its
+ * `platform` list (RC2). `catalog` is GET /packages/catalog (optional; without it a plan the price
+ * list does not carry is simply not shown).
+ */
+export function platformOf(data, catalog = null) {
+  const ids = Array.isArray(data?.d73_platform?.plans) ? data.d73_platform.plans : Array.isArray(data?.platform) ? data.platform : LEGACY_PLATFORM;
+  const priced = columnsOf(data);
+  const cat = [...(catalog?.packages || []), ...(catalog?.add_ons || [])];
+  return ids.map((id) => {
+    const p = priced.find((x) => x.id === id && !x.restricted_bundle);
+    if (p) {
+      const seats = p.limits?.seats ?? compareLimit(data, id, 'seats');
+      return { ...p, checkout: true, limits: { ...(p.limits || {}), ...(seats !== undefined ? { seats } : {}) } };
+    }
+    const c = cat.find((x) => x.id === id);
+    return c ? fromCatalog(c, data?.price_version) : null;
+  }).filter(Boolean);
+}
+
+const pick = (data, ids) => ids.map((id) => columnsOf(data).find((p) => p.id === id)).filter(Boolean);
 /** The one-time Capital Readiness services, shown apart from the plans (never as tiers). */
 export const servicesOf = (data) => pick(data, Array.isArray(data?.services) ? data.services : SERVICES);
 
 /**
- * The words on each card (Bilal's 5 Oct brief). Every bullet names the entitlement key that makes
- * it true; planBullets() drops a bullet whose key the API reports as "Not included", so a card can
- * never claim more than the server grants. `null` = always true for that plan.
+ * The words on each card (D73 decision table). Every bullet reads an API value (display or limits);
+ * a bullet whose value the API reports as "Not included" (or does not send) is dropped, so a card
+ * can never claim more than the server grants. Numbers are the API's display words ("Up to 50").
  */
+const low = (v) => cleanCopy(v).replace(/^Up to/, 'up to');
+const D73_BULLETS = [
+  (p) => (p.id !== 'readiness-free' && given(p.display?.company_intel_live) ? (p.id === 'capital-raising' ? 'Everything in Capital Intelligence' : 'Everything in Free, plus continuous company intelligence') : null),
+  (p) => (given(p.display?.company_profile) && p.id === 'readiness-free' ? 'Readiness score, Financial Health check and company profile' : null),
+  (p) => (given(p.display?.max_results) ? `${cleanCopy(p.display.max_results)} ranked investor matches per run` : null),
+  (p) => (given(p.display?.match_explanation_level) ? cleanCopy(p.display.match_explanation_level) : null),
+  (p) => (given(p.display?.investor_profile_depth) ? (/withheld/i.test(p.display.investor_profile_depth) ? 'No contact routes' : 'Contact routes where known') : null),
+  (p) => (given(p.display?.shortlist_limit) ? `Shortlist: ${low(p.display.shortlist_limit)} investors` : null),
+  (p) => (given(p.display?.active_pipeline_limit) ? `${cleanCopy(p.display.active_pipeline_limit)} active pipeline opportunities; closed, passed and rejected stay in your history` : null),
+  (p) => (given(p.display?.pipeline_level) ? cleanCopy(p.display.pipeline_level) : null),
+  (p) => (given(p.display?.outreach_level) ? [cleanCopy(p.display.outreach_level), given(p.display?.outreach_drafts_per_month) ? low(p.display.outreach_drafts_per_month) : null].filter(Boolean).join(': ') : null),
+  (p) => (given(p.display?.ai_level) ? cleanCopy(p.display.ai_level) : null),
+  (p) => {
+    const gb = p.limits?.deal_room_storage_gb;
+    if (given(gb)) return `Data room: ${cleanCopy(gb)} of private document storage`;
+    if (p.id !== 'readiness-free' && given(p.display?.data_room)) return 'Data room: private document storage coming later';
+    return given(p.display?.data_room) ? `Data room ${cleanCopy(p.display.data_room).toLowerCase()}` : null;
+  },
+  (p) => (p.id !== 'readiness-free' && given(p.display?.data_room) ? 'Investor guest access: coming later' : null),
+  (p) => (given(p.display?.capital_readiness_included) ? 'Capital Readiness Report included' : null),
+  (p) => {
+    const v = p.entitlements?.advisory_minutes_per_year ?? p.display?.advisory_minutes_per_year;
+    const t = given(v) && Number(String(v).replace(/[^0-9]/g, '')) > 0 ? advisoryLabel(v) : null;
+    return t ? `${t} of expert time per subscription year` : null;
+  },
+  (p) => { const s = p.limits?.seats; return given(s) ? cleanCopy(s) : null; },
+];
+
 export const PLAN_STORY = {
-  'readiness-free': {
-    label: 'Understand', promise: 'Know where your company stands.', cta: 'Start free',
-    bullets: [['IR / Investor Readiness Score', 'company_profile'], ['Financial Health Check', 'checkin'], ['Company profile & portal', 'company_profile'],
-      ['Basic readiness insights', 'improvement_plan'], ['20-minute consultant session', 'expert_access']],
-  },
-  'company-intelligence': {
-    label: 'Stay Ready', promise: 'Keep your company continuously ready.', cta: 'Stay ready',
-    bullets: [['Everything in Free', null], ['Continuous Company Intelligence', 'company_intel_live'], ['Financial health trends', 'financial_health_history'],
-      ['Readiness history', 'score_history'], ['Changes & alerts', 'company_intel_live'], ['Recommendations', 'next_best_actions'], ['Monthly check-in', 'checkin']],
-  },
-  'capital-raising': {
-    label: 'Raise', promise: 'Find the right capital and execute your raise.', cta: 'Start raising', badge: 'Most complete',
-    bullets: [['Everything in Company Intelligence', null], ['Investor & capital-provider matching', 'max_results'], ['Why-this-fits explanations', 'ai_explanations'],
-      ['Evidence behind matches', 'investor_profile_depth'], ['Shortlist & pipeline', 'pipeline_items'], ['Outreach & meeting preparation', 'outreach_drafts_per_month'],
-      ['Raise CRM & workflow', 'crm'], ['Matches refreshed monthly', 'match_refresh'], ['Export to CSV for Excel', 'export'],
-      ['Private data room (investor sharing coming later)', 'data_room']],
-  },
+  'readiness-free': { promise: 'See where you stand and your first ranked matches.', cta: 'Start free' },
+  'capital-intelligence': { promise: 'Prepare your raise and manage who you approach.', cta: 'Choose Capital Intelligence' },
+  'capital-raising': { promise: 'Run your raise end-to-end, with the full workflow.', cta: 'Start raising' },
   'capital-readiness': {
     label: 'Capital Readiness Report', promise: 'A structured assessment of what is ready, what is missing and what to fix next.', cta: 'Get your report',
     bullets: [['Capital Readiness assessment', 'capital_readiness_report'], ['Detailed readiness report', 'capital_readiness_report'], ['Gaps and recommendations', 'capital_readiness_report']],
@@ -213,13 +264,16 @@ export const PLAN_STORY = {
   },
 };
 
-const NOT_INCLUDED = /^not included$/i;
-/** The bullets the API confirms for this plan (see PLAN_STORY). */
+/** The bullets the API confirms for this plan (platform plans: D73_BULLETS; services: PLAN_STORY keys). */
 export function planBullets(plan) {
-  const story = plan && PLAN_STORY[plan.id];
-  if (!story) return [];
-  const display = plan.display || {};
-  return story.bullets.filter(([, key]) => key === null || (display[key] !== undefined && !NOT_INCLUDED.test(String(display[key])))).map(([text]) => text);
+  if (!plan) return [];
+  const story = PLAN_STORY[plan.id];
+  if (story?.bullets) {
+    const display = plan.display || {};
+    return story.bullets.filter(([, key]) => key === null || given(display[key])).map(([text]) => text);
+  }
+  if (!['readiness-free', 'capital-intelligence', 'capital-raising'].includes(plan.id)) return [];
+  return D73_BULLETS.map((f) => f(plan)).filter(Boolean);
 }
 
 /** The price row for a billing period ('monthly' | 'annual'); free and one-time items have one row. */
@@ -229,22 +283,60 @@ export function priceFor(plan, billing = 'monthly') {
 }
 
 /** True when any plan offers a yearly price (the monthly / annual toggle is shown only then). */
-export const hasAnnual = (data) => platformOf(data).some((p) => (p.prices || []).some((x) => x.billing === 'annual'));
+export const hasAnnual = (data, catalog = null) => platformOf(data, catalog).some((p) => (p.prices || []).some((x) => x.billing === 'annual'));
 
-/** The one small line under both services, worded from the API (D65 behaviour unchanged). */
+/** The one small line under both services, worded from the API (D65 behaviour unchanged; OD-4/OD-16 A). */
 export function serviceTerms(data) {
   const s = servicesOf(data).find((p) => p.includes_company_intelligence_days || p.credit);
   if (!s) return null;
   const parts = [];
-  if (s.includes_company_intelligence_days) parts.push(`Includes ${s.includes_company_intelligence_days} days of Company Intelligence`);
+  if (s.includes_company_intelligence_days) parts.push(`Includes ${s.includes_company_intelligence_days} days of the Company Intelligence live layer`);
   if (s.credit) parts.push(`${money(s.credit.amount_usd)} credited if you upgrade to Capital Raising within ${s.credit.window_days} days`);
   return parts.join(' · ');
 }
 
-/** A compare-table cell: { kind: 'yes' | 'no' | 'text', text }. */
+/** A compare-table cell: { kind: 'yes' | 'no' | 'text' | 'pending', text }. null = not published yet. */
 export function compareCell(value) {
+  if (value === null) return { kind: 'pending', text: 'Not published yet' };
   const v = cleanCopy(value);
   if (!v || v === '–' || NOT_INCLUDED.test(v)) return { kind: 'no', text: 'Not included' };
   if (/^included$/i.test(v)) return { kind: 'yes', text: 'Included' };
   return { kind: 'text', text: v };
+}
+
+/**
+ * The compare table for the D73 ladder: the API's groups and labels, each cell read from that plan's
+ * own `display` (so a catalog-read plan is compared on its real values, never the restricted bundle's),
+ * plus the D73 rows the price list does not group yet (storage, guests, the report, expert time).
+ * Shown limits only: hidden fair-use values never appear. → { plans, names, groups, pending }
+ */
+export function compareOf(data, catalog = null) {
+  const plans = platformOf(data, catalog);
+  const groups = (data?.compare?.groups || []).map((g) => ({
+    label: g.label,
+    rows: (g.rows || []).map((r) => ({
+      key: r.key, label: r.label,
+      values: plans.map((p) => {
+        if (p.display && r.key in p.display) return p.display[r.key];
+        const v = r.key === 'seats' ? (p.limits?.seats ?? compareLimit(data, p.id, r.key)) : compareLimit(data, p.id, r.key);
+        return v === undefined ? null : v;
+      }),
+    })),
+  }));
+  const storage = (p) => (given(p.limits?.deal_room_storage_gb) ? p.limits.deal_room_storage_gb : p.id === 'readiness-free' ? 'Not included' : null);
+  const extra = [
+    { key: 'deal_room_storage_gb', label: 'Data room storage', values: plans.map(storage) },
+    { key: 'dataroom_active_guests', label: 'Investor guest access', values: plans.map((p) => (p.id === 'readiness-free' ? 'Not included' : 'Coming later')) },
+  ];
+  const dr = groups.find((g) => g.rows.some((r) => r.key === 'data_room'));
+  if (dr) dr.rows.push(...extra); else groups.push({ label: 'Data room', rows: extra });
+  groups.push({
+    label: 'Readiness and expert time',
+    rows: [
+      { key: 'capital_readiness_included', label: 'Capital Readiness Report', values: plans.map((p) => p.display?.capital_readiness_included ?? null) },
+      { key: 'advisory_minutes_per_year', label: 'Expert time per subscription year', values: plans.map((p) => { const v = p.entitlements?.advisory_minutes_per_year ?? p.display?.advisory_minutes_per_year; return v === undefined ? null : (advisoryLabel(v) || 'Not included'); }) },
+    ],
+  });
+  const pending = groups.some((g) => g.rows.some((r) => r.values.some((v) => v === null)));
+  return { plans: plans.map((p) => p.id), names: plans.map((p) => p.name), groups, pending };
 }

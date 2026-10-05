@@ -1159,15 +1159,28 @@
 .home-stats.insights-stats { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 @media (max-width: 600px) { .home-stats.insights-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } .home-stats.insights-stats > :first-child { grid-column: auto; } }
 
-/* ==== D69 LOCKED TEASER ==== */
-.match-teaser { display: grid; grid-template-columns: auto 1fr auto; gap: var(--s-3) var(--s-4); align-items: center; margin: 0 0 var(--s-4); padding: var(--s-4) var(--s-5); border: 1px solid var(--gold-line); border-radius: var(--r-lg); background: var(--gold-wash); }
-.match-teaser-lock { display: grid; place-items: center; width: 36px; height: 36px; border-radius: var(--r-md); background: var(--surface); color: var(--text-accent); }
-.match-teaser-lock svg { width: 18px; height: 18px; }
-.match-teaser-count { margin: 0; font-size: var(--text-lg); font-weight: var(--fw-semibold); color: var(--text-strong); }
-.match-teaser-sub { margin: 2px 0 0; font-size: var(--text-sm); color: var(--text-soft); }
-.match-teaser.is-compact { padding: var(--s-3) var(--s-4); }
-.match-teaser.is-compact .match-teaser-count { font-size: var(--text-md); }
-@media (max-width: 639px) { .match-teaser { grid-template-columns: auto 1fr; } .match-teaser > .ui-btn { grid-column: 1 / -1; } }
+
+/* ==== D73 PLAN DEPTH & CAPACITY (RC3 phase 2) ====
+   Replaces the D69 locked teaser: every plan sees its ranked matches; these say how many,
+   what the next plan shows, and the shortlist / active pipeline capacity. Tokens only. */
+.plan-note { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s-3) var(--s-4); margin: 0 0 var(--s-4); padding: var(--s-3) var(--s-4); border: 1px solid var(--gold-line); border-radius: var(--r-lg); background: var(--gold-wash); }
+.plan-note p { margin: 0; font-size: var(--text-md); color: var(--text-strong); min-width: 0; flex: 1 1 260px; overflow-wrap: anywhere; }
+.plan-note.is-compact { margin: var(--s-3) 0 0; padding: var(--s-3); }
+.plan-note.is-compact p { font-size: var(--text-sm); }
+.plan-levels { display: flex; flex-wrap: wrap; gap: var(--s-2) var(--s-4); margin: 0 0 var(--s-4); font-size: var(--text-sm); color: var(--text-soft); }
+.plan-level-k { font-weight: var(--fw-semibold); color: var(--text-strong); }
+.cap-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--s-3) var(--s-5); margin: 0 0 var(--s-4); }
+.cap-meter { min-width: 0; padding: var(--s-3) var(--s-4); border: 1px solid var(--border-soft); border-radius: var(--r-md); background: var(--surface); }
+.cap-meter.is-full { border-color: var(--gold-line); }
+.cap-meter.is-over { border-color: var(--bad-border); }
+.cap-meter-text { margin: 0; font-size: var(--text-sm); color: var(--text); }
+.cap-meter-hint { margin: var(--s-2) 0 0; font-size: var(--text-sm); color: var(--text-soft); overflow-wrap: anywhere; }
+.cap-meter.is-over .cap-meter-hint, .cap-meter.is-full .cap-meter-hint { color: var(--text-strong); }
+.cap-history { margin: 0; align-self: center; font-size: var(--text-sm); color: var(--text-soft); }
+.cc-matches { margin: 0 0 var(--s-6); }
+.cc-h-link { font-size: var(--text-sm); font-weight: var(--fw-regular); margin-left: auto; }
+.ready-report { margin: var(--s-3) 0; font-size: var(--text-sm); }
+.plan-now { margin: 0 0 var(--s-5); }
 
 /* Show password (5 Oct v2): a visible control under the field, never inside it */
 .pw-field { display: grid; gap: 6px; }

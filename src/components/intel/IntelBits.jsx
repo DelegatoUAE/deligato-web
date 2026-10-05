@@ -23,7 +23,7 @@ export function TrustNote({ what, source, updated, updatedText, why, label = 'Ab
 }
 
 /** A quiet plan line: what the plan shows now, and the one way to see more. */
-export function UpgradeLine({ note, to = 'capital-raising', cta = 'See plans' }) {
+export function UpgradeLine({ note, to = 'capital-intelligence', cta = 'See plans' }) { // D73: the live layer starts at Capital Intelligence
   if (!note) return null;
   return (
     <p className="upline"><Icon name="lock" /> <span>{note}</span> <Link to={upgradeHref(to)}>{cta}</Link></p>

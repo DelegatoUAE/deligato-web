@@ -8,18 +8,23 @@ import SubNav from '../components/SubNav';
 import { MeetingPrep } from '../components/capital/AiBlocks';
 import { useCompany } from '../components/company-context';
 import MatchScore from '../components/capital/MatchScore';
-import { GateCard, LoadError, MatchingUpgrade, ReadOnlyNote } from '../components/capital/bits';
+import { CapacityMeter, GateCard, LoadError, ReadOnlyNote } from '../components/capital/bits';
 import useApi from '../lib/useApi';
 import { listPipeline, updatePipelineItem, removeFromPipeline, PIPELINE_STAGES, ACTIVE_STAGES, stageLabel, investorHref, savedFitLabel } from '../lib/capital';
 import { recordOutcome, getTimeline, PASS_REASONS, passReasonLabel } from '../lib/fundraising';
 import { apiFetch } from '../lib/auth';
 import { daysSince, fmtDate, todayIso } from '../lib/format';
-import { canShortlist, gateFor, MATCHING_UPGRADE } from '../lib/plan';
+import { bucketOf, canCompare, countBuckets, gateFor, hasPipelineWorkflow, nextPlanFor, stageAllowed } from '../lib/plan';
 import { timelineRows } from '../lib/timeline';
 import ExportButton from '../components/capital/ExportButton';
 
 const OUTCOME_STAGES = ['passed', 'not_now', 'term_sheet', 'closed_won'];
-const TONE = { shortlisted: 'neutral', researching: 'neutral', intro_requested: 'info', contacted: 'info', in_conversation: 'navy', diligence: 'navy', term_sheet: 'gold', closed_won: 'ok', passed: 'bad', not_now: 'neutral' };
+const TONE = { shortlisted: 'neutral', researching: 'neutral', intro_requested: 'info', contacted: 'info', in_conversation: 'navy', diligence: 'navy', term_sheet: 'gold', closed_won: 'ok', passed: 'bad', not_now: 'neutral', rejected: 'bad' };
+// D73: the stage menu offers what the plan allows (history always; a full bucket is disabled). The server stays the judge.
+const stageOptions = (from, capacity, readOnly) => PIPELINE_STAGES.map((s) => ({
+  value: s.key, label: s.label,
+  disabled: s.key !== from && ((readOnly && bucketOf(s.key) !== 'history') || !stageAllowed(from, s.key, capacity)),
+}));
 const nameOf = (p) => p.capital_sources?.name || p.name || p.record_id;
 const enteredAt = (p) => p.stage_entered_at || p.updated_at || p.created_at;
 
@@ -73,7 +78,7 @@ function OutcomeDialog({ state, onCancel, onSave, busy }) {
   );
 }
 
-function ItemDrawer({ item, companyId, onClose, onChanged, onMove, onRemove, readOnly = false }) {
+function ItemDrawer({ item, companyId, onClose, onChanged, onMove, onRemove, readOnly = false, workflow = true, compare = false, capacity = null }) {
   const toast = useToast();
   const [form, setForm] = useState({ next_action: item.next_action || '', next_action_date: item.next_action_date || '', owner_note: item.owner_note || '' });
   const [busy, setBusy] = useState(null);
@@ -98,24 +103,31 @@ function ItemDrawer({ item, companyId, onClose, onChanged, onMove, onRemove, rea
   }
 
   const events = timelineRows(tl.data, { stageLabel });
+  const edit = workflow && !readOnly;
   return (
     <Drawer open onClose={onClose} title={nameOf(item)} description={`${stageLabel(item.stage)} · ${daysSince(enteredAt(item)) ?? 0} days in stage`}
-      footer={<><Button variant="danger" onClick={() => onRemove(item)}>Remove from pipeline</Button>{!readOnly && <Button variant="primary" onClick={save} loading={busy === 'save'}>Save</Button>}</>}>
-      {/* D68/D69: on Free and Company Intelligence a saved investor is read-only (view or remove); the server refuses changes too. */}
+      footer={<><Button variant="danger" onClick={() => onRemove(item)}>Remove from pipeline</Button>{edit && <Button variant="primary" onClick={save} loading={busy === 'save'}>Save</Button>}</>}>
+      {/* D73: an item whose bucket is not on the plan is read-only (move it to history, or remove it);
+          notes and follow-ups need the pipeline workflow (Capital Intelligence and up). The server refuses the rest too. */}
       <div className="ui-stack">
+        {readOnly && <Alert tone="info">Read-only on your plan. You can move it to closed, passed or rejected, or remove it.</Alert>}
         <FormField label="Stage">
-          <Select value={item.stage} disabled={readOnly} onChange={(e) => onMove(item, e.target.value)} options={PIPELINE_STAGES.map((s) => ({ value: s.key, label: s.label }))} />
+          <Select value={item.stage} onChange={(e) => onMove(item, e.target.value)} options={stageOptions(item.stage, capacity, readOnly)} />
         </FormField>
-        <div className="ui-form ui-form-2">
-          <FormField label="Next action"><Input disabled={readOnly} value={form.next_action} onChange={(e) => setForm({ ...form, next_action: e.target.value })} placeholder="e.g. Send deck" /></FormField>
-          <FormField label="By"><Input disabled={readOnly} type="date" value={form.next_action_date || ''} onChange={(e) => setForm({ ...form, next_action_date: e.target.value })} /></FormField>
-        </div>
-        <FormField label="Private notes"><Textarea disabled={readOnly} rows={3} value={form.owner_note} onChange={(e) => setForm({ ...form, owner_note: e.target.value })} /></FormField>
-        {!readOnly && <div className="ui-row">
+        {workflow ? (
+          <>
+            <div className="ui-form ui-form-2">
+              <FormField label="Next action"><Input disabled={!edit} value={form.next_action} onChange={(e) => setForm({ ...form, next_action: e.target.value })} placeholder="e.g. Send deck" /></FormField>
+              <FormField label="By"><Input disabled={!edit} type="date" value={form.next_action_date || ''} onChange={(e) => setForm({ ...form, next_action_date: e.target.value })} /></FormField>
+            </div>
+            <FormField label="Private notes"><Textarea disabled={!edit} rows={3} value={form.owner_note} onChange={(e) => setForm({ ...form, owner_note: e.target.value })} /></FormField>
+          </>
+        ) : <p className="ui-muted">Notes, next actions and follow-ups are part of the pipeline workflow in Capital Intelligence and Capital Raising.</p>}
+        {edit && <div className="ui-row">
           <Button variant="secondary" size="sm" onClick={() => log('meeting')} loading={busy === 'meeting'}>Log a meeting</Button>
           <Button variant="secondary" size="sm" onClick={() => log('reply')} loading={busy === 'reply'}>Log a reply</Button>
         </div>}
-        {!readOnly && <MeetingPrep key={item.record_id} companyId={companyId} recordId={item.record_id} compact />}
+        {edit && compare && <MeetingPrep key={item.record_id} companyId={companyId} recordId={item.record_id} compact />}
         <div className="ui-row">
           <Link to={investorHref(item.record_id)}>Open investor profile</Link>
           <Link to={`/capital/outreach?record=${encodeURIComponent(item.record_id)}`}>Drafts for this investor</Link>
@@ -134,10 +146,10 @@ function ItemDrawer({ item, companyId, onClose, onChanged, onMove, onRemove, rea
 }
 
 export default function PipelinePage() {
-  const { companyId, reloadPipeline, run, entitlements, entitlementsKnown } = useCompany();
+  const { companyId, reloadPipeline, run, entitlements, entitlementsRaw } = useCompany();
   const runByRecord = new Map((run?.results || []).map((r) => [r.record_id, r]));
   const toast = useToast();
-  const q = useApi(() => listPipeline(companyId).then((x) => x.pipeline || []), [companyId]);
+  const q = useApi(() => listPipeline(companyId), [companyId]);
   const [view, setView] = useState(() => (typeof window !== 'undefined' && window.innerWidth < 768 ? 'list' : 'board'));
   const [showClosed, setShowClosed] = useState(true);
   const [dragId, setDragId] = useState(null);
@@ -147,9 +159,12 @@ export default function PipelinePage() {
   const [openId, setOpenId] = useState(null);
   const [removing, setRemoving] = useState(null);
 
-  const items = q.data || [];
-  // D68: on Free, investors saved earlier stay visible but read-only (the server enforces it).
-  const readOnly = items.some((x) => x.read_only) || (entitlementsKnown && !canShortlist(entitlements));
+  const items = q.data?.pipeline || [];
+  // D73: company-wide counts per bucket against the plan's limits (closed, passed and rejected never count).
+  const capacity = q.data?.capacity || null;
+  const anyReadOnly = items.some((x) => x.read_only);
+  const workflow = hasPipelineWorkflow(entitlements);
+  const upgrade = nextPlanFor(entitlementsRaw?.ladder_tier);
   const boardRef = useRef(null);
   const firstStage = items.find((p) => p.stage !== 'shortlisted')?.stage;
   // Bring the first column with cards into view (later stages sit off to the right).
@@ -157,26 +172,27 @@ export default function PipelinePage() {
     const col = boardRef.current?.querySelector('.ui-kcol .ui-kcard')?.closest('.ui-kcol');
     col?.scrollIntoView?.({ block: 'nearest', inline: 'start' });
   }, [firstStage, view, showClosed]);
-  const replace = (next) => q.setData((l) => (l || []).map((x) => (x.id === next.id ? { ...x, ...next } : x)));
+  const replace = (next) => q.setData((d) => ({ ...(d || {}), pipeline: (d?.pipeline || []).map((x) => (x.id === next.id ? { ...x, ...next } : x)) }));
 
   async function applyMove(item, to, extra) {
     const prev = item.stage;
     replace({ ...item, stage: to });
     try {
       const { item: next } = await updatePipelineItem(item.id, { stage: to });
-      replace(next);
+      replace({ ...next, bucket: bucketOf(next.stage), read_only: false });
+      q.reload();
       reloadPipeline();
       if (extra) await extra();
       else await eventForMove(companyId, item, to).catch(() => null);
     } catch (e) {
       replace({ ...item, stage: prev });
-      toast.error(e.upgradeRequired ? (e.code === 'fair_use_limit' ? gateFor(e).message : 'Pipeline tracking is included in Capital Raising.') : "Couldn't move this. Try again.");
+      toast.error(e.upgradeRequired || e.status === 402 ? gateFor(e).message : e.code === 'stage_unavailable' ? e.message : "Couldn't move this. Try again.");
     }
   }
 
   function move(item, to) {
     if (!to || to === item.stage) return;
-    if (readOnly) { toast.info(MATCHING_UPGRADE.readOnly); return; } // D68: the server refuses it too
+    if (item.read_only && bucketOf(to) !== 'history') { toast.info('This investor is read-only on your plan. Move it to closed, passed or rejected, or remove it.'); return; }
     if (OUTCOME_STAGES.includes(to)) { setOutcome({ item, to }); return; }
     applyMove(item, to);
   }
@@ -207,7 +223,9 @@ export default function PipelinePage() {
     setBusy(true);
     try {
       await removeFromPipeline(item.id);
-      q.setData((l) => (l || []).filter((x) => x.id !== item.id));
+      q.setData((d) => ({ ...(d || {}), pipeline: (d?.pipeline || []).filter((x) => x.id !== item.id) }));
+      q.reload();
+      reloadPipeline();
       setOpenId(null);
       toast.success(`${nameOf(item)} removed from your pipeline.`);
     } catch (e) { toast.error(`Couldn't remove: ${e.message}`); } finally { setBusy(false); setRemoving(null); }
@@ -217,13 +235,14 @@ export default function PipelinePage() {
     return (
       <div><SubNav section="capital" /><PageHeader title="Pipeline" />
         <div className="gated-blur" aria-hidden="true"><div className="ui-kanban">{ACTIVE_STAGES.slice(0, 4).map((s) => <div key={s} className="ui-kcol"><div className="ui-kcol-head"><h3 className="ui-kcol-title">{stageLabel(s)}</h3></div></div>)}</div></div>
-        <GateCard title="Track your raise in one place." body="Included in Capital Raising." />
+        <GateCard title="Track your raise in one place." body="An active pipeline is part of Capital Intelligence and Capital Raising." code="capital-intelligence" />
       </div>
     );
   }
   if (q.error) return <div><SubNav section="capital" /><PageHeader title="Pipeline" /><LoadError error={q.error} onRetry={q.reload} what="your pipeline" /></div>;
 
   const tracked = items.filter((p) => p.stage !== 'shortlisted');
+  const counts = capacity ? { history: capacity.history?.used ?? countBuckets(items).history } : countBuckets(items);
   // "1 in conversation" was said of a provider in diligence (seen in real use):
   // say what is true, and never leave a closed deal unmentioned.
   const conv = items.filter((p) => ['in_conversation', 'diligence', 'term_sheet'].includes(p.stage)).length;
@@ -241,7 +260,7 @@ export default function PipelinePage() {
     const overdue = p.next_action_date && p.next_action_date < todayIso();
     return (
       <KanbanCard key={p.id} title={nameOf(p)} stale={stale} dragging={dragId === p.id}
-        draggable={!readOnly} onDragStart={(e) => { setDragId(p.id); e.dataTransfer.effectAllowed = 'move'; }} onDragEnd={() => { setDragId(null); setOverStage(null); }}
+        draggable={!p.read_only} onDragStart={(e) => { setDragId(p.id); e.dataTransfer.effectAllowed = 'move'; }} onDragEnd={() => { setDragId(null); setOverStage(null); }}
         onClick={() => setOpenId(p.id)}
         leading={<MatchScore score={p.match_score_at_add} confidence={p.capital_sources?.data_confidence} size="sm" />}
         meta={[savedFitLabel(p, runByRecord.get(p.record_id)), p.capital_sources?.type].filter(Boolean).join(' · ')}
@@ -262,8 +281,15 @@ export default function PipelinePage() {
       <PageHeader title="Pipeline" subtitle={headline}
         meta={savedN > 0 && <Link to="/capital/saved">{savedN} shortlisted, not in your pipeline yet</Link>}
         actions={<><ExportButton kind="pipeline" /><Tabs variant="pill" label="View" value={view} onChange={setView} items={[{ id: 'board', label: 'Board' }, { id: 'list', label: 'List' }]} /></>} />
-      {readOnly && (items.length ? <ReadOnlyNote /> : <MatchingUpgrade />)}
-      {q.data === undefined ? <Skeleton h="300px" /> : readOnly && !items.length ? null : tracked.length === 0 ? (
+      {capacity && (
+        <div className="cap-row" aria-label="Plan capacity">
+          <CapacityMeter cap={capacity.shortlist} bucket="shortlist" upgrade={upgrade} />
+          <CapacityMeter cap={capacity.active} bucket="active" upgrade={upgrade} />
+          <p className="cap-history"><strong>History</strong> {counts.history} closed, passed or rejected · kept, and never counted</p>
+        </div>
+      )}
+      {anyReadOnly && <ReadOnlyNote upgrade={upgrade || 'capital-intelligence'} />}
+      {q.data === undefined ? <Skeleton h="300px" /> : tracked.length === 0 ? (
         <EmptyState icon="kanban" title="Nothing tracked yet." body={savedN ? "Move a shortlisted provider into your pipeline when you start working on it." : "Shortlist investors from your matches to start."} action={<Button as={Link} to={savedN ? "/capital/saved" : "/capital/matches"} variant="primary">{savedN ? "Open your shortlist" : "Open matches"}</Button>} />
       ) : view === 'board' ? (
         <>
@@ -279,7 +305,7 @@ export default function PipelinePage() {
               );
             })}
           </KanbanBoard></div>
-          <Button variant="link" size="sm" onClick={() => setShowClosed((v) => !v)}>{showClosed ? 'Hide closed, passed and not now' : 'Show closed, passed and not now'}</Button>
+          <Button variant="link" size="sm" onClick={() => setShowClosed((v) => !v)}>{showClosed ? 'Hide closed, passed, not now and rejected' : 'Show closed, passed, not now and rejected'}</Button>
         </>
       ) : (
         <div className="plist">
@@ -295,7 +321,7 @@ export default function PipelinePage() {
                       <MatchScore score={p.match_score_at_add} size="sm" />
                       <button type="button" className="plist-name" onClick={() => setOpenId(p.id)}>{nameOf(p)}</button>
                       <label className="ui-sr" htmlFor={`mv-${p.id}`}>Move {nameOf(p)} to</label>
-                      <Select id={`mv-${p.id}`} value={p.stage} onChange={(e) => move(p, e.target.value)} options={PIPELINE_STAGES.map((x) => ({ value: x.key, label: x.label }))} />
+                      <Select id={`mv-${p.id}`} value={p.stage} onChange={(e) => move(p, e.target.value)} options={stageOptions(p.stage, capacity, p.read_only)} />
                     </li>
                   ))}
                 </ul>
@@ -304,10 +330,10 @@ export default function PipelinePage() {
           })}
         </div>
       )}
-      <p className="ui-faint">Drag a card, or open it and use Stage, to move it. Passed, Not now, Term sheet and Closed ask what happened.</p>
+      <p className="ui-faint">Drag a card, or open it and use Stage, to move it. Passed, Not now, Term sheet and Closed ask what happened. Closed, passed, not now and rejected stay in your history and free a slot.</p>
 
       {outcome && <OutcomeDialog state={outcome} busy={busy} onCancel={() => setOutcome(null)} onSave={saveOutcome} />}
-      {openItem && <ItemDrawer key={openItem.id} item={openItem} companyId={companyId} onClose={() => setOpenId(null)} onChanged={replace} onMove={move} onRemove={setRemoving} readOnly={readOnly} />}
+      {openItem && <ItemDrawer key={openItem.id} item={openItem} companyId={companyId} onClose={() => setOpenId(null)} onChanged={replace} onMove={move} onRemove={setRemoving} readOnly={Boolean(openItem.read_only)} workflow={workflow} compare={canCompare(entitlements)} capacity={capacity} />}
       <ConfirmDialog open={Boolean(removing)} title={`Remove ${removing ? nameOf(removing) : ''}?`} body="This removes the investor and its next action from your pipeline. Outcomes you've recorded are kept." confirmLabel="Remove from pipeline" busy={busy} onConfirm={remove} onCancel={() => setRemoving(null)} />
       {items.some((p) => p.stage === 'term_sheet') && <Alert tone="ok">You have a term sheet in play. Get legal advice before you sign anything.</Alert>}
     </div>

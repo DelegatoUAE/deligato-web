@@ -4,13 +4,15 @@ import { Alert, Badge, Button, Card, ConfirmDialog, Skeleton, Table, useToast } 
 import useApi from '../../lib/useApi';
 import { getPlans, getSubscription, cancelPlan, refundCheckout } from '../../lib/billing';
 import { setPocPlan, getCatalog } from '../../lib/packages';
-import { tierLabel, displayValue } from '../../lib/plan';
-import { billingErrorCopy, bridgeExpiry, checkoutStatusLabel, LIMIT_ROWS, limitLabel, money, planForTier, priceLine, productName, refundable, creditUsedBy } from '../../lib/pricing';
+import { tierLabel, displayValue, planLimitRows } from '../../lib/plan';
+import { billingErrorCopy, bridgeExpiry, checkoutStatusLabel, money, planForTier, priceLine, productName, refundable, creditUsedBy } from '../../lib/pricing';
 import { fmtDate, humanise } from '../../lib/format';
 import './billing.css';
 
-const PLAN_ROWS = ['financial_health_history', 'company_intel_live', 'checkin', 'capital_timing', 'record_full', 'next_best_actions', 'notifications',
-  'max_results', 'investor_profile_depth', 'match_refresh', 'pipeline_items', 'crm', 'outreach_drafts_per_month', 'export', 'data_room'];
+// D73 keys first (the API's display words); hidden fair-use limits (run limit, AI calls, egress) never appear.
+const PLAN_ROWS = ['max_results', 'match_explanation_level', 'investor_profile_depth', 'shortlist_limit', 'active_pipeline_limit', 'pipeline_level',
+  'outreach_level', 'outreach_drafts_per_month', 'ai_level', 'data_room', 'capital_readiness_included', 'advisory_minutes_per_year',
+  'financial_health_history', 'company_intel_live', 'checkin', 'capital_timing', 'record_full', 'next_best_actions', 'notifications', 'match_refresh', 'export'];
 const POLLS = 10;
 
 /**
@@ -77,7 +79,6 @@ export default function PlanBilling({ companyId, entitlementsRaw, reloadEntitlem
   const sources = sub?.plan?.sources || entitlementsRaw?.sources || [];
   const scheduled = sub?.plan?.scheduled || entitlementsRaw?.scheduled || [];
   const bridge = bridgeExpiry(sources);
-  const tierPlan = planForTier(plansQ.data, tier);
   const s = sub?.subscription || null;
   const lock = sub?.price_lock && sub.price_lock.active ? sub.price_lock : null;
   const paymentsOn = Boolean(sub?.payments?.enabled);
@@ -104,16 +105,16 @@ export default function PlanBilling({ companyId, entitlementsRaw, reloadEntitlem
       )}
 
       <Card title="Your plan" action={<Badge tone="brand">{tierLabel(tier) || 'Free'}</Badge>}>
-        <p className="ui-muted">Free → Company Intelligence → Capital Raising. Capital Raising includes everything in Company Intelligence.</p>
+        <p className="ui-muted">Free → Capital Intelligence → Capital Raising. Capital Raising includes everything in Capital Intelligence.</p>
         {bridge && tier === 'company_intelligence' && !s && (
           <p className="bill-note"><strong>Company Intelligence included until {fmtDate(bridge)}</strong> with your Capital Readiness report. Your report stays yours after that.</p>
         )}
         {scheduled.map((x) => (
           <p key={x.package_id + x.starts_at} className="bill-note">{name(x.package_id)} starts on {fmtDate(x.starts_at)}.</p>
         ))}
-        {tierPlan?.limits && (
+        {entitlementsRaw && (
           <dl className="bill-limits">
-            {LIMIT_ROWS.filter(([k]) => k in tierPlan.limits).map(([k, label]) => <div key={k}><dt>{label}</dt><dd>{limitLabel(tierPlan.limits[k])}</dd></div>)}
+            {planLimitRows(entitlementsRaw).map((r) => <div key={r.key}><dt>{r.label}</dt><dd>{r.value}</dd></div>)}
           </dl>
         )}
         {Object.keys(display).length > 0 ? (
@@ -248,7 +249,7 @@ function PocSwitchInner({ companyId, entitlementsRaw, reloadEntitlements }) {
   return (
     <Card title="Test plan switch (development only)" subtitle="No payment is taken. The server refuses this unless its POC flag is on.">
       <div className="ui-row">
-        {[['trial', 'Free'], ['concierge', 'Capital Raising']].map(([p, l]) => <label key={p} className="check"><input type="radio" name="poc" checked={choice === p} onChange={() => setChoice(p)} /> {l}</label>)}
+        {[['trial', 'Free'], ['intelligence', 'Capital Intelligence'], ['concierge', 'Capital Raising']].map(([p, l]) => <label key={p} className="check"><input type="radio" name="poc" checked={choice === p} onChange={() => setChoice(p)} /> {l}</label>)}
         <Button variant="primary" size="sm" onClick={apply} loading={busy}>Apply</Button>
       </div>
     </Card>

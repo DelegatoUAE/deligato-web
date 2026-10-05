@@ -7,7 +7,7 @@ import { LoadError } from '../components/capital/bits';
 import useApi from '../lib/useApi';
 import { getDataRoom, setDataRoomItemStatus, deleteDataRoomDoc, updateDataRoomDoc, uploadDataRoomFile, replaceDataRoomFile, getDataRoomFileUrl } from '../lib/fundraising';
 import { showsMissingActions, acceptFor, checkFile, expiryState, fmtBytes, typeLabel, typesSentence, usageLine, viewsInline, DEFAULT_EXTENSIONS } from '../lib/dataroomFiles';
-import { includedIn, upgradeHref } from '../lib/plan';
+import { gateFor, nextPlanFor, upgradeHref } from '../lib/plan';
 import { isMissingEndpoint } from '../lib/auth';
 import { fmtDate } from '../lib/format';
 
@@ -60,7 +60,7 @@ function StoredDoc({ d, canWrite, busy, onOpen, onReplace, onEdit, onDelete }) {
 
 /** Data room (09-data-room.md). mode="documents" is the Company › Documents view of the same items. */
 export default function DataRoomPage({ mode = 'dataroom' }) {
-  const { companyId, company, entitlements, reloadDataRoom } = useCompany();
+  const { companyId, company, entitlements, entitlementsRaw, reloadDataRoom } = useCompany();
   const toast = useToast();
   const q = useApi(() => getDataRoom(companyId), [companyId]);
   const [tab, setTab] = useState(null);
@@ -76,6 +76,14 @@ export default function DataRoomPage({ mode = 'dataroom' }) {
   // D55 Prepare: "I have this" and date edits carry the document's dates (api faf5732).
   const [dates, setDates] = useState(null); // { item, doc?, document_date, expires_at }
   const canUpload = ['uploads', 'uploads_and_sharing'].includes(entitlements?.data_room);
+  // D73: storage per plan from the API's limits (Capital Intelligence 2 GB, Capital Raising 10 GB). Capital
+  // Intelligence uploads open with RC3 phase 4a, so until then its storage is shown as coming, never as live.
+  const storageGb = Number(entitlementsRaw?.limits?.deal_room_storage_gb) || 0;
+  const tier = entitlementsRaw?.ladder_tier || 'free';
+  const nextPlan = nextPlanFor(tier) || 'capital-raising';
+  const planLine = canUpload ? ''
+    : storageGb > 0 ? ` Your plan includes ${storageGb} GB of private document storage; uploads open soon.`
+      : ' Private document storage is part of Capital Intelligence and Capital Raising.';
   // The plan allows uploads, but the API says whether private storage is
   // connected. Only 'available' means a file can honestly be stored; anything
   // else ('unavailable', or an older API's 'metadata_only') keeps the honest
@@ -108,7 +116,7 @@ export default function DataRoomPage({ mode = 'dataroom' }) {
   async function act(label, fn, ok) {
     setBusy(label);
     try { await fn(); q.reload(); reloadDataRoom(); if (ok) toast.success(ok); } catch (e) {
-      toast.error(e.upgradeRequired ? `Data room uploads are ${includedIn().toLowerCase()}.` : e.message);
+      toast.error(e.upgradeRequired ? gateFor(e).message : e.message);
     } finally { setBusy(null); }
   }
   // Upload: only reachable when the API reports storage 'available'. The API
@@ -151,7 +159,7 @@ export default function DataRoomPage({ mode = 'dataroom' }) {
     <div className="dataroom">
       {head}
       {!docsMode && (
-        <p className="dr-mode"><Badge tone="brand">Prepare</Badge> Get every document your stage needs in place and in date. Tick <em>I have this</em> with the document's date and expiry, and we flag it before it goes stale.{!canUpload ? ' File uploads are included in Capital Raising.' : ''}</p>
+        <p className="dr-mode"><Badge tone="brand">Prepare</Badge> Get every document your stage needs in place and in date. Tick <em>I have this</em> with the document's date and expiry, and we flag it before it goes stale.{planLine}</p>
       )}
       <Alert tone="info">Files stay private to your company. Nothing is shared with investors from here.{!storageLive ? <> File storage is being connected{canUpload ? ', and your plan includes uploads once it is' : ''}. Until then, tick <em>I have this</em> with the document's date and expiry, and we keep track of it.</> : canUpload ? <> {typesSentence(exts)}, up to {fmtBytes(maxBytes)} each.{usageLine(fileInfo) ? ` ${usageLine(fileInfo)}.` : ''}</> : null}</Alert>
       {!docsMode && (
@@ -200,7 +208,7 @@ export default function DataRoomPage({ mode = 'dataroom' }) {
                   {showsMissingActions(i) && (
                     <>
                       {!canUpload
-                        ? <Button size="sm" variant="ghost" iconLeft="lock" as={Link} to="/packages?highlight=capital-raising">Add file</Button>
+                        ? <Button size="sm" variant="ghost" iconLeft="lock" as={Link} to={storageGb > 0 ? '/settings/plan' : upgradeHref(nextPlan)} title={storageGb > 0 ? 'Uploads on your plan open soon' : 'Private document storage is part of the paid plans'}>Add file</Button>
                         : storageLive
                           ? <Button size="sm" variant="secondary" onClick={() => openUpload(i)} loading={busy === `up-${i.key}`}>Add file</Button>
                           : <Tooltip text="File storage is being connected. Until then, tick I have this with the document's date."><span><Button size="sm" variant="ghost" disabled>Add file</Button></span></Tooltip>}
@@ -220,10 +228,10 @@ export default function DataRoomPage({ mode = 'dataroom' }) {
         <section className="dealroom-soon" aria-label="Investor Deal Room">
           <Icon name="lock" />
           <div>
-            <p className="dealroom-t">Investor Deal Room: coming later</p>
-            <p className="ui-muted">A secure room for each investor you invite: you choose who sees what, until when, and you can revoke access at any time. {canUpload ? "It's part of your Capital Raising plan when it opens." : `${includedIn()} when it opens.`}</p>
+            <p className="dealroom-t">Investor guest access: coming later</p>
+            <p className="ui-muted">A secure room for each investor you invite: you choose who sees what, until when, and you can revoke access at any time. {tier === 'free' ? 'It will be part of Capital Intelligence and Capital Raising when it opens.' : "It will be part of your plan when it opens."}</p>
           </div>
-          {!canUpload && <Button as={Link} to={upgradeHref()} variant="link" size="sm">See plans</Button>}
+          {tier === 'free' && <Button as={Link} to={upgradeHref(nextPlan)} variant="link" size="sm">See plans</Button>}
         </section>
       )}
       <Modal open={Boolean(dates)} onClose={() => setDates(null)} size="sm" title={dates?.doc?.stored ? `Details for ${dates?.item?.label}` : dates?.doc ? `Dates for ${dates?.item?.label}` : `You have ${dates?.item?.label ? dates.item.label.toLowerCase() : 'this'}`}
