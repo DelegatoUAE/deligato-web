@@ -64,7 +64,7 @@ export function MatchingUpgrade({ savedCount = 0, showRoutes = true, companyId =
 
 /** D68: one line above a Free company's earlier saves. */
 export function ReadOnlyNote() {
-  return <Alert tone="info" title="Read-only on Free">{MATCHING_UPGRADE.readOnly} <Link to={upgradeHref('capital-raising')}>See Capital Raising</Link>.</Alert>;
+  return <Alert tone="info" title="Read-only on your plan">{MATCHING_UPGRADE.readOnly} <Link to={upgradeHref('capital-raising')}>See Capital Raising</Link>.</Alert>;
 }
 
 /** A locked feature: what it does, which package unlocks it, one CTA. */

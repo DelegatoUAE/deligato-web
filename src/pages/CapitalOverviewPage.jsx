@@ -38,7 +38,7 @@ export default function CapitalOverviewPage() {
         actions={<Button as={Link} to="/capital/find" variant="accent" size="lg">Find the right capital</Button>} />
       <section className="home-stats" aria-label="Capital at a glance">
         {noMatching ? (
-          <StatTile as={Link} to={upgradeHref('capital-raising')} label="Investor matches" value="Capital Raising" foot="Free shows the routes that fit, without naming providers" />
+          <StatTile as={Link} to={upgradeHref('capital-raising')} label="Investor matches" value="Capital Raising" foot="Your plan shows the routes that fit, without naming providers" />
         ) : (
           <>
             <StatTile as={Link} to="/capital/matches" label="Verified fits" loading={runLoading} value={run ? fmtInt(bucket('eligible')) : 'Not yet'} foot={run ? `${fmtInt(bucket('possible'))} possible · ${fmtInt(bucket('likely_outside'))} likely outside` : 'Appears after your first match'} />
