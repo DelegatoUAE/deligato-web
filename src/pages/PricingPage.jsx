@@ -17,9 +17,9 @@ import '../components/billing/billing.css';
 
 function Wordmark() {
   return (
-    <Link to="/" className="lp-wordmark" aria-label="Deligato, Capital Access: home">
+    <Link to="/" className="lp-wordmark" aria-label="Deligato, Capital Intelligence: home">
       <span className="lp-wordmark-name">Deligato</span>
-      <span className="lp-wordmark-sub">Capital Access</span>
+      <span className="lp-wordmark-sub">Capital Intelligence</span>
     </Link>
   );
 }
