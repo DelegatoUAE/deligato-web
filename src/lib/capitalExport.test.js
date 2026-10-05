@@ -30,7 +30,7 @@ test('monthly refresh: only on plans with match_refresh and matching', () => {
 test('refresh note wording', () => {
   const r = { refreshed_at: '2026-11-02T09:00:00Z', previous_run_at: '2026-10-15T09:00:00Z', counts: { new_fits: 3, removed: 1, tier_changes: 0 } };
   assert.equal(refreshNote(r), 'Refreshed on 2 Nov 2026: 3 new fits, 1 removed');
-  assert.equal(refreshNote({ ...r, counts: { new_fits: 1, removed: 0, tier_changes: 2 } }), 'Refreshed on 2 Nov 2026: 1 new fit, 2 changed fit');
+  assert.equal(refreshNote({ ...r, counts: { new_fits: 1, removed: 0, tier_changes: 2 } }), 'Refreshed on 2 Nov 2026: 1 new fit, 2 changed fits');
   assert.equal(refreshNote({ ...r, counts: {} }), 'Refreshed on 2 Nov 2026: no changes');
   assert.equal(refreshNote(null), null);
   assert.match(refreshDetail(r), /Compared with your run on 15 Oct 2026\./);

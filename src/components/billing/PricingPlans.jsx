@@ -244,7 +244,7 @@ export function PricingFaq({ data }) {
     },
     cr && {
       q: 'How are matches refreshed?',
-      a: 'Once a month, Capital Raising re-runs your matches with your current company details and shows what changed since the last run: new fits, removed fits and changed fit. You can still re-run them yourself at any time.',
+      a: 'Once a month, Capital Raising re-runs your matches with your current company details and shows what changed since the last run: new fits, removed fits and fits whose level changed. You can still re-run them yourself at any time.',
     },
     paid && {
       q: 'How does the credit work?',

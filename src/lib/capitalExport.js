@@ -39,7 +39,7 @@ export function refreshNote(refresh) {
   const parts = [];
   if (c.new_fits) parts.push(plural(c.new_fits, 'new fit', 'new fits'));
   if (c.removed) parts.push(`${c.removed} removed`);
-  if (c.tier_changes) parts.push(`${c.tier_changes} changed fit`);
+  if (c.tier_changes) parts.push(plural(c.tier_changes, 'changed fit', 'changed fits'));
   return `Refreshed on ${fmtDate(refresh.refreshed_at)}: ${parts.length ? parts.join(', ') : 'no changes'}`;
 }
 
