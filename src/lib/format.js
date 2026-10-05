@@ -71,6 +71,24 @@ export function humanise(code) {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
+// Founder words for data field names wherever one surfaces (citation chips, gap lists):
+// "Headquarters accepted", never "Accepts_hq" (UAT #21). Unknown names fall back to humanise().
+const FIELD_LABELS = {
+  accepts_hq: 'Headquarters accepted', business_model: 'Business model', business_models: 'Business models', stage: 'Stage', stages: 'Stages',
+  sector: 'Sector', sectors: 'Sectors', sector_exclusions: 'Sectors they exclude', geography: 'Geography', geographies: 'Geographies',
+  ticket: 'Cheque size', ticket_min_usd: 'Minimum cheque', ticket_max_usd: 'Maximum cheque', ticket_typical_usd: 'Typical cheque',
+  instrument: 'Instrument', instruments: 'Instruments', thesis: 'Thesis', thesis_keywords: 'Thesis', portfolio_examples: 'Portfolio',
+  min_revenue_usd: 'Minimum revenue', revenue_usd: 'Revenue', raise_usd: 'Raise amount', one_liner: 'One-line description',
+  hq_country: 'HQ country', hq_country_iso2: 'HQ country', contact_route: 'Contact route', application_open: 'Applications',
+  next_intake: 'Next intake', deadline: 'Deadline', investor_types: 'Investor types', target_markets: 'Target markets',
+  founder_requirements: 'Founder requirements', last_activity_date: 'Last activity', team_size: 'Team size', runway_months: 'Runway',
+  customers: 'Customers', target_funding_date: 'Target funding date', raise_timing: 'Raise timing', use_of_funds: 'Use of funds',
+};
+export function fieldLabel(field) {
+  if (!field) return '';
+  return FIELD_LABELS[field] || humanise(field);
+}
+
 export function plural(n, one, many) {
   return `${fmtInt(n)} ${n === 1 ? one : many || `${one}s`}`;
 }

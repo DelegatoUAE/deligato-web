@@ -48,7 +48,7 @@ export default function InsightsPage() {
       {(d.tier_outcomes || []).length > 0 && (
         <Card title="Did our fit prediction hold?" subtitle="By the fit tier when you shortlisted each provider.">
           <Table dense rowKey="tier" rows={d.tier_outcomes} columns={[
-            { key: 'tier', header: 'Tier at save', render: (r) => tierLabel(r.tier) },
+            { key: 'tier', header: 'Fit when saved', render: (r) => tierLabel(r.tier) },
             { key: 'contacted', header: 'Contacted', numeric: true }, { key: 'replied', header: 'Replied', numeric: true },
             { key: 'meeting', header: 'Meeting', numeric: true }, { key: 'passed', header: 'Passed', numeric: true },
           ]} />

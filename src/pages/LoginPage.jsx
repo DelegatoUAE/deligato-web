@@ -2,6 +2,7 @@ import { lazy, Suspense, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Alert, Button, FormField, Input } from '../design/ui';
 import AuthLayout from '../components/AuthLayout';
+import { afterSignIn } from '../lib/team';
 import PasswordInput from '../components/PasswordInput';
 import { publicAuthError } from '../lib/errorDetails';
 import { login } from '../lib/auth';
@@ -22,7 +23,7 @@ export default function LoginPage() {
     setBusy(true);
     try {
       await login(email, password);
-      navigate('/');
+      navigate(afterSignIn('/'));
     } catch (err) {
       setError(err.status === 401 ? "That email and password don't match an account." : publicAuthError(err, 'Sign-in is unavailable right now. Try again shortly.'));
     } finally {
@@ -41,7 +42,7 @@ export default function LoginPage() {
       </form>
       {DevPersonaLogin && (
         <Suspense fallback={null}>
-          <DevPersonaLogin onSignedIn={() => navigate('/')} />
+          <DevPersonaLogin onSignedIn={() => navigate(afterSignIn('/'))} />
         </Suspense>
       )}
     </AuthLayout>

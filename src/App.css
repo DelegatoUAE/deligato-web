@@ -359,6 +359,25 @@
 .consents { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-4); }
 .consents li { display: flex; justify-content: space-between; gap: var(--s-4); align-items: start; }
 .consents p { margin: 2px 0 0; font-size: var(--text-sm); }
+/* Outreach: how to reach the investor (UAT #10) */
+.composer-reach { margin: var(--s-1) 0 0; font-size: var(--text-sm); color: var(--text); }
+
+/* Settings → Team and access */
+.team-seats { margin: 0 0 var(--s-3); font-size: var(--text-sm); }
+.team-who { display: grid; gap: 2px; min-width: 0; }
+.team-who strong, .team-email { overflow-wrap: anywhere; }
+.team-role-select { min-width: 120px; max-width: 200px; }
+.team-role { display: inline-flex; gap: var(--s-2); align-items: center; flex-wrap: wrap; }
+.team-invite { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) auto; gap: var(--s-3); align-items: start; margin-bottom: var(--s-3); }
+.team-invite-go { padding-top: 1.6rem; }
+.team-link { display: flex; gap: var(--s-2); align-items: center; margin-top: var(--s-2); }
+.team-link .ui-input { flex: 1; min-width: 0; font-size: var(--text-sm); }
+.invite-page { max-width: 520px; margin: var(--s-8) auto; padding: 0 var(--s-4); }
+@media (max-width: 767px) {
+  .team-invite { grid-template-columns: 1fr; }
+  .team-invite-go { padding-top: 0; }
+  .team-link { flex-direction: column; align-items: stretch; }
+}
 .switch { display: inline-flex; gap: var(--s-2); align-items: center; font-size: var(--text-sm); cursor: pointer; }
 .switch input { width: 36px; height: 20px; accent-color: var(--brand-fill); }
 .welcomep h1 { font-size: var(--text-3xl); letter-spacing: -0.02em; max-width: 22ch; }
@@ -719,7 +738,7 @@
 .cite { display: inline-flex; align-items: center; gap: 6px; padding: 2px 8px; border-radius: var(--r-full); border: 1px solid var(--border-strong); background: var(--surface); font-size: var(--text-2xs); cursor: help; }
 .cite.is-verified { border-color: var(--ok-border); background: var(--ok-bg); }
 .cite:focus-visible { outline: none; box-shadow: var(--ring); }
-.cite-f { font-weight: var(--fw-semibold); color: var(--text-strong); text-transform: capitalize; }
+.cite-f { font-weight: var(--fw-semibold); color: var(--text-strong); }
 .cite-p { color: var(--text-soft); }
 .whyfits-unknown, .whyfits-next, .whyfits-gate { margin: 0; font-size: var(--text-sm); }
 .whyfits-gate { display: inline-flex; gap: 6px; align-items: center; }

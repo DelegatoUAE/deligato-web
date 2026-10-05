@@ -45,7 +45,7 @@ export default function FinancialHealthPage() {
     return (
       <div className="fh">{head}
         <EmptyState icon="chart" title="Two minutes to your first result."
-          body="Tell us last month's cash, revenue and operating costs. We calculate your Financial Health straight away, and show what changes from month to month. It also lets Conncct judge your runway and which kinds of financing suit you."
+          body="Tell us last month's cash, revenue and operating costs. We calculate your Financial Health straight away, and show what changes from month to month. It also lets Deligato judge your runway and which kinds of financing suit you."
           action={<Button as={Link} to="/company/check-in" variant="accent">Do your monthly check-in</Button>} />
       </div>
     );

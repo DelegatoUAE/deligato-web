@@ -99,7 +99,7 @@ function Greeting({ name, company, snapshot }) {
       {(persona || goal) && (
         <p className="cc-tags">
           {goal && <span className="cc-tag"><span>Goal</span> {goal}</span>}
-          {persona && <span className="cc-tag"><span>Persona</span> {persona}</span>}
+          {persona && <span className="cc-tag"><span>Founder profile</span> {persona}</span>}
         </p>
       )}
     </header>

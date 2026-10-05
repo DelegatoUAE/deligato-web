@@ -9,6 +9,7 @@ import { FundraisingNotice, GateCard, LoadError } from '../components/capital/bi
 import useApi from '../lib/useApi';
 import { listDrafts, createDraft, updateDraft, markDraftSent, DRAFT_KINDS, DRAFT_STATUS, draftKindLabel, kindForRoute } from '../lib/fundraising';
 import { listPipeline, updatePipelineItem, stageIndex, investorHref } from '../lib/capital';
+import { reachFor, NO_ADDRESS_NOTE } from '../lib/outreachRoute';
 import { fmtDate, humanise } from '../lib/format';
 import { logEvent } from '../lib/events';
 
@@ -34,6 +35,7 @@ function Composer({ draft, meta, investor, companyId, onUpdated, onPipelineMoved
   const kind = draft.kind;
   const finalBody = mutual ? body.replace(/\{(mutual[^}]*|connection[^}]*|their name)\}/gi, mutual) : body;
   const investorName = investor?.name || 'this investor';
+  const reach = reachFor({ ...investor, name: investorName });
 
   async function save() {
     setBusy('save');
@@ -74,7 +76,8 @@ function Composer({ draft, meta, investor, companyId, onUpdated, onPipelineMoved
       <div className="composer-head">
         <div>
           <h2>To: {investorName}</h2>
-          <p className="ui-muted">{draftKindLabel(kind)}{investor?.contact_route ? ` · route: ${investor.contact_route}` : ''} · {DRAFT_STATUS[draft.status] || humanise(draft.status)}</p>
+          <p className="ui-muted">{draftKindLabel(kind)} · {DRAFT_STATUS[draft.status] || humanise(draft.status)}</p>
+          <p className="composer-reach">{reach.line}{reach.href && <> <a href={reach.href} target="_blank" rel="noreferrer">{reach.linkLabel} ↗</a></>}</p>
         </div>
         <Badge tone={draft.generated_by === 'ai' ? 'gold' : 'outline'}>{draft.generated_by === 'ai' ? 'AI-drafted' : 'Template'}</Badge>
       </div>
@@ -91,10 +94,11 @@ function Composer({ draft, meta, investor, companyId, onUpdated, onPipelineMoved
       <div className="composer-actions">
         {!locked && <Button variant="secondary" onClick={save} disabled={!dirty} loading={busy === 'save'}>Save draft</Button>}
         <Button variant="secondary" onClick={copy} iconLeft="file">Copy</Button>
-        <Button variant="secondary" onClick={openEmail}>Open in my email app</Button>
+        <Button variant="secondary" onClick={openEmail} title={NO_ADDRESS_NOTE}>Open in my email app</Button>
         {draft.status !== 'sent_by_founder' && !locked && <Button variant="primary" onClick={() => setConfirmSent(true)}>Mark as sent by me</Button>}
         {draft.status === 'sent_by_founder' && <Badge tone="ok">Marked sent {fmtDate(draft.sent_by_founder_at)}</Badge>}
       </div>
+      <p className="ui-faint">{NO_ADDRESS_NOTE}</p>
       <FundraisingNotice short />
       <ConfirmDialog open={confirmSent} tone="primary" title="Did you send this yourself?"
         body={`We'll move ${investorName} to '${kind === 'intro_request' ? 'Intro requested' : 'Contacted'}' in your pipeline.`}
@@ -122,8 +126,11 @@ export default function OutreachPage() {
 
   // Investor names and routes from what the founder already has (no extra profile views).
   const known = new Map();
-  for (const r of run?.results || []) known.set(r.record_id, { name: r.name, contact_route: r.contact_route });
-  for (const p of pipeQ.data || []) known.set(p.record_id, { name: p.capital_sources?.name, contact_route: p.capital_sources?.contact_route, ...known.get(p.record_id) });
+  for (const r of run?.results || []) known.set(r.record_id, { name: r.name, contact_route: r.contact_route, website: r.website, application_url: r.application_url });
+  for (const p of pipeQ.data || []) {
+    const s = p.capital_sources || {};
+    known.set(p.record_id, { name: s.name, contact_route: s.contact_route, website: s.website, application_url: s.application_url, ...known.get(p.record_id) });
+  }
   const drafts = (draftsQ.data || []).filter((d) => d.status !== 'discarded');
   const used = draftsThisMonth(draftsQ.data || []);
   const left = Math.max(0, quota - used);

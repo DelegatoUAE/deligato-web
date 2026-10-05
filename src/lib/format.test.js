@@ -72,3 +72,13 @@ test('SMEs read "your business", everyone else "your company" (positioning §2.9
   assert.equal(companyWord({}), 'company');
   assert.equal(companyWord(null), 'company');
 });
+
+test('field names surface as founder words, never raw keys (UAT #21)', async () => {
+  const { fieldLabel } = await import('./format.js');
+  assert.equal(fieldLabel('accepts_hq'), 'Headquarters accepted');
+  assert.equal(fieldLabel('business_model'), 'Business model');
+  assert.equal(fieldLabel('raise_usd'), 'Raise amount');
+  assert.equal(fieldLabel('some_new_field'), 'Some new field');
+  assert.equal(fieldLabel(''), '');
+  for (const k of ['accepts_hq', 'business_model', 'ticket_min_usd', 'thesis_keywords', 'hq_country_iso2']) assert.doesNotMatch(fieldLabel(k), /_/);
+});

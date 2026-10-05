@@ -9,7 +9,7 @@ import { getUnlocks, runMatch, investorHref, filterLabel } from '../lib/capital'
 import { getAdvice } from '../lib/advice';
 import { saveCapitalNeed } from '../lib/companies';
 import ExpertBridgeLink from '../components/ExpertBridgeLink';
-import { fmtInt, fmtUsd } from '../lib/format';
+import { fmtInt, fmtUsd, fieldLabel } from '../lib/format';
 import { logEvent } from '../lib/events';
 
 const NEED_FIELDS = ['raise_usd', 'instrument', 'investor_types_sought'];
@@ -41,7 +41,7 @@ export default function AdvicePage() {
       logEvent('advice.lever_applied', { field: u.field, from: u.from, to: u.to, unlocks: u.unlocks, loses: u.loses, net: u.net }, companyId);
       const res = await runMatch(companyId);
       reloadCompanies(); reloadRun();
-      toast.success(`Applied. Your matches were re-run (${fmtInt(res.counts?.eligible)} eligible).`);
+      toast.success(`Applied. Your matches were re-run (${fmtInt(res.counts?.eligible)} pass your filters).`);
       navigate(`/capital/matches${res.run_id ? `?run=${res.run_id}` : ''}`);
     } catch (e) {
       toast.error(`Couldn't apply this: ${e.message}`);
@@ -117,7 +117,7 @@ export default function AdvicePage() {
             {resolvable.map((x) => (
               <li key={x.field} className="lever">
                 <p><strong>{x.label} so {fmtInt(x.moves_from_unknown)} investors can be properly checked.</strong></p>
-                <p className="ui-muted">Some will fit, some won't. Your list may get shorter but more accurate.{x.field === 'instrument' ? " Today these count as eligible only because we don't know your instrument." : ''}</p>
+                <p className="ui-muted">Some will fit, some won't. Your list may get shorter but more accurate.{x.field === 'instrument' ? " Today these pass your filters only because we don't know your instrument." : ''}</p>
                 {NEED_FIELDS.includes(x.field) ? <Button as={Link} to="/capital/need" size="sm" variant="secondary">Set in Capital need</Button>
                   : <Button as={Link} to="/company/business" size="sm" variant="secondary">Edit company details</Button>}
               </li>
@@ -153,7 +153,7 @@ export default function AdvicePage() {
 
       {gaps.length > 0 && (
         <Card title="Help us know more" subtitle="Our data">
-          <ul className="plain-list">{gaps.map((g, i) => <li key={i}>{g.message || `${fmtInt(g.count)} possible fits have no ${g.field} on record.`}</li>)}</ul>
+          <ul className="plain-list">{gaps.map((g, i) => <li key={i}>{g.message || `${fmtInt(g.count)} possible fits have no ${fieldLabel(g.field).toLowerCase()} on record.`}</li>)}</ul>
         </Card>
       )}
       {!uq.data?.unlocks?.length && !resolvable.length && !dom && uq.data && (

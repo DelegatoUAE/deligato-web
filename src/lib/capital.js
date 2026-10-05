@@ -9,7 +9,8 @@
 // ============================================================
 
 import { apiFetch } from './auth';
-import { serverOrder, serverTier, isRouteScoped } from './matchview';
+import { serverOrder, serverTier, isRouteScoped, tierLabel } from './matchview';
+export { tierLabel, savedFitLabel } from './matchview';
 export { serverOrder, isRouteScoped };
 import { fmtUsd, fmtDate, stealthLabel } from './format';
 
@@ -166,10 +167,9 @@ export const FIT_DIMENSIONS = [
 
 export const TIERS = [
   { key: 'strong', label: 'Strong fit' },
-  { key: 'possible', label: 'Possible fit' },
+  { key: 'possible', label: 'Moderate fit' },
   { key: 'lead', label: 'Research leads' },
 ];
-export const tierLabel = (k) => ({ strong: 'Strong fit', possible: 'Possible fit', lead: 'Research lead' }[k] || 'Research lead');
 
 const normState = (s) => (['yes', 'partial', 'no', 'unknown'].includes(s) ? s : 'unknown');
 

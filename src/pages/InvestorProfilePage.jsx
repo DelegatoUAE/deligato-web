@@ -274,7 +274,7 @@ export default function InvestorProfilePage() {
       </nav>
 
       {notInRun && (
-        <Alert tone="warn" title="Not eligible for your profile">
+        <Alert tone="warn" title="Outside your current matches">
           {ineligQ.loading && !ineligQ.data ? 'Checking why…' : nonMatch?.why_not?.length ? (
             <ul className="plain-list">{nonMatch.why_not.map((w, i) => <li key={i}>{plainExclusion(w)}</li>)}</ul>
           ) : 'This source is outside your current matches. No Match score is shown.'}

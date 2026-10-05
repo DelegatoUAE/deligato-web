@@ -73,6 +73,7 @@ export const navHrefs = (nav) => nav.flatMap((s) => s.items.map((i) => i.href).f
 /** Settings tabs (D58 Settings), path form /settings/:tab so the assistant's routes resolve. */
 export const SETTINGS_TABS = [
   { id: 'account', label: 'Account' },
+  { id: 'team', label: 'Team and access' },
   { id: 'plan', label: 'Plan and billing' },
   { id: 'notifications', label: 'Notifications' },
   { id: 'privacy', label: 'Privacy and data' },

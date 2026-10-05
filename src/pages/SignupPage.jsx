@@ -2,6 +2,7 @@ import { lazy, Suspense, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Alert, Button, ChipToggle, FormField, Input } from '../design/ui';
 import AuthLayout from '../components/AuthLayout';
+import { afterSignIn } from '../lib/team';
 import PasswordInput from '../components/PasswordInput';
 import { publicAuthError } from '../lib/errorDetails';
 import { apiFetch, setSession } from '../lib/auth';
@@ -30,7 +31,7 @@ export default function SignupPage() {
       // Production confirms the email first: the account exists but there is no session yet.
       if (data && data.session && data.session.access_token) {
         setSession(data.session);
-        navigate('/onboarding');
+        navigate(afterSignIn('/onboarding'));
       } else {
         setSent(data && data.message ? data.message : 'Check your email to confirm your address, then sign in.');
       }
@@ -71,7 +72,7 @@ export default function SignupPage() {
       </form>
       {DevRegister && (
         <Suspense fallback={null}>
-          <DevRegister fullName={form.full_name} email={form.email} onCreated={() => navigate('/onboarding')} />
+          <DevRegister fullName={form.full_name} email={form.email} onCreated={() => navigate(afterSignIn('/onboarding'))} />
         </Suspense>
       )}
     </AuthLayout>

@@ -7,7 +7,7 @@ import { useCompany } from '../components/company-context';
 import MatchScore from '../components/capital/MatchScore';
 import { GateCard, LoadError } from '../components/capital/bits';
 import useApi from '../lib/useApi';
-import { listPipeline, updatePipelineItem, removeFromPipeline, investorHref, tierLabel, ticketRange } from '../lib/capital';
+import { listPipeline, updatePipelineItem, removeFromPipeline, investorHref, tierLabel, ticketRange, savedFitLabel } from '../lib/capital';
 import { recordOutcome } from '../lib/fundraising';
 import { FEEDBACK_DOWN_REASONS } from '../lib/learning';
 import { fmtDate } from '../lib/format';
@@ -81,7 +81,7 @@ export default function SavedPage() {
               <span title="Match score when you shortlisted it"><MatchScore score={p.match_score_at_add} confidence={p.capital_sources?.data_confidence} size="sm" /></span>
               <div className="saved-main">
                 <Link to={investorHref(p.record_id)} className="mrow-name">{nameOf(p)}</Link>
-                <span className="mrow-meta">{[p.capital_sources?.type, p.capital_sources?.country, p.fit_tier_at_add && tierLabel(p.fit_tier_at_add), fmtDate(p.created_at) && `shortlisted ${fmtDate(p.created_at)}`].filter(Boolean).join(' · ')}</span>
+                <span className="mrow-meta">{[p.capital_sources?.type, p.capital_sources?.country, savedFitLabel(p, byRecord.get(p.record_id)), fmtDate(p.created_at) && `shortlisted ${fmtDate(p.created_at)}`].filter(Boolean).join(' · ')}</span>
                 {byRecord.get(p.record_id) && <FitPills fits={byRecord.get(p.record_id).fits} result={byRecord.get(p.record_id)} />}
                 {p.capital_sources?.deadline && <span className="ui-muted">Next step: applications close {fmtDate(p.capital_sources.deadline)}.</span>}
               </div>
@@ -104,7 +104,7 @@ export default function SavedPage() {
           rows={[
             ['Match at save', (p) => p.match_score_at_add ?? 'Not on record'],
             ['Confidence', (p) => byRecord.get(p.record_id)?.data_confidence || p.capital_sources?.data_confidence || 'Not on record'],
-            ['Tier at save', (p) => (p.fit_tier_at_add ? tierLabel(p.fit_tier_at_add) : 'Not on record')],
+            ['Fit when saved', (p) => (p.fit_tier_at_add ? tierLabel(p.fit_tier_at_add) : 'Not on record')],
             ['Fit', (p) => (byRecord.get(p.record_id) ? <FitPills fits={byRecord.get(p.record_id).fits} result={byRecord.get(p.record_id)} /> : 'Not in your latest run')],
             ['Ticket', (p) => ticketRange(byRecord.get(p.record_id)?.ticket_min_usd, byRecord.get(p.record_id)?.ticket_max_usd) || 'Not on record'],
             ['Stages', (p) => (byRecord.get(p.record_id)?.stages || []).join(', ') || 'Not on record'],

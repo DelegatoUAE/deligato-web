@@ -331,7 +331,7 @@ export default function MatchesPage() {
       {/* I-07: investors first. One summary line; the statistics open on demand. */}
       <div className="msummary">
         <p>
-          <strong>{fmtInt(eligible)}</strong> open to you{isRouteScoped(run) ? ' on these routes' : ''}
+          <strong>{fmtInt(eligible)}</strong> pass your filters{isRouteScoped(run) ? ' on these routes' : ''}
           {isRouteScoped(run) && <> · {fmtInt(run.counts.filtered_out_by_route)} on other routes</>}
           {run.counts?.excluded != null && <> · {fmtInt(run.counts.excluded)} excluded by a hard filter</>}
           {' · '}

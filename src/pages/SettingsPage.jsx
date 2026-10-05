@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Alert, Button, Card, EmptyState, FormField, Input, Modal, PageHeader, Skeleton, Table, Tabs, useToast } from '../design/ui';
 import { useCompany } from '../components/company-context';
 import AppearanceSetting from '../components/AppearanceSetting';
+import TeamAccess from '../components/TeamAccess';
 import useApi from '../lib/useApi';
 import { getConsents, getConsentTexts, grantConsent, revokeConsent, getAiLog, exportMyData, deleteMyAccount } from '../lib/privacy';
 import PlanBilling from '../components/billing/PlanBilling';
@@ -171,7 +172,7 @@ function Security({ me }) {
 }
 
 export default function SettingsPage() {
-  const { me, companyId, entitlementsRaw, reloadEntitlements } = useCompany();
+  const { me, company, companyId, entitlementsRaw, reloadEntitlements } = useCompany();
   const { tab: param } = useParams();
   const [query] = useSearchParams();
   const navigate = useNavigate();
@@ -182,6 +183,7 @@ export default function SettingsPage() {
       <Tabs label="Settings" value={tab} onChange={(t) => navigate(`/settings/${t}`)} items={SETTINGS_TABS}>
         {(t) => ({
           account: <Account me={me} />,
+          team: <TeamAccess me={me} company={company} companyId={companyId} entitlementsRaw={entitlementsRaw} />,
           plan: <PlanBilling companyId={companyId} entitlementsRaw={entitlementsRaw} reloadEntitlements={reloadEntitlements} />,
           notifications: <Notifications companyId={companyId} />,
           privacy: <Privacy companyId={companyId} />,

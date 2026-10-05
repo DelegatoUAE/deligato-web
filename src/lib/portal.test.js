@@ -52,6 +52,7 @@ test('the client shell imports no admin navigation', () => {
 
 test('settings tabs resolve from path and legacy query', () => {
   assert.equal(settingsTab('plan'), 'plan');
+  assert.equal(settingsTab('team'), 'team');
   assert.equal(settingsTab('billing'), 'plan');
   assert.equal(settingsTab(undefined, 'privacy'), 'privacy');
   assert.equal(settingsTab('nope'), 'account');

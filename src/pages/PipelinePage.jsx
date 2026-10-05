@@ -10,7 +10,7 @@ import { useCompany } from '../components/company-context';
 import MatchScore from '../components/capital/MatchScore';
 import { GateCard, LoadError } from '../components/capital/bits';
 import useApi from '../lib/useApi';
-import { listPipeline, updatePipelineItem, removeFromPipeline, PIPELINE_STAGES, ACTIVE_STAGES, stageLabel, investorHref, tierLabel } from '../lib/capital';
+import { listPipeline, updatePipelineItem, removeFromPipeline, PIPELINE_STAGES, ACTIVE_STAGES, stageLabel, investorHref, savedFitLabel } from '../lib/capital';
 import { recordOutcome, getTimeline, PASS_REASONS, passReasonLabel } from '../lib/fundraising';
 import { apiFetch } from '../lib/auth';
 import { daysSince, fmtDate, todayIso } from '../lib/format';
@@ -38,7 +38,7 @@ function OutcomeDialog({ state, onCancel, onSave, busy }) {
   const needAmount = ['term_sheet', 'closed_won'].includes(form.outcome);
   const valid = (!needReason || form.reason) && (!needAmount || Number(form.amount) > 0) && (form.outcome !== 'closed_won' || form.instrument);
   return (
-    <Modal open onClose={onCancel} title={`What happened with ${nameOf(item)}?`} description="Outcomes help Conncct learn which matches lead somewhere. They never change your results on their own, and your note stays private."
+    <Modal open onClose={onCancel} title={`What happened with ${nameOf(item)}?`} description="Outcomes help Deligato learn which matches lead somewhere. They never change your results on their own, and your note stays private."
       footer={<><Button variant="ghost" onClick={onCancel}>Cancel</Button><Button variant="primary" onClick={() => onSave(form)} loading={busy} disabled={!valid}>Save outcome</Button></>}>
       <div className="ui-form">
         {needReason && (
@@ -132,7 +132,8 @@ function ItemDrawer({ item, companyId, onClose, onChanged, onMove, onRemove }) {
 }
 
 export default function PipelinePage() {
-  const { companyId, reloadPipeline } = useCompany();
+  const { companyId, reloadPipeline, run } = useCompany();
+  const runByRecord = new Map((run?.results || []).map((r) => [r.record_id, r]));
   const toast = useToast();
   const q = useApi(() => listPipeline(companyId).then((x) => x.pipeline || []), [companyId]);
   const [view, setView] = useState(() => (typeof window !== 'undefined' && window.innerWidth < 768 ? 'list' : 'board'));
@@ -238,7 +239,7 @@ export default function PipelinePage() {
         draggable onDragStart={(e) => { setDragId(p.id); e.dataTransfer.effectAllowed = 'move'; }} onDragEnd={() => { setDragId(null); setOverStage(null); }}
         onClick={() => setOpenId(p.id)}
         leading={<MatchScore score={p.match_score_at_add} confidence={p.capital_sources?.data_confidence} size="sm" />}
-        meta={[p.fit_tier_at_add && tierLabel(p.fit_tier_at_add), p.capital_sources?.type].filter(Boolean).join(' · ')}
+        meta={[savedFitLabel(p, runByRecord.get(p.record_id)), p.capital_sources?.type].filter(Boolean).join(' · ')}
         footer={(
           <>
             {p.next_action && <Badge tone={overdue ? 'bad' : 'gold'} dot size="sm">{p.next_action}{p.next_action_date ? ` · ${fmtDate(p.next_action_date)}` : ''}</Badge>}

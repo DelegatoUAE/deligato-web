@@ -64,3 +64,18 @@ test('a run made on a smaller plan is flagged after an upgrade (UAT F08)', async
   assert.equal(runBelowPlan({ results: new Array(200).fill({}), counts: { eligible: 1123 } }, null), false);
   assert.equal(runBelowPlan({ results: new Array(3).fill({}), counts: { eligible: 3 } }, null), false);
 });
+
+test('one label system on shortlist and pipeline: evidence bucket first, tier only as strength (UAT #9)', async () => {
+  const { savedFitLabel, tierLabel } = await import('./matchview.js');
+  assert.equal(tierLabel('possible'), 'Moderate fit');
+  assert.equal(tierLabel('strong'), 'Strong fit');
+  assert.equal(savedFitLabel({ fit_tier_at_add: 'possible' }, { bucket: 'eligible', fit_tier: 'possible' }), 'Verified fit');
+  assert.equal(savedFitLabel({ fit_tier_at_add: 'strong' }, { bucket: 'eligible', fit_tier: 'strong' }), 'Verified fit · Strong fit');
+  assert.equal(savedFitLabel({ fit_tier_at_add: 'strong' }, { bucket: 'possible', fit_tier: 'possible' }), 'Possible');
+  assert.equal(savedFitLabel({ fit_tier_at_add: 'strong' }, { bucket: 'possible', fit_tier: 'strong' }), "Possible · Strong fit on what's known");
+  assert.equal(savedFitLabel({ fit_tier_at_add: 'possible' }, null), 'Moderate fit when saved');
+  assert.equal(savedFitLabel({}, null), null);
+  for (const b of ['eligible', 'possible', 'likely_outside']) for (const t of ['strong', 'possible', 'lead']) {
+    assert.doesNotMatch(savedFitLabel({ fit_tier_at_add: t }, { bucket: b, fit_tier: t }), /eligible|Possible fit/);
+  }
+});

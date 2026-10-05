@@ -107,3 +107,21 @@ export function runBelowPlan(run, maxResults) {
   if (!Number.isFinite(eligible)) return false;
   return run.results.length < Math.min(eligible, limit);
 }
+
+// "Possible" names only the evidence bucket; the middle fit tier reads "Moderate fit",
+// so one investor never shows "Verified fit" and "Possible fit" side by side (UAT #9).
+export const tierLabel = (k) => ({ strong: 'Strong fit', possible: 'Moderate fit', lead: 'Research lead' }[k] || 'Research lead');
+
+const BUCKET_SHORT = { eligible: 'Verified fit', possible: 'Possible', likely_outside: 'Likely outside their mandate' };
+/**
+ * Shortlist and pipeline rows: the same words as Matches and the investor profile. The latest
+ * run's evidence bucket when the investor is in it (plus "Strong fit" when strong); otherwise
+ * the fit tier recorded when it was saved, said as such.
+ */
+export function savedFitLabel(saved, result) {
+  if (result && BUCKET_SHORT[result.bucket]) {
+    if (result.fit_tier !== 'strong') return BUCKET_SHORT[result.bucket];
+    return `${BUCKET_SHORT[result.bucket]} · ${result.bucket === 'eligible' ? 'Strong fit' : "Strong fit on what's known"}`;
+  }
+  return saved?.fit_tier_at_add ? `${tierLabel(saved.fit_tier_at_add)} when saved` : null;
+}
