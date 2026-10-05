@@ -96,7 +96,7 @@ export default function PackagesPage() {
       {entitlementsRaw && !hasMatching(entitlementsRaw.entitlements) && (
         <>
           <MatchPreview companyId={companyId} />
-          <p className="pr-credit-banner" role="note"><strong>Your plan has no investor matching.</strong> Company Intelligence is continuous intelligence on your company; matched investors and capital providers, why each fits, your shortlist, pipeline and outreach are part of Capital Raising. Investors you saved earlier stay visible, read-only.</p>
+          <p className="pr-credit-banner" role="note"><strong>Your plan has no investor matching.</strong> Company Intelligence is continuous intelligence on your company; matched investors and capital providers, why each fits, your shortlist, pipeline and outreach are part of Capital Raising. Investors you shortlisted earlier stay visible, read-only.</p>
         </>
       )}
 

@@ -232,7 +232,7 @@ export function PricingFaq({ data }) {
   const items = [
     cr && {
       q: 'Does Free include investor matching?',
-      a: 'No. Free shows where your company stands and which types of capital fit your need, without naming providers. Matching investors and capital providers, why each one fits, your shortlist, pipeline and outreach are part of Capital Raising. If you saved investors before, they stay visible, read-only.',
+      a: 'No. Free shows where your company stands and which types of capital fit your need, without naming providers. Matching investors and capital providers, why each one fits, your shortlist, pipeline and outreach are part of Capital Raising. If you shortlisted investors before, they stay visible, read-only.',
     },
     cr && {
       q: 'Can I share my data room with investors?',

@@ -95,7 +95,7 @@ export function ShortlistSummary({ companyId, recordIds }) {
       <div className="aisec-head">
         <div>
           <h2 className="aisec-h">Your shortlist at a glance</h2>
-          <p className="ui-muted">A summary of the providers you saved, built from the match engine's counts and the source of each fact.</p>
+          <p className="ui-muted">A summary of the providers you shortlisted, built from the match engine's counts and the source of each fact.</p>
         </div>
         {!s.result && !s.loading && !s.gate && (
           <Button variant="secondary" size="sm" iconLeft="spark" onClick={() => run({ company_id: companyId, record_ids: recordIds.slice(0, 15) })}>Summarise my shortlist</Button>

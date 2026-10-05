@@ -82,7 +82,7 @@ export function canShortlist(ents) {
 export const MATCHING_UPGRADE = {
   title: 'Investor matching is part of Capital Raising',
   body: 'Free and Company Intelligence show where your company stands and which types of capital fit, without naming providers. Capital Raising adds matched investors and capital providers, why each one fits, the evidence behind it, your shortlist and pipeline, and outreach.',
-  readOnly: 'Investors you saved earlier stay here, read-only. You can remove them. Saving more, moving stages and outreach are part of Capital Raising.',
+  readOnly: 'Investors you shortlisted earlier stay here, read-only. You can remove them. Shortlisting more, moving stages and outreach are part of Capital Raising.',
   cta: 'Unlock Capital Raising',
 };
 

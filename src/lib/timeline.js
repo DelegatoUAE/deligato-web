@@ -15,7 +15,7 @@ const FIXED = {
   'outcome.meeting': 'Meeting logged',
   'outcome.contacted': 'Contacted',
   'outcome.viewed': 'Profile viewed',
-  'outcome.saved': 'Saved',
+  'outcome.saved': 'Shortlisted',
 };
 
 export function rawEntries(data) {
