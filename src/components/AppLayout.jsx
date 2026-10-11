@@ -7,6 +7,7 @@ import { ReadinessPill } from './capital/Readiness';
 import AssistantPanel from './AssistantPanel';
 import ThemeToggle from './ThemeToggle';
 import ErrorBoundary from './ErrorBoundary';
+import './shell/shell.css';
 import { CLIENT_NAV } from '../lib/portal';
 import { tierLabel } from '../lib/plan';
 import { PAGE_SUFFIX } from '../lib/format';

@@ -25,7 +25,6 @@
 /* ---- header ---- */
 .mx-head { display: flex; justify-content: space-between; align-items: flex-end; gap: var(--s-4) var(--s-6); flex-wrap: wrap; margin: var(--s-2) 0 var(--s-8); }
 .mx-head-text { min-width: 0; max-width: 64ch; }
-.mx-rule { display: block; width: 40px; height: 4px; border-radius: 2px; background: var(--accent); margin-bottom: var(--s-4); }
 .mx-title { margin: 0; font-size: clamp(1.75rem, 1.35rem + 1.3vw, 2.4rem); line-height: 1.12; letter-spacing: var(--tracking-tighter); font-weight: var(--fw-bold); color: var(--text-strong); text-wrap: balance; }
 .mx-lede { margin: var(--s-3) 0 0; color: var(--text-soft); font-size: var(--text-lg); line-height: var(--lh-normal); }
 .mx-head-meta { display: flex; align-items: center; flex-wrap: wrap; gap: var(--s-2) var(--s-3); font-size: var(--text-sm); color: var(--text-soft); }
@@ -319,3 +318,15 @@
 .mx.matches .tier-h { border-top: 0; padding-top: 0; margin-top: 0; }
 .mx.matches .tier-h::before { border: 0; }
 .mx.matches .tier { margin-top: var(--s-10); }
+
+/* ---- compact match row (Home, Overview) ---- */
+.mrows:has(.mrow2) { gap: 0; }
+.mrow2 { display: flex; justify-content: space-between; align-items: center; gap: var(--s-4); padding: var(--s-4) 0; border-bottom: 1px solid var(--border-soft); }
+.mrow2:first-child { padding-top: var(--s-1); }
+.mrow2-main { display: grid; gap: 4px; min-width: 0; }
+.mrow2-name { font-size: var(--text-lg); font-weight: var(--fw-semibold); color: var(--text-strong); }
+.mrow2-meta { font-size: var(--text-sm); color: var(--text-soft); }
+.mrow2-fit { display: flex; flex-wrap: wrap; align-items: center; gap: 6px var(--s-3); font-size: var(--text-sm); color: var(--text); }
+.mrow2-fit .mx-bucket { font-size: var(--text-xs); }
+.mrow2-marks { display: inline-flex; gap: 3px; }
+.mrow2-marks .ui-fitmark { width: 15px; height: 15px; }

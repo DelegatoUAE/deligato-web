@@ -6,6 +6,7 @@ import useApi from '../lib/useApi';
 import { getReadinessQuestions, assessReadiness } from '../lib/companies';
 import { readinessSource } from '../lib/readiness';
 import { isMissingEndpoint } from '../lib/auth';
+import { areaOf } from '../lib/readiness-areas';
 import { prefillAnswers, sentenceCase, PLAIN_HINTS, internalHint, loadDraft, saveDraft, clearDraft } from '../lib/readinessForm';
 
 // 15 §7: this spec owns the "why we ask" lines; the questions come from the provider.
@@ -122,22 +123,31 @@ function Questionnaire({ questionsData }) {
   return (
     <div className="assess-page">
       <div className="assess-top">
-        <h1>Capital readiness · {answered} of {required.length}</h1>
-        <Button variant="ghost" size="sm" onClick={() => navigate('/capital/readiness')}>Save and exit</Button>
+        <div>
+          <span className="mx-rule" aria-hidden="true" />
+          <h1>Capital readiness</h1>
+          <p className="assess-sub">{answered} of {required.length} answered. Scored with the Conncct method.</p>
+        </div>
+        <Button variant="secondary" size="sm" onClick={() => navigate('/capital/readiness')}>Save and exit</Button>
       </div>
-      <ProgressBar value={answered} max={required.length || 1} showValue={false} label={`${answered} of ${required.length} answered`} tone="gold" />
       {restored && <Alert tone="brand">We kept your answers from last time. Pick up where you left off.</Alert>}
       <section className="assess-card" aria-labelledby="aq" ref={cardRef}>
-        <p className="assess-n">Question {idx + 1} of {qs.length}{q.optional ? ' · optional' : ''}</p>
+        <div className="assess-meta">
+          <p className="assess-n">Question {idx + 1} of {qs.length}{q.optional ? ', optional' : ''}</p>
+          {areaOf(q.key) && <p className="assess-area">{areaOf(q.key).label}</p>}
+        </div>
+        <ProgressBar value={answered} max={required.length || 1} showValue={false} label={`${answered} of ${required.length} answered`} tone="brand" />
         <h2 id="aq">{q.q || q.text}</h2>
         {hintOf(q) && <p className="ui-muted">{hintOf(q)}</p>}
         {fromProfile.includes(q.key) && <p className="assess-prefill"><Badge tone="info" size="sm">From your profile</Badge> Change it if it's out of date.</p>}
         <div className="assess-opts" role={multi ? 'group' : 'radiogroup'} aria-labelledby="aq">
-          {optsOf(q).map((o) => {
+          {optsOf(q).map((o, oi) => {
             const on = multi ? (val || []).includes(o.value) : val === o.value;
             return (
               <button key={o.value} type="button" role={multi ? 'checkbox' : 'radio'} aria-checked={on} className={`assess-opt${on ? ' is-on' : ''}`} onClick={() => choose(o.value)}>
-                <span className="assess-dot" aria-hidden="true" />{o.label}
+                <span className="assess-key" aria-hidden="true">{String.fromCharCode(65 + oi)}</span>
+                <span className="assess-label">{o.label}</span>
+                <span className="assess-dot" aria-hidden="true" />
               </button>
             );
           })}
