@@ -4,7 +4,9 @@ import {
   Alert, Badge, Button, Card, ConfidenceBadge, EmptyState, FitList, FitRow, FormField, Input, Modal, Select, Skeleton, Tag, Textarea, useToast,
 } from '../design/ui';
 import { useCompany } from '../components/company-context';
-import MatchScore from '../components/capital/MatchScore';
+import ScoreFigure from '../components/capital/match-ui/ScoreFigure';
+import LockedNote from '../components/capital/match-ui/LockedNote';
+import '../components/capital/match-ui/matching.css';
 import WhyThisFits from '../components/capital/WhyThisFits';
 import { MeetingPrep } from '../components/capital/AiBlocks';
 import useAiConsent from '../lib/useAiConsent';
@@ -120,7 +122,7 @@ const SECTION_IDS = SECTIONS.map(([k]) => k);
 
 function ProfileSkeleton() {
   return (
-    <div className="inv" aria-busy="true" aria-label="Loading investor">
+    <div className="inv mx mx-inv" aria-busy="true" aria-label="Loading investor">
       <Skeleton w="120px" h="14px" />
       <div className="inv-skel-head"><div className="ui-stack"><Skeleton w="45%" h="30px" /><Skeleton w="30%" h="14px" /><Skeleton w="60%" h="36px" /></div><Skeleton w="96px" h="96px" r="16px" /></div>
       <div className="inv-grid"><Skeleton h="260px" r="12px" /><Skeleton h="260px" r="12px" /><Skeleton h="320px" r="12px" /><Skeleton h="320px" r="12px" /></div>
@@ -228,19 +230,46 @@ export default function InvestorProfilePage() {
     ['Local presence', 'requires_local_presence', m.requires_local_presence, m.requires_local_presence == null ? null : m.requires_local_presence ? 'Required' : 'Not required'],
     ['Thesis', 'thesis_keywords', m.thesis_keywords, list(m.thesis_keywords)],
   ];
+  const keyFacts = [
+    ['Ticket', 'ticket_min_usd', m.ticket?.label, m.ticket?.label],
+    ['Stages', 'stages', m.stages, list(m.stages)],
+    ['Accepts companies from', 'accepts_hq', m.accepts_hq, list((m.accepts_hq || []).map(countryName))],
+    ['Investment type', 'instruments', m.instruments, list(m.instruments)],
+  ];
   const runIds = new Set((runQ.data?.results || []).map((r) => r.record_id));
   const fitItems = FIT_DIMENSIONS.map((d) => ({ key: d.key, label: d.key === 'business_model' ? 'Business model' : d.label, state: result?.fits?.[d.key], detail: fitDetail(d.key, m, company, result) }));
   const mismatches = fitItems.filter((f) => f.state === 'no' || f.state === 'partial');
 
   return (
-    <div className="inv">
+    <div className="inv mx mx-inv">
       <Link to={`/capital/matches${runId ? `?run=${runId}` : ''}`} className="back">← Back to matches</Link>
 
-      <Card className="inv-head" id="overview">
-        <div className="inv-head-main">
-          <h1>{id.name}</h1>
-          <p className="inv-sub">{[id.type, [id.city, id.country].filter(Boolean).join(', ')].filter(Boolean).join(' · ')}</p>
-          <p className="ui-muted">{fr.label || 'No dated evidence of activity'}</p>
+      <section className="mx-hero" id="overview" aria-labelledby="inv-name">
+        <div className="mx-hero-main">
+          <span className="mx-rule" aria-hidden="true" />
+          <h1 id="inv-name">{id.name}</h1>
+          <p className="mx-hero-sub">{[id.type, [id.city, id.country].filter(Boolean).join(', ')].filter(Boolean).join(', ') || 'Type and location not on record'}</p>
+          <p className={`mx-hero-fresh${fr.label ? '' : ' is-none'}`}>{fr.label || 'No dated evidence of activity'}</p>
+        </div>
+        <div className="mx-hero-side">
+          {result ? (
+            <>
+              <ScoreFigure score={result.match_score} confidence={result.data_confidence} size="lg" />
+              <span className={`mx-bucket mx-bucket-${result.bucket}`}>{bucketHeadline(result)}</span>
+              <span className="mx-tier-word">{tierWithinBucket(result)}</span>
+            </>
+          ) : notInRun ? <Badge tone="neutral">Not in your latest run</Badge> : <Skeleton w="120px" h="64px" />}
+        </div>
+        <div className="mx-hero-body">
+          <dl className="mx-facts">
+            {keyFacts.map(([label, field, raw, shown]) => (
+              <div className="mx-fact" key={field}>
+                <dt>{label}</dt>
+                <dd className={shown ? '' : 'is-unknown'}>{shown || NOT_ON_RECORD}</dd>
+                <Prov profile={p} field={field} value={raw} />
+              </div>
+            ))}
+          </dl>
           <Coverage profile={p} rows={mandateRows} />
           <div className="inv-actions">
             {pipelineItem ? (
@@ -261,16 +290,7 @@ export default function InvestorProfilePage() {
           </div>
           {p.read_only && <ReadOnlyNote />}
         </div>
-        <div className="inv-score">
-          {result ? (
-            <>
-              <MatchScore score={result.match_score} confidence={result.data_confidence} size="lg" />
-              <span className={`inv-bucket inv-bucket-${result.bucket}`}>{bucketHeadline(result)}</span>
-              <span className="tier">{tierWithinBucket(result)}</span>
-            </>
-          ) : notInRun ? <Badge tone="neutral">Not in your latest run</Badge> : <Skeleton w="96px" h="96px" />}
-        </div>
-      </Card>
+      </section>
 
       <nav className="inv-toc" aria-label="On this page">
         {SECTIONS.filter(([k]) => k !== 'similar' || (p.similar || []).length).map(([k, l]) => <a key={k} href={`#${k}`} onClick={() => pickSection(k)} className={activeSection === k ? 'is-active' : undefined} aria-current={activeSection === k ? 'location' : undefined}>{l}</a>)}
@@ -341,10 +361,7 @@ export default function InvestorProfilePage() {
 
         <Card id="contact" title="Application and contact route">
           {locked ? (
-            <div className="locked-route">
-              <p><Badge tone="outline">Locked</Badge> Contact routes are included in Capital Intelligence and Capital Raising.</p>
-              <Button as={Link} to="/packages?highlight=capital-raising" variant="secondary" size="sm">See packages</Button>
-            </div>
+            <LockedNote title="How to reach them is locked on your plan" body="Contact routes and application links are included in Capital Intelligence and Capital Raising." to="/packages?highlight=capital-raising" cta="See plans" />
           ) : (
             <>
               <dl className="facts">
@@ -376,7 +393,7 @@ export default function InvestorProfilePage() {
         <Card id="sources" title="Sources">
           <p className="ui-muted">Each fact above carries where it comes from: Capital Provider Verified, Research Verified, Licensed Data Provider, Public Source, AI Inferred or Unknown. Inferred values are never shown as verified.</p>
           {ev.derived_note && <p className="ui-muted">{ev.derived_note}</p>}
-          {locked ? <p className="ui-faint">Source links are included in Capital Intelligence and Capital Raising.</p> : (ev.urls || []).length ? (
+          {locked ? <LockedNote body="Source links are included in Capital Intelligence and Capital Raising." to="/packages?highlight=capital-intelligence" cta="See plans" /> : (ev.urls || []).length ? (
             <ul className="plain-list src-list">{ev.urls.map((u) => <li key={u}><a href={u} target="_blank" rel="noreferrer">{u.replace(/^https?:\/\//, '').slice(0, 70)}</a></li>)}</ul>
           ) : <p className="ui-faint">No source links on record.</p>}
         </Card>

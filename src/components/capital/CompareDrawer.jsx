@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Button, Drawer, FitMark } from '../../design/ui';
-import MatchScore from './MatchScore';
+import ScoreFigure from './match-ui/ScoreFigure';
+import './match-ui/matching.css';
 import { FIT_DIMENSIONS, fitProvenance, fitReasonText, investorHref, bucketHeadline, ticketRange, timingOf } from '../../lib/capital';
 import { fitSummary } from '../../lib/matchview';
 import { CompareSummary } from './AiBlocks';
@@ -52,7 +53,7 @@ export default function CompareDrawer({ open, onClose, rows, runId, onRemove, co
       ) : (
         <>
         <CompareSummary key={cols.map((r) => r.record_id).join(',')} companyId={companyId} runId={runId} recordIds={cols.map((r) => r.record_id)} />
-        <div className="cmp-scroll">
+        <div className="cmp-scroll mx mx-cmp">
           <table className="cmp" style={{ '--cmp-cols': cols.length }}>
             <thead>
               <tr>
@@ -60,7 +61,7 @@ export default function CompareDrawer({ open, onClose, rows, runId, onRemove, co
                 {cols.map((r) => (
                   <th key={r.record_id} scope="col">
                     <div className="cmp-head">
-                      <MatchScore score={r.match_score} confidence={r.data_confidence} size="sm" />
+                      <ScoreFigure score={r.match_score} confidence={r.data_confidence} size="sm" />
                       <div>
                         <Link to={investorHref(r.record_id, runId)} className="cmp-name">{r.name}</Link>
                         <span className="cmp-sub">{r.type || 'Type not on record'}</span>
