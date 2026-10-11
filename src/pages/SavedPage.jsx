@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Button, Drawer, EmptyState, Modal, PageHeader, Select, SkeletonCards, Table, useToast } from '../design/ui';
+import { Button, Drawer, EmptyState, Modal, Select, SkeletonCards, Table, useToast } from '../design/ui';
 import FitPills from '../components/capital/FitPills';
 import SubNav from '../components/SubNav';
 import { useCompany } from '../components/company-context';
-import MatchScore from '../components/capital/MatchScore';
+import ScoreFigure from '../components/capital/match-ui/ScoreFigure';
+import MatchHeader from '../components/capital/match-ui/MatchHeader';
+import '../components/capital/match-ui/matching.css';
 import { CapacityMeter, GateCard, LoadError, ReadOnlyNote } from '../components/capital/bits';
 import { canCompare, canOutreach, nextPlanFor } from '../lib/plan';
 import useApi from '../lib/useApi';
@@ -57,10 +59,10 @@ export default function SavedPage() {
     } catch (e) { toast.error(`Couldn't remove: ${e.message}`); } finally { setBusy(null); setRemoving(null); }
   }
 
-  const head = <><SubNav section="capital" /><PageHeader title="Shortlist" subtitle="Providers you shortlisted from your matches, to compare and decide who to approach first." actions={<ExportButton kind="shortlist" />} /></>;
-  if (q.error?.status === 402) return <div>{head}<GateCard title="Save investors and track your raise." body="Every plan includes a shortlist, up to its limit. Open Plans to see yours." /></div>;
-  if (q.error) return <div>{head}<LoadError error={q.error} onRetry={q.reload} what="your shortlist" /></div>;
-  if (!q.data) return <div>{head}<SkeletonCards count={3} height={72} /></div>;
+  const head = <><SubNav section="capital" /><MatchHeader title="Shortlist" lede="Investors you saved from your matches. Compare them, then move the ones you start working into your pipeline." actions={<ExportButton kind="shortlist" />} /></>;
+  if (q.error?.status === 402) return <div className="mx">{head}<GateCard title="Save investors and track your raise." body="Every plan includes a shortlist, up to its limit. Open Plans to see yours." /></div>;
+  if (q.error) return <div className="mx">{head}<LoadError error={q.error} onRetry={q.reload} what="your shortlist" /></div>;
+  if (!q.data) return <div className="mx">{head}<SkeletonCards count={3} height={72} /></div>;
   const saved = q.data.filter((p) => p.stage === 'shortlisted').slice().sort((a, b) => (sort === 'score'
     ? (b.match_score_at_add ?? -1) - (a.match_score_at_add ?? -1)
     : sort === 'deadline' ? String(a.capital_sources?.deadline || '9999').localeCompare(String(b.capital_sources?.deadline || '9999'))
@@ -71,7 +73,7 @@ export default function SavedPage() {
   const readOnly = saved.some((p) => p.read_only);
 
   return (
-    <div>
+    <div className="mx">
       {head}
       {capacity && <div className="cap-row"><CapacityMeter cap={capacity.shortlist} bucket="shortlist" upgrade={upgrade} /></div>}
       {readOnly && <ReadOnlyNote upgrade={upgrade || 'capital-intelligence'} />}
@@ -89,10 +91,10 @@ export default function SavedPage() {
           {saved.map((p) => (
             <li key={p.id} className="saved-row">
               {compare && <label className="saved-pick"><input type="checkbox" checked={picked.includes(p.id)} onChange={() => toggle(p.id)} aria-label={`Compare ${nameOf(p)}`} /></label>}
-              <span title="Match score when you shortlisted it"><MatchScore score={p.match_score_at_add} confidence={p.capital_sources?.data_confidence} size="sm" /></span>
+              <span className="saved-score" title="Match score when you shortlisted it"><ScoreFigure score={p.match_score_at_add} confidence={p.capital_sources?.data_confidence} size="sm" caption="when saved" /></span>
               <div className="saved-main">
                 <Link to={investorHref(p.record_id)} className="mrow-name">{nameOf(p)}</Link>
-                <span className="mrow-meta">{[p.capital_sources?.type, p.capital_sources?.country, savedFitLabel(p, byRecord.get(p.record_id)), fmtDate(p.created_at) && `shortlisted ${fmtDate(p.created_at)}`].filter(Boolean).join(' · ')}</span>
+                <span className="mrow-meta">{[p.capital_sources?.type, p.capital_sources?.country, savedFitLabel(p, byRecord.get(p.record_id)), fmtDate(p.created_at) && `shortlisted ${fmtDate(p.created_at)}`].filter(Boolean).join(', ')}</span>
                 {byRecord.get(p.record_id) && <FitPills fits={byRecord.get(p.record_id).fits} result={byRecord.get(p.record_id)} />}
                 {p.capital_sources?.deadline && <span className="ui-muted">Next step: applications close {fmtDate(p.capital_sources.deadline)}.</span>}
               </div>

@@ -1,9 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { Alert, Badge, Button, Card, Drawer, EmptyState, Icon, PageHeader, Select, SkeletonCards, Tag, useToast } from '../design/ui';
+import { Alert, Badge, Button, Card, Drawer, EmptyState, Icon, Select, SkeletonCards, Tag, useToast } from '../design/ui';
 import SubNav from '../components/SubNav';
 import { useCompany } from '../components/company-context';
-import MatchCard from '../components/capital/MatchCard';
+import ResultCard from '../components/capital/match-ui/ResultCard';
+import EvidenceLadder from '../components/capital/match-ui/EvidenceLadder';
+import MatchHeader from '../components/capital/match-ui/MatchHeader';
+import '../components/capital/match-ui/matching.css';
 import MatchTable from '../components/capital/MatchTable';
 import CompareDrawer from '../components/capital/CompareDrawer';
 import WhyThisFits, { AiConsentCard } from '../components/capital/WhyThisFits';
@@ -20,7 +23,7 @@ import {
 } from '../lib/capital';
 import { sendFeedback, listFeedback } from '../lib/learning';
 import { getRouting, normaliseRoute } from '../lib/routing';
-import { fmtUsd, fmtDate, fmtDateTime, fmtInt, countryName, plural, plainExclusion } from '../lib/format';
+import { fmtUsd, fmtDate, fmtDateTime, fmtInt, plural, plainExclusion } from '../lib/format';
 import { logEvent } from '../lib/events';
 import { basicMatching, canCompare, canOutreach, gateFor, nextPlanFor, packageName, upgradeHref } from '../lib/plan';
 
@@ -249,44 +252,38 @@ export default function MatchesPage() {
   }
 
   const header = (
-    <PageHeader
-      title="Capital matches"
-      subtitle={[company.name, company.stage || 'stage unknown', company.sector || 'sector unknown', countryName(company.hq_country_iso2) || 'HQ unknown',
-        `${fmtUsd(company.raise_usd) || 'raise unknown'} ${company.instrument || 'instrument unknown'}`].join(' · ')}
-      meta={run && (
-        <>
-          <ProviderBadge provider={run.provider} />
-          {run.created_at && <span className="ui-muted">Run {fmtDateTime(run.created_at)}</span>}
-          <RefreshNote />
-          <Button variant="secondary" size="sm" onClick={rerun} loading={running}>Re-run</Button>
-          <ExportButton kind="matches" />
-        </>
-      )}
-      actions={!run ? <Button variant="secondary" size="sm" onClick={rerun} loading={running}>Re-run</Button> : null}
-    />
+    <MatchHeader company={company} actions={run ? (
+      <>
+        <ProviderBadge provider={run.provider} />
+        {run.created_at && <span className="mx-head-when">Run {fmtDateTime(run.created_at)}</span>}
+        <RefreshNote />
+        <Button variant="secondary" size="sm" onClick={rerun} loading={running}>Re-run</Button>
+        <ExportButton kind="matches" />
+      </>
+    ) : <Button variant="secondary" size="sm" onClick={rerun} loading={running}>Re-run</Button>} />
   );
 
   if (runQ.error?.status === 402) {
     const g = gateFor(runQ.error);
     return (
-      <div><SubNav section="capital" />
-        <PageHeader title="Capital matches" subtitle={company.name} />
+      <div className="mx"><SubNav section="capital" />
+        <MatchHeader company={company} />
         <GateCard title="This run isn't available on your plan." body={g.message} code={nextPlan || 'capital-raising'} />
       </div>
     );
   }
   if (runQ.error && runQ.error.status !== 404) {
-    return <div><SubNav section="capital" />{header}<LoadError error={runQ.error} onRetry={runQ.reload} what="your matches" /></div>;
+    return <div className="mx"><SubNav section="capital" />{header}<LoadError error={runQ.error} onRetry={runQ.reload} what="your matches" /></div>;
   }
   if (scoping?.error) {
-    return <div><SubNav section="capital" />{header}<LoadError error={scoping.error} onRetry={() => { setScopeTry((n) => n + 1); setScoping(null); setParams((p) => { const q = new URLSearchParams(p); q.delete('run'); return q; }, { replace: true }); }} what="matches for these routes" /></div>;
+    return <div className="mx"><SubNav section="capital" />{header}<LoadError error={scoping.error} onRetry={() => { setScopeTry((n) => n + 1); setScoping(null); setParams((p) => { const q = new URLSearchParams(p); q.delete('run'); return q; }, { replace: true }); }} what="matches for these routes" /></div>;
   }
   if (!run && (runQ.loading || (routeView && !runId))) {
-    return <div><SubNav section="capital" />{header}<p className="ui-muted">Checking capital sources…</p><SkeletonCards count={5} height={150} /></div>;
+    return <div className="mx"><SubNav section="capital" />{header}<p className="ui-muted">Checking capital sources…</p><SkeletonCards count={5} height={150} /></div>;
   }
   if (!run) {
     return (
-      <div><SubNav section="capital" />{header}
+      <div className="mx"><SubNav section="capital" />{header}
         <EmptyState icon="search" title="You haven't run a match yet." body="We check every active capital source against your company and raise."
           action={<Button as={Link} to="/capital/find" variant="accent">Find capital sources</Button>} />
       </div>
@@ -317,14 +314,14 @@ export default function MatchesPage() {
   ].filter(Boolean);
 
   const card = (r) => (
-    <MatchCard key={r.record_id} r={r} runId={run.run_id} pipelineItem={pipeByRecord.get(r.record_id)} canTrack={canTrack} canDraft={canDraft}
+    <ResultCard key={r.record_id} r={r} runId={run.run_id} pipelineItem={pipeByRecord.get(r.record_id)} canTrack={canTrack} canDraft={canDraft}
       busy={busy[r.record_id]} onSave={(x) => track(x, 'shortlisted')} onTrack={(x) => track(x, 'researching')}
       feedback={fbByResult.get(r.match_result_id)} onFeedback={feedback} instrumentUnknown={!company.instrument}
       why={consent.granted && topIds.has(r.record_id) ? <WhyThisFits companyId={companyId} runId={run.run_id} match={r} consent={consent} compact /> : null} />
   );
 
   return (
-    <div className="matches">
+    <div className="matches mx">
       <SubNav section="capital" />
       {header}
 
@@ -349,18 +346,17 @@ export default function MatchesPage() {
         </Alert>
       )}
 
-      {/* I-07: investors first. One summary line; the statistics open on demand. */}
-      <div className="msummary">
-        <p>
-          <strong>{fmtInt(eligible)}</strong> pass your filters{isRouteScoped(run) ? ' on these routes' : ''}
-          {isRouteScoped(run) && <> · {fmtInt(run.counts.filtered_out_by_route)} on other routes</>}
-          {run.counts?.excluded != null && <> · {fmtInt(run.counts.excluded)} excluded by a hard filter</>}
-          {' · '}
-          <button type="button" className="msummary-toggle" aria-expanded={showStats} aria-controls="mstats" onClick={() => setShowStats((v) => !v)}>
-            {showStats ? 'Hide why' : 'Why, and how to open more'}<Icon name="chevronDown" />
-          </button>
-        </p>
-      </div>
+      {/* I-07: investors first. The evidence ladder is the summary; the statistics open on demand. */}
+      {eligible > 0 && (
+        <EvidenceLadder counts={{ eligible: bucketCount('eligible'), possible: bucketCount('possible'), likely_outside: bucketCount('likely_outside') }}
+          value={bucketFilter} onChange={(v) => setParam('evidence', v)} scopeNote={isRouteScoped(run) ? 'on these routes' : 'pass your filters'} />
+      )}
+      <p className="mx-why-line">
+        {run.counts?.excluded != null && <>{fmtInt(run.counts.excluded)} more were excluded by a hard filter{isRouteScoped(run) ? <>, and {fmtInt(run.counts.filtered_out_by_route)} sit on other routes</> : ''}. </>}
+        <button type="button" className="mx-why-toggle" aria-expanded={showStats} aria-controls="mstats" onClick={() => setShowStats((v) => !v)}>
+          {showStats ? 'Hide why' : 'See why, and how to open more'}<Icon name="chevronDown" />
+        </button>
+      </p>
       {showStats && (
         <div className="matches-top" id="mstats">
           {unlocksQ.data ? <ImprovePanel unlocks={unlocksQ.data} /> : null}
@@ -375,13 +371,7 @@ export default function MatchesPage() {
       ) : (
         <>
           <div className="mtoolbar">
-            <div className="mchips" role="group" aria-label="Evidence tier">
-              {[{ key: '', label: 'All tiers', n: bucketCount('eligible') + bucketCount('possible') + bucketCount('likely_outside') }, ...BUCKETS.map((b) => ({ key: b.key, label: b.key === 'possible' ? 'Possible' : b.key === 'likely_outside' ? 'Likely outside mandate' : b.label, n: bucketCount(b.key) }))].map((c) => (
-                <button key={c.key || 'all'} type="button" className={`mchip mchip-${c.key || 'all'}${bucketFilter === c.key ? ' is-on' : ''}`} aria-pressed={bucketFilter === c.key} onClick={() => setParam('evidence', c.key)}>
-                  {c.key && <span className="mchip-dot" aria-hidden="true" />}{c.label}<span className="mchip-n">{fmtInt(c.n)}</span>
-                </button>
-              ))}
-            </div>
+            <p className="mx-order">Verified fits first, then possible, then likely outside. A higher score in a later group rests on facts we can't confirm yet.</p>
             <div className="mtool-right">
             <button type="button" className={`mfilter-btn${showFilters ? ' is-on' : ''}${activeFilters.length ? ' has-active' : ''}`} aria-expanded={showFilters} aria-controls="mfilters" onClick={() => setShowFilters((v) => !v)}>
               <Icon name="settings" />Filters{activeFilters.length ? ` (${activeFilters.length})` : ''}
@@ -410,13 +400,7 @@ export default function MatchesPage() {
           {view === 'cards' && !consent.loading && !consent.granted && !aiDeclined && (
             <AiConsentCard consent={consent} compact onDecline={() => setAiDeclined(true)} />
           )}
-          <p className="tier-order">Grouped by evidence: verified fits first, then possible, then likely outside. A higher score in a later group rests on facts we can't confirm yet.</p>
           <ScoreExplainer />
-          <p className="bucket-summary">
-            <strong>{fmtInt(bucketCount('eligible'))} verified {bucketCount('eligible') === 1 ? 'fit' : 'fits'}</strong>
-            {' · '}{fmtInt(bucketCount('possible'))} possible{bucketCount('possible') > 0 ? ': our data on these investors is still being verified' : ''}
-            {bucketCount('likely_outside') > 0 ? ` · ${fmtInt(bucketCount('likely_outside'))} likely outside their mandate` : ''}
-          </p>
           {view === 'table' ? (
             <>
               <p className="ui-muted mt-note">Sorting applies inside each evidence tier, so a possible match never sits above a verified one. Hover or focus a fit mark to see its evidence.{!bucketFilter && byBucket.likely_outside.length > 0 ? ' Likely-outside results are hidden; pick that tier above to see them.' : ''}</p>
