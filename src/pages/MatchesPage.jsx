@@ -185,8 +185,7 @@ export default function MatchesPage() {
   const [excluded, setExcluded] = useState({ open: false, rows: null, error: null });
   const [compare, setCompare] = useState([]);
   const [showStats, setShowStats] = useState(false);
-  const [showFilters, setShowFilters] = useState(false);
-  const [aiDeclined, setAiDeclined] = useState(false);
+  const [panel, setPanel] = useState(null);
   const consent = useAiConsent(companyId);
   const [compareOpen, setCompareOpen] = useState(false);
   const view = params.get('view') === 'table' ? 'table' : 'cards';
@@ -339,7 +338,6 @@ export default function MatchesPage() {
       )}
 
       <MoreMatchesNote shown={run.results.length} eligible={eligible} ents={entitlements} tier={tier} />
-      <PlanLevels display={entitlementsRaw?.display} />
       {!trial && entitlements && runBelowPlan(run, entitlements.max_results) && (
         <Alert tone="info" action={<Button size="sm" variant="secondary" onClick={rerun} loading={running}>Re-run</Button>}>
           This run was made on a smaller plan and holds {fmtInt(run.results.length)} of {fmtInt(eligible)}. Your plan now includes more matches. Re-run to see them.
@@ -370,25 +368,47 @@ export default function MatchesPage() {
           action={<Button as={Link} to="/capital/improve" variant="primary">See what would change this</Button>} />
       ) : (
         <>
-          <div className="mtoolbar">
-            <p className="mx-order">Verified fits first, then possible, then likely outside. A higher score in a later group rests on facts we can't confirm yet.</p>
-            <div className="mtool-right">
-            <button type="button" className={`mfilter-btn${showFilters ? ' is-on' : ''}${activeFilters.length ? ' has-active' : ''}`} aria-expanded={showFilters} aria-controls="mfilters" onClick={() => setShowFilters((v) => !v)}>
-              <Icon name="settings" />Filters{activeFilters.length ? ` (${activeFilters.length})` : ''}
-            </button>
+          {/* Second pass (Bilal, 11 Oct): settings live in one slim bar; the first screen shows results. */}
+          <div className="mx-bar" role="toolbar" aria-label="Matches view">
+            <div className="mx-bar-l">
+              {[
+                { k: 'filters', icon: 'settings', label: `Filters${activeFilters.length ? ` (${activeFilters.length})` : ''}`, on: activeFilters.length > 0 },
+                { k: 'ai', icon: 'spark', label: consent.loading ? 'AI explanations' : consent.granted ? 'AI explanations on' : 'AI explanations off', on: consent.granted },
+                { k: 'about', icon: 'info', label: 'How to read this', on: false },
+              ].map((b) => (
+                <button key={b.k} type="button" className={`mx-bar-b${panel === b.k ? ' is-open' : ''}${b.on ? ' is-set' : ''}`} aria-expanded={panel === b.k} aria-controls="mx-panel" onClick={() => setPanel((v) => (v === b.k ? null : b.k))}>
+                  <Icon name={b.icon} />{b.label}
+                </button>
+              ))}
+            </div>
             <div className="mview" role="group" aria-label="Layout">
               <button type="button" aria-pressed={view === 'cards'} className={view === 'cards' ? 'is-on' : ''} onClick={() => setParam('view', '')}><Icon name="layers" />Cards</button>
               <button type="button" aria-pressed={view === 'table'} className={view === 'table' ? 'is-on' : ''} onClick={() => setParam('view', 'table')}><Icon name="menu" />Table</button>
             </div>
+          </div>
+          {panel && (
+            <div className="mx-panel" id="mx-panel">
+              {panel === 'filters' && (
+                <div className="mx-panel-filters" role="group" aria-label="Filter matches">
+                  <Select aria-label="Type" value={filters.type} onChange={(e) => setFilters({ ...filters, type: e.target.value })} placeholder="All types" options={types} />
+                  <Select aria-label="Confidence" value={filters.confidence} onChange={(e) => setFilters({ ...filters, confidence: e.target.value })} placeholder="Any confidence"
+                    options={[{ value: 'high', label: 'High confidence' }, { value: 'medium', label: 'Medium confidence' }, { value: 'low', label: 'Low confidence' }]} />
+                  <Select aria-label="Tier" value={filters.tier} onChange={(e) => setFilters({ ...filters, tier: e.target.value })} placeholder="All fit levels" options={TIERS.map((t) => ({ value: t.key, label: t.label }))} />
+                  <label className="check"><input type="checkbox" checked={filters.open} onChange={(e) => setFilters({ ...filters, open: e.target.checked })} /> Open now</label>
+                </div>
+              )}
+              {panel === 'ai' && (consent.granted
+                ? <p className="mx-panel-p">AI explanations are on for your top 3 matches. Open Evidence on a card to read them. You can withdraw in Settings.</p>
+                : <AiConsentCard consent={consent} compact onDecline={() => setPanel(null)} />)}
+              {panel === 'about' && (
+                <div className="mx-panel-about">
+                  <p className="mx-panel-p">Matches are grouped by evidence: verified fits first, then possible, then likely outside. A higher score in a later group rests on facts we can't confirm yet. Open Evidence on any card to see each fact and where it comes from.</p>
+                  <ScoreExplainer />
+                  <PlanLevels display={entitlementsRaw?.display} />
+                </div>
+              )}
             </div>
-          </div>
-          <div className={`mfilters${showFilters ? ' is-open' : ''}`} id="mfilters" role="group" aria-label="Filter matches">
-            <Select aria-label="Type" value={filters.type} onChange={(e) => setFilters({ ...filters, type: e.target.value })} placeholder="All types" options={types} />
-            <Select aria-label="Confidence" value={filters.confidence} onChange={(e) => setFilters({ ...filters, confidence: e.target.value })} placeholder="Any confidence"
-              options={[{ value: 'high', label: 'High confidence' }, { value: 'medium', label: 'Medium confidence' }, { value: 'low', label: 'Low confidence' }]} />
-            <Select aria-label="Tier" value={filters.tier} onChange={(e) => setFilters({ ...filters, tier: e.target.value })} placeholder="All fit levels" options={TIERS.map((t) => ({ value: t.key, label: t.label }))} />
-            <label className="check"><input type="checkbox" checked={filters.open} onChange={(e) => setFilters({ ...filters, open: e.target.checked })} /> Open now</label>
-          </div>
+          )}
           {activeFilters.length > 0 && (
             <div className="mactive" aria-label="Active filters">
               {activeFilters.map((f) => <Tag key={f.key} onRemove={f.clear}>{f.label}</Tag>)}
@@ -396,11 +416,6 @@ export default function MatchesPage() {
               <span className="ui-muted">{fmtInt(shown.length)} of {fmtInt(run.results.length)} shown</span>
             </div>
           )}
-
-          {view === 'cards' && !consent.loading && !consent.granted && !aiDeclined && (
-            <AiConsentCard consent={consent} compact onDecline={() => setAiDeclined(true)} />
-          )}
-          <ScoreExplainer />
           {view === 'table' ? (
             <>
               <p className="ui-muted mt-note">Sorting applies inside each evidence tier, so a possible match never sits above a verified one. Hover or focus a fit mark to see its evidence.{!bucketFilter && byBucket.likely_outside.length > 0 ? ' Likely-outside results are hidden; pick that tier above to see them.' : ''}</p>
@@ -411,8 +426,8 @@ export default function MatchesPage() {
           <>
           {(!bucketFilter || bucketFilter === 'eligible') && <section className="tier" aria-labelledby="b-eligible">
             <h2 id="b-eligible" className="tier-h tier-h-strong">Verified fit <span>({byBucket.eligible.length}{bucketCount('eligible') > byBucket.eligible.length ? ` shown of ${fmtInt(bucketCount('eligible'))}` : ''})</span></h2>
-            <p className="ui-muted">Every decisive fact (stage, sector, geography, ticket) is on record and nothing on record rules them out. Check each fact's evidence label: some are AI-inferred, not verified.</p>
-            {byBucket.eligible.length ? byBucket.eligible.map(card) : (
+            <p className="mx-tier-line">Stage, sector, geography and ticket are on record, and nothing rules them out. Some facts may be AI-inferred: open Evidence to check.</p>
+            {byBucket.eligible.length ? <div className="mx-grid">{byBucket.eligible.map(card)}</div> : (
               bucketCount('eligible') > 0 ? (
                 <p className="tier-empty">{fmtInt(bucketCount('eligible'))} verified {bucketCount('eligible') === 1 ? 'fit is' : 'fits are'} outside the top {run.results.length} your plan shows.{nextPlan ? <> <Link to={upgradeHref(nextPlan)}>See more with {packageName(nextPlan)}</Link>.</> : ''}</p>
               ) : (
@@ -422,13 +437,13 @@ export default function MatchesPage() {
           </section>}
           {(!bucketFilter || bucketFilter === 'possible') && <section className="tier" aria-labelledby="b-possible">
             <h2 id="b-possible" className="tier-h">Possible: insufficient evidence <span>({byBucket.possible.length}{bucketCount('possible') > byBucket.possible.length ? ` shown of ${fmtInt(bucketCount('possible'))}` : ''})</span></h2>
-            <p className="ui-muted">Nothing on record rules them out, but at least one decisive fact is unknown. Unknown never counts as a fit, and it lowers the score.</p>
+            <p className="mx-tier-line">Nothing rules them out, but at least one decisive fact is unknown. Unknown never counts as a fit.</p>
             {byBucket.possible.length > 12 && !showLeads ? (
               <>
-                {byBucket.possible.slice(0, 12).map(card)}
-                <Button variant="secondary" size="sm" onClick={() => setShowLeads(true)}>Show all {fmtInt(byBucket.possible.length)} possible</Button>
+                <div className="mx-grid">{byBucket.possible.slice(0, 12).map(card)}</div>
+                <Button variant="secondary" size="sm" className="mx-more-btn" onClick={() => setShowLeads(true)}>Show all {fmtInt(byBucket.possible.length)} possible</Button>
               </>
-            ) : byBucket.possible.map(card)}
+            ) : <div className="mx-grid">{byBucket.possible.map(card)}</div>}
           </section>}
           {(!bucketFilter || bucketFilter === 'likely_outside') && <section className="tier tier-outside" aria-labelledby="b-outside">
             <h2 id="b-outside" className="tier-h">
@@ -436,8 +451,8 @@ export default function MatchesPage() {
                 Likely outside their mandate <span>({byBucket.likely_outside.length}{bucketCount('likely_outside') > byBucket.likely_outside.length ? ` shown of ${fmtInt(bucketCount('likely_outside'))}` : ''})</span> <span aria-hidden="true">{outsideOpen ? '▾' : '▸'}</span>
               </button>
             </h2>
-            <p className="ui-muted">Their own published criteria suggest they don't back companies like yours. This isn't verified, so we show the reason rather than hide them.</p>
-            {outsideOpen && byBucket.likely_outside.map(card)}
+            <p className="mx-tier-line">Their own published criteria suggest they don't back companies like yours. Not verified, so we show the reason instead of hiding them.</p>
+            {outsideOpen && byBucket.likely_outside.length > 0 && <div className="mx-grid">{byBucket.likely_outside.map(card)}</div>}
             {outsideOpen && !byBucket.likely_outside.length && bucketCount('likely_outside') > 0 && (
               <p className="tier-empty">None of the {fmtInt(bucketCount('likely_outside'))} are among the {fmtInt(run.results.length)} results this run kept; stronger fits fill those places first.</p>
             )}
