@@ -122,7 +122,7 @@ export default function CompanyRecordPage() {
             </div>
           )}
           <div className="ui-row"><Button as={Link} to="/capital/data-room" variant="secondary">Open the data room</Button><Button as={Link} to="/company" variant="ghost">Open your profile</Button></div>
-          <UpgradeLine note={d.locked?.note || 'Company Intelligence lists every missing and expiring item, with expiry alerts.'} />
+          <UpgradeLine note={d.locked?.note || 'Capital Intelligence lists every missing and expiring item, with expiry alerts.'} />
         </section>
       )}
 

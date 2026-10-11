@@ -45,7 +45,7 @@ export default function CompanyIntelligencePage() {
             <>
               <AttentionList items={attnQ.data.items} />
               {/* One plan line per card: when an item already carries its own, the card does not repeat it. */}
-              {attnQ.data.scope === 'limited' && !(attnQ.data.items || []).some((a) => a.locked) && <UpgradeLine note="Your plan shows check-in and Financial Health items. Company Intelligence adds documents, readiness, deadlines and your pipeline." />}
+              {attnQ.data.scope === 'limited' && !(attnQ.data.items || []).some((a) => a.locked) && <UpgradeLine note="Your plan shows check-in and Financial Health items. Capital Intelligence adds documents, readiness, deadlines and your pipeline." />}
             </>
           )}
         </section>
@@ -94,7 +94,7 @@ function Timing({ q, company }) {
           <div><dt>Target date</dt><dd>{target ? fmtDate(target) : 'Not set'}{passed && <> <Badge tone="bad" size="sm">Passed</Badge></>}</dd></div>
         </dl>
         {!target && <Button as={Link} to="/capital/need#target-date" variant="secondary" size="sm">Set a target date</Button>}
-        <Locked e={q.error} note="Company Intelligence works out when to start raising from your route's usual length and, if you are burning cash, your runway." />
+        <Locked e={q.error} note="Capital Intelligence works out when to start raising from your route's usual length and, if you are burning cash, your runway." />
       </div>
     );
   }
@@ -153,7 +153,7 @@ function Reassessment({ q, readiness }) {
         {readiness?.score != null
           ? <p>Your score <strong>{Math.round(Number(readiness.score))}</strong> · {bandLabel(readiness)} <Link to="/capital/readiness">See what drives it</Link></p>
           : <p className="ui-muted">No Capital Readiness score yet. <Link to="/capital/readiness/assess">Take the assessment</Link></p>}
-        <Locked e={q.error} note="Company Intelligence checks your latest figures against your answers and tells you when a re-take is worth it." />
+        <Locked e={q.error} note="Capital Intelligence checks your latest figures against your answers and tells you when a re-take is worth it." />
       </>
     );
   }

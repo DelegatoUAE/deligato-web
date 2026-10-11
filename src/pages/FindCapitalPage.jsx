@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Alert, Badge, Button, Card, PageHeader, ProgressSteps, SkeletonCards, useToast } from '../design/ui';
 import SubNav from '../components/SubNav';
 import { useCompany } from '../components/company-context';
-import { LoadError, MatchingUpgrade } from '../components/capital/bits';
+import { GateCard, LoadError } from '../components/capital/bits';
 import { hasMatching } from '../lib/plan';
 import useApi from '../lib/useApi';
 import { getRouting, normaliseRoute, selectRoutes, ROUTE_FIT } from '../lib/routing';
@@ -96,8 +96,8 @@ function RouteCard({ r, coverage, country, onSee, seeing, start = false }) {
 
 /** 16 · Find Capital: which kinds of capital fit, then the providers inside them. */
 export default function FindCapitalPage() {
-  const { company, companyId, readiness, capitalNeedConfirmed, run, reloadRun, entitlements, entitlementsKnown, pipeline } = useCompany();
-  // D68: Free sees its capital routes (types of capital, no provider names); matching is in Capital Raising.
+  const { company, companyId, readiness, capitalNeedConfirmed, run, reloadRun, entitlements, entitlementsKnown } = useCompany();
+  // D73: every plan has ranked matches; only a pre-D73 view with no matches (max_results 0) reads as none.
   const noMatching = entitlementsKnown && !hasMatching(entitlements);
   const onSee = noMatching ? null : (k) => see(k);
   const navigate = useNavigate();
@@ -126,7 +126,7 @@ export default function FindCapitalPage() {
     { label: 'Readiness', description: r ? readinessSource(readiness).label : 'Optional', status: r ? 'done' : 'upcoming', href: '/capital/readiness' },
     { label: 'Your raise', description: capitalNeedConfirmed ? 'Confirmed' : 'To confirm', status: capitalNeedConfirmed ? 'done' : 'current', href: '/capital/need' },
     { label: 'Capital routes', description: 'This page', status: capitalNeedConfirmed ? 'current' : 'upcoming' },
-    { label: 'Your matches', description: noMatching ? 'In Capital Raising' : run ? 'Ready' : 'Next', status: run && !noMatching ? 'done' : 'upcoming', href: run && !noMatching ? '/capital/matches' : undefined },
+    { label: 'Your matches', description: noMatching ? 'Not on your plan' : run ? 'Ready' : 'Next', status: run && !noMatching ? 'done' : 'upcoming', href: run && !noMatching ? '/capital/matches' : undefined },
   ];
 
   // The founder's own date, as stored (D46). Passed = before today: the same
@@ -188,7 +188,7 @@ export default function FindCapitalPage() {
             </Card>
           )}
           <div className="find-cta">
-            {noMatching ? <MatchingUpgrade savedCount={(pipeline || []).length} showRoutes={false} companyId={companyId} /> : (
+            {noMatching ? <GateCard title="Ranked matches aren't on this plan." body="Every current plan includes ranked matches. Open Plans to move to one." code="capital-intelligence" /> : (
               <>
                 <Button variant="accent" size="lg" disabled={!filterRoutes.length} onClick={() => see('fits')} loading={seeing === 'fits'}>Find providers in every route that fits</Button>
                 {!filterRoutes.length && <p className="ui-muted">{q.data.capital_filter?.note}</p>}

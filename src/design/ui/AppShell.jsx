@@ -3,6 +3,7 @@ import cx from './cx.js';
 import Icon from './Icon.jsx';
 import Avatar from './Avatar.jsx';
 import Button from './Button.jsx';
+import { PRODUCT_SUB_LABEL } from '../../lib/brand.js';
 
 /**
  * AppShell: navy sidebar + sticky top bar + content column.
@@ -20,7 +21,7 @@ export default function AppShell({
   nav = [],
   LinkComponent = 'a',
   brand,
-  productName = 'Capital Intelligence',
+  productName = PRODUCT_SUB_LABEL,
   wordmark = 'Deligato',
   user,
   footer,

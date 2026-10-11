@@ -12,9 +12,9 @@ import { rankActions, partOfDay, pipelineCounts } from '../../lib/home';
 import { bandLabel, readinessSource, readinessGaps } from '../../lib/readiness';
 import NextActions from '../capital/NextActions';
 import MatchRow from '../capital/MatchRow';
-import { FundraisingNotice, GateCard, LoadError, MatchPreview } from '../capital/bits';
+import { FundraisingNotice, GateCard, LoadError, MoreMatchesNote } from '../capital/bits';
 import { logEvent } from '../../lib/events';
-import { hasMatching, includedIn, MATCHING_UPGRADE, upgradeHref } from '../../lib/plan';
+import { hasMatching, upgradeHref } from '../../lib/plan';
 
 const ACTIVE = ['researching', 'intro_requested', 'contacted', 'in_conversation', 'diligence', 'term_sheet'];
 const TIMING = { now: 'Raising now', '0_3m': 'In 0–3 months', '3_6m': 'In 3–6 months', '6_12m': 'In 6–12 months', exploring: 'Exploring' };
@@ -67,8 +67,8 @@ export function Waiting({ staff, name }) {
  */
 export default function ClassicHome() {
   const { me, staff, company, companyId, companiesLoading, readiness, readinessLoading, readinessError, reloadReadiness,
-    run, runLoading, capitalNeedConfirmed, pipeline, pipelineError, reloadPipeline, entitlements, entitlementsKnown } = useCompany();
-  // D68: Free has no investor matching (Capital Raising); its routes stay free.
+    run, runLoading, capitalNeedConfirmed, pipeline, pipelineError, reloadPipeline, entitlements, entitlementsKnown, entitlementsRaw } = useCompany();
+  // D73: every plan has ranked matches (Free 5); only a pre-D73 view with max_results 0 reads as none.
   const noMatching = entitlementsKnown && !hasMatching(entitlements);
   const unlocksQ = useApi(() => (companyId && run ? getUnlocks(companyId) : null), [companyId, run?.run_id]);
   const deltaQ = useApi(() => (companyId && run ? strongDelta(companyId, run) : null), [companyId, run?.run_id]);
@@ -151,11 +151,11 @@ export default function ClassicHome() {
         <StatTile as={Link} to="/capital/need" label="Current raise" value={company.raise_usd != null ? fmtUsd(company.raise_usd) : 'Not set'}
           foot={[company.instrument, TIMING[company.raise_timing] || (capitalNeedConfirmed ? 'timing not set' : 'Confirm your raise')].filter(Boolean).join(' · ')} />
         {noMatching ? (
-          <StatTile as={Link} to={upgradeHref('capital-raising')} label="Investor matches" value="Capital Raising" foot="Matching is part of Capital Raising" />
+          <StatTile as={Link} to={upgradeHref('capital-intelligence')} label="Investor matches" value="Not on this plan" foot="Every current plan includes ranked matches" />
         ) : <StatTile as={Link} to={run ? '/capital/matches?evidence=eligible' : '/capital/find'} label="Verified fits" loading={runLoading}
           value={run ? fmtInt(bucket('eligible')) : 'Not yet'} foot={!run ? 'Appears after your first match' : `${deltaQ.data?.n ? `+${deltaQ.data.n} since ${deltaQ.data.since} · ` : ''}${fmtInt(bucket('possible'))} possible · ${fmtInt(bucket('likely_outside'))} likely outside`} />}
         {pipelineGated ? (
-          <StatTile as={Link} to={upgradeHref()} label="In pipeline" value="Locked" foot={includedIn()} />
+          <StatTile as={Link} to={upgradeHref('capital-intelligence')} label="In pipeline" value="Locked" foot="Not on your plan" />
         ) : pipelineError ? (
           <div className="ui-stat"><div className="ui-stat-label">In pipeline</div><div className="ui-stat-value ui-stat-value-text">Couldn't load</div><Button variant="link" size="sm" onClick={reloadPipeline}>Retry</Button></div>
         ) : (
@@ -189,13 +189,14 @@ export default function ClassicHome() {
         </Card>
 
         <Card title="Top matches" action={run && !noMatching && <Button as={Link} to="/capital/matches" variant="link" size="sm">See all matches</Button>}>
-          {noMatching ? <><MatchPreview companyId={companyId} compact /><GateCard compact title={MATCHING_UPGRADE.title} body="Your plan shows the capital routes that fit, without naming providers." cta={MATCHING_UPGRADE.cta} /></> : runLoading ? <Skeleton h="140px" /> : !run ? (
+          {noMatching ? <GateCard compact title="Ranked matches aren't on this plan." body="Every current plan includes ranked matches." code="capital-intelligence" /> : runLoading ? <Skeleton h="140px" /> : !run ? (
             <p className="ui-muted">Your matches will appear here. <Link to="/capital/find">Find capital</Link></p>
-          ) : <ul className="mrows">{run.results.slice(0, 3).map((x) => <MatchRow key={x.record_id} r={x} runId={run.run_id} />)}</ul>}
+          ) : <><ul className="mrows">{run.results.slice(0, 3).map((x) => <MatchRow key={x.record_id} r={x} runId={run.run_id} />)}</ul>
+            <MoreMatchesNote compact shown={run.results.length} eligible={run.counts?.eligible} ents={entitlements} tier={entitlementsRaw?.ladder_tier} /></>}
         </Card>
 
         <Card title="Pipeline" action={pipeline?.length ? <Button as={Link} to="/capital/pipeline" variant="link" size="sm">Open pipeline</Button> : null}>
-          {pipelineGated ? <GateCard compact title="Track your raise in one place." body={`${includedIn()}.`} /> :
+          {pipelineGated ? <GateCard compact title="Track your raise in one place." body="Included in Capital Intelligence and Capital Raising." code="capital-intelligence" /> :
             pipelineError ? <LoadError error={pipelineError} onRetry={reloadPipeline} what="your pipeline" /> :
               !pipeline ? <Skeleton h="60px" /> : !active.length ? <p className="ui-muted">Starts when you save a match and move it into your pipeline.</p> : (
                 <p className="pipe-line">{ACTIVE.map((s) => ({ s, n: active.filter((p) => p.stage === s).length })).filter((x) => x.n).map((x) => `${stageLabel(x.s)} ${x.n}`).join(' · ')}</p>

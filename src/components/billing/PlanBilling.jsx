@@ -4,19 +4,23 @@ import { Alert, Badge, Button, Card, ConfirmDialog, Skeleton, Table, useToast } 
 import useApi from '../../lib/useApi';
 import { getPlans, getSubscription, cancelPlan, refundCheckout } from '../../lib/billing';
 import { setPocPlan, getCatalog } from '../../lib/packages';
-import { tierLabel, displayValue } from '../../lib/plan';
-import { billingErrorCopy, bridgeExpiry, checkoutStatusLabel, LIMIT_ROWS, limitLabel, money, planForTier, priceLine, productName, refundable, creditUsedBy } from '../../lib/pricing';
+import { tierLabel, displayValue, planIdForTier, planLimitRows } from '../../lib/plan';
+import { billingErrorCopy, bridgeExpiry, checkoutStatusLabel, money, planForTier, priceLine, productName, refundable, creditUsedBy } from '../../lib/pricing';
 import { fmtDate, humanise } from '../../lib/format';
+import PlanBenefits from './PlanBenefits';
 import './billing.css';
 
-const PLAN_ROWS = ['financial_health_history', 'company_intel_live', 'checkin', 'capital_timing', 'record_full', 'next_best_actions', 'notifications',
-  'max_results', 'investor_profile_depth', 'match_refresh', 'pipeline_items', 'crm', 'outreach_drafts_per_month', 'export', 'data_room'];
+// D73 keys first (the API's display words); hidden fair-use limits (run limit, AI calls, egress) never appear.
+const PLAN_ROWS = ['max_results', 'match_explanation_level', 'investor_profile_depth', 'shortlist_limit', 'active_pipeline_limit', 'pipeline_level',
+  'outreach_level', 'outreach_drafts_per_month', 'ai_level', 'data_room', 'capital_readiness_included', 'advisory_minutes_per_year',
+  'financial_health_history', 'company_intel_live', 'checkin', 'capital_timing', 'record_full', 'next_best_actions', 'notifications', 'match_refresh', 'export'];
 const POLLS = 10;
 
 /**
- * Settings → Plan and billing (D60/D61): the current plan and its limits, the Company
- * Intelligence bridge, the founding price lock, the Raise Pass, recent checkouts, the
- * step-down after a raise and refunds inside the window. Also the checkout return screens
+ * Settings → Plan and billing (D60/D61, D73/D74 RC3 phase 3): the current plan and its limits, the
+ * benefits that depend on paid time (the included Capital Readiness Report, expert time and its booking),
+ * the $54/$99 Company Intelligence live-layer bridge, the Raise Pass, recent checkouts, the step-down to
+ * Capital Intelligence after a raise and refunds inside the window. Also the checkout return screens
  * (?checkout=success | cancelled): success is shown only once the API says the payment completed.
  */
 export default function PlanBilling({ companyId, entitlementsRaw, reloadEntitlements }) {
@@ -29,7 +33,7 @@ export default function PlanBilling({ companyId, entitlementsRaw, reloadEntitlem
   const reloadSub = subQ.reload;
   const [polls, setPolls] = useState(0);
   const [confirm, setConfirm] = useState(null); // { kind: 'cancel' | 'refund', checkout? }
-  const [stepTo, setStepTo] = useState('company-intelligence');
+  const [stepTo, setStepTo] = useState('capital-intelligence');
   const [busy, setBusy] = useState(false);
 
   const sub = subQ.data;
@@ -77,7 +81,6 @@ export default function PlanBilling({ companyId, entitlementsRaw, reloadEntitlem
   const sources = sub?.plan?.sources || entitlementsRaw?.sources || [];
   const scheduled = sub?.plan?.scheduled || entitlementsRaw?.scheduled || [];
   const bridge = bridgeExpiry(sources);
-  const tierPlan = planForTier(plansQ.data, tier);
   const s = sub?.subscription || null;
   const lock = sub?.price_lock && sub.price_lock.active ? sub.price_lock : null;
   const paymentsOn = Boolean(sub?.payments?.enabled);
@@ -104,16 +107,16 @@ export default function PlanBilling({ companyId, entitlementsRaw, reloadEntitlem
       )}
 
       <Card title="Your plan" action={<Badge tone="brand">{tierLabel(tier) || 'Free'}</Badge>}>
-        <p className="ui-muted">Free → Company Intelligence → Capital Raising. Capital Raising includes everything in Company Intelligence.</p>
+        <p className="ui-muted">Free → Capital Intelligence → Capital Raising. Capital Raising includes everything in Capital Intelligence.</p>
         {bridge && tier === 'company_intelligence' && !s && (
-          <p className="bill-note"><strong>Company Intelligence included until {fmtDate(bridge)}</strong> with your Capital Readiness report. Your report stays yours after that.</p>
+          <p className="bill-note"><strong>The Company Intelligence live layer is included until {fmtDate(bridge)}</strong> with your Capital Readiness report. Your report stays yours after that.</p>
         )}
         {scheduled.map((x) => (
           <p key={x.package_id + x.starts_at} className="bill-note">{name(x.package_id)} starts on {fmtDate(x.starts_at)}.</p>
         ))}
-        {tierPlan?.limits && (
+        {entitlementsRaw && (
           <dl className="bill-limits">
-            {LIMIT_ROWS.filter(([k]) => k in tierPlan.limits).map(([k, label]) => <div key={k}><dt>{label}</dt><dd>{limitLabel(tierPlan.limits[k])}</dd></div>)}
+            {planLimitRows(entitlementsRaw, plansQ.data?.d73_platform?.pending?.[planIdForTier(tier)]).map((r) => <div key={r.key}><dt>{r.label}</dt><dd>{r.value}</dd></div>)}
           </dl>
         )}
         {Object.keys(display).length > 0 ? (
@@ -143,6 +146,8 @@ export default function PlanBilling({ companyId, entitlementsRaw, reloadEntitlem
             <Alert tone="info">Billing records aren&apos;t switched on in this environment yet. Nothing has been charged.</Alert>
           )}
 
+          <PlanBenefits benefits={sub.benefits} companyId={companyId} onBooked={reloadSub} />
+
           {s && (
             <Card title="Subscription" action={<Badge tone={s.status === 'active' ? 'ok' : 'warn'}>{s.status === 'cancel_at_period_end' || s.step_down_to ? 'Change scheduled' : humanise(s.status)}</Badge>}>
               <dl className="facts">
@@ -154,7 +159,7 @@ export default function PlanBilling({ companyId, entitlementsRaw, reloadEntitlem
               {lock && <p className="bill-note"><Badge tone="gold" size="sm">Founding price</Badge> Locked until {fmtDate(lock.until)}.</p>}
               {!s.step_down_to && s.status === 'active' && (
                 <div className="ui-row">
-                  <Button variant="secondary" onClick={() => { setStepTo('company-intelligence'); setConfirm({ kind: 'cancel' }); }}>
+                  <Button variant="secondary" onClick={() => { setStepTo('capital-intelligence'); setConfirm({ kind: 'cancel' }); }}>
                     {s.product_id === 'capital-raising' ? 'End my raise' : 'Cancel subscription'}
                   </Button>
                 </div>
@@ -172,7 +177,7 @@ export default function PlanBilling({ companyId, entitlementsRaw, reloadEntitlem
             <Card title="Raise Pass">
               <p>Your Raise Pass runs until <strong>{fmtDate(sub.raise_pass.ends_at)}</strong> and ends on its own. There is no renewal.</p>
               {lock && <p className="bill-note"><Badge tone="gold" size="sm">Founding price</Badge> Locked until {fmtDate(lock.until)}.</p>}
-              <p className="ui-muted">To keep Company Intelligence after the pass, choose it on the plans page; it starts when the pass ends.</p>
+              <p className="ui-muted">To keep Capital Intelligence after the pass, choose it on the plans page; it starts when the pass ends.</p>
             </Card>
           )}
 
@@ -207,13 +212,13 @@ export default function PlanBilling({ companyId, entitlementsRaw, reloadEntitlem
 
       <ConfirmDialog open={confirm?.kind === 'cancel'} tone="primary" busy={busy} onCancel={() => setConfirm(null)} onConfirm={doCancel}
         title={s?.product_id === 'capital-raising' ? 'End your raise?' : 'Cancel your subscription?'}
-        confirmLabel={s?.product_id === 'capital-raising' ? `Step down to ${stepTo === 'free' ? 'Free' : 'Company Intelligence'}` : 'Cancel at period end'}
+        confirmLabel={s?.product_id === 'capital-raising' ? `Step down to ${stepTo === 'free' ? 'Free' : 'Capital Intelligence'}` : 'Cancel at period end'}
         body={s ? (
           <span className="bill-confirm">
             <span>{name(s.product_id)} stays on until {fmtDate(s.current_period_end) || 'the end of this period'}. Nothing is deleted.</span>
             {s.product_id === 'capital-raising' && (
               <span className="bill-step" role="radiogroup" aria-label="Then">
-                <label><input type="radio" name="stepdown" checked={stepTo === 'company-intelligence'} onChange={() => setStepTo('company-intelligence')} /> Then Company Intelligence{tierCi(plansQ.data)}</label>
+                <label><input type="radio" name="stepdown" checked={stepTo === 'capital-intelligence'} onChange={() => setStepTo('capital-intelligence')} /> Then Capital Intelligence{tierCi(plansQ.data)}</label>
                 <label><input type="radio" name="stepdown" checked={stepTo === 'free'} onChange={() => setStepTo('free')} /> Then Free</label>
               </span>
             )}
@@ -226,7 +231,7 @@ export default function PlanBilling({ companyId, entitlementsRaw, reloadEntitlem
   );
 }
 
-const tierCi = (data) => { const ci = planForTier(data, 'company_intelligence'); return ci?.prices?.[0] ? ` (${priceLine(ci.prices[0])})` : ''; };
+const tierCi = (data) => { const ci = planForTier(data, 'capital_intelligence'); return ci?.prices?.[0] ? ` (${priceLine(ci.prices[0])})` : ''; };
 
 /** The packages POC switch, unchanged: development only, refused by the server unless its flag is on. */
 function PocSwitch({ companyId, entitlementsRaw, reloadEntitlements }) {
@@ -248,7 +253,7 @@ function PocSwitchInner({ companyId, entitlementsRaw, reloadEntitlements }) {
   return (
     <Card title="Test plan switch (development only)" subtitle="No payment is taken. The server refuses this unless its POC flag is on.">
       <div className="ui-row">
-        {[['trial', 'Free'], ['concierge', 'Capital Raising']].map(([p, l]) => <label key={p} className="check"><input type="radio" name="poc" checked={choice === p} onChange={() => setChoice(p)} /> {l}</label>)}
+        {[['trial', 'Free'], ['intelligence', 'Capital Intelligence'], ['concierge', 'Capital Raising']].map(([p, l]) => <label key={p} className="check"><input type="radio" name="poc" checked={choice === p} onChange={() => setChoice(p)} /> {l}</label>)}
         <Button variant="primary" size="sm" onClick={apply} loading={busy}>Apply</Button>
       </div>
     </Card>

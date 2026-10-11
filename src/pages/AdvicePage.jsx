@@ -3,7 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Alert, Button, Card, EmptyState, Modal, PageHeader, SkeletonCards, useToast } from '../design/ui';
 import SubNav from '../components/SubNav';
 import { useCompany } from '../components/company-context';
-import { GateCard, LoadError, MatchingUpgrade } from '../components/capital/bits';
+import { GateCard, LoadError } from '../components/capital/bits';
+import { gateFor, upgradeTarget } from '../lib/plan';
 import useApi from '../lib/useApi';
 import { getUnlocks, runMatch, investorHref, filterLabel } from '../lib/capital';
 import { getAdvice } from '../lib/advice';
@@ -49,8 +50,8 @@ export default function AdvicePage() {
   }
 
   const head = <><SubNav section="capital" /><PageHeader title="Improve your matches" subtitle={`What would open more, or better, investors for ${company.name}. Based on today's database.`} /></>;
-  // D68: "what would open more investors" is part of matching (Capital Raising).
-  if (uq.error?.status === 402) return <div>{head}<MatchingUpgrade /></div>;
+  // D73: every plan has matching; a 402 here is the plan's own limit, said in the API's words.
+  if (uq.error?.status === 402) return <div>{head}<GateCard title="Not available on your plan." body={gateFor(uq.error).message} code={upgradeTarget(uq.error)} /></div>;
   if (uq.error && uq.error.status !== 503) return <div>{head}<LoadError error={uq.error} onRetry={uq.reload} what="your options" /></div>;
   if (!uq.data && !uq.error) return <div>{head}<SkeletonCards count={4} height={90} /></div>;
 
@@ -109,7 +110,7 @@ export default function AdvicePage() {
               })}
             </ul>
           ) : <p className="ui-muted">Nothing to change right now. No option opens meaningfully more investors.</p>}
-          {hidden > 0 && <GateCard compact title={`${hidden} more options are included in Capital Raising.`} />}
+          {hidden > 0 && <GateCard compact title={`${hidden} more options are shown on Capital Intelligence and Capital Raising.`} code="capital-intelligence" />}
         </Card>
       )}
 
@@ -161,7 +162,7 @@ export default function AdvicePage() {
       {!uq.data?.unlocks?.length && !resolvable.length && !dom && uq.data && (
         <EmptyState icon="check" title="Nothing to change right now." body="No option opens meaningfully more investors, and your profile has no blanks." />
       )}
-      <p className="ui-muted">Not sure where to start? <Link to="/experts#assessment">Get Capital Readiness + Advisor</Link>: your readiness report plus one 40-minute advisor session. Every company can also request one free 20-minute consultant session.</p>
+      {!entitlements?.capital_readiness_included && <p className="ui-muted">Not sure where to start? <Link to="/experts#assessment">Get Capital Readiness + Advisor</Link>: your readiness report plus one 40-minute advisor session.</p>}
 
       <Modal open={Boolean(preview)} onClose={() => setPreview(null)} title={preview?.label} description="What changes if you apply this to your capital need and re-run."
         footer={<><Button variant="ghost" onClick={() => setPreview(null)}>Cancel</Button><Button variant="primary" loading={applying} onClick={() => apply(preview)}>Apply to my capital need and re-run</Button></>}>

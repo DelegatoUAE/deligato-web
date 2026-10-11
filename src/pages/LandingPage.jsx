@@ -1,17 +1,17 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { loadPublicStats } from '../lib/publicStats';
+import { PRODUCT_SUB_LABEL, BRAND_TITLE } from '../lib/brand';
 import { Button, Icon } from '../design/ui';
 import './landing.css';
 
-// Public marketing page for signed-out visitors at "/" (Capital Intelligence positioning, 5 Oct 2026).
+// Public marketing page for signed-out visitors at "/" (5 Oct 2026). D73/OD-15: no live provider-count
+// tiles (no fixed database-size marketing); the product sub-label is lib/brand PRODUCT_SUB_LABEL (D74 (2)).
 // Copy rules (BUILD/product/positioning.md): no outcome promises, no broker language, no banned
 // strings (§3), no invented logos, testimonials or numbers. Every product panel on this page is a
 // labelled sample built from the product's own components and vocabulary, never real customer data.
 // Only live capabilities are described. Nothing about future lending or provider routing.
 
-const TITLE = 'Deligato · Capital Intelligence for founders and growing companies';
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const TITLE = BRAND_TITLE;
 
 const JOURNEY = [
   { id: 'understand', n: '01', label: 'Understand your company' },
@@ -34,9 +34,9 @@ const ROUTES = [
 
 function Wordmark({ onDark = true }) {
   return (
-    <Link to="/" className={`lp-wordmark${onDark ? '' : ' lp-wordmark-ink'}`} aria-label="Deligato, Capital Intelligence: home">
+    <Link to="/" className={`lp-wordmark${onDark ? '' : ' lp-wordmark-ink'}`} aria-label={`Deligato, ${PRODUCT_SUB_LABEL}: home`}>
       <span className="lp-wordmark-name">Deligato</span>
-      <span className="lp-wordmark-sub">Capital Intelligence</span>
+      <span className="lp-wordmark-sub">{PRODUCT_SUB_LABEL}</span>
     </Link>
   );
 }
@@ -244,13 +244,7 @@ const FAQ = [
 
 export default function LandingPage() {
   const [menuOpen, setMenuOpen] = useState(false);
-  const [stats, setStats] = useState(null);
   useEffect(() => { document.title = TITLE; }, []);
-  useEffect(() => {
-    let live = true;
-    loadPublicStats(API_URL).then((x) => { if (live) setStats(x); });
-    return () => { live = false; };
-  }, []);
   useEffect(() => {
     if (!menuOpen) return undefined;
     const onKey = (e) => { if (e.key === 'Escape') setMenuOpen(false); };
@@ -258,7 +252,6 @@ export default function LandingPage() {
     return () => window.removeEventListener('keydown', onKey);
   }, [menuOpen]);
   const close = () => setMenuOpen(false);
-  const asOf = stats ? new Date(`${stats.asOf}T00:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }) : null;
 
   return (
     <div className="lp">
@@ -289,7 +282,7 @@ export default function LandingPage() {
         <section className="lp-hero" aria-labelledby="lp-hero-h">
           <div className="lp-wrap lp-hero-grid">
             <div className="lp-hero-copy">
-              <p className="lp-hero-eyebrow">Capital Intelligence</p>
+              <p className="lp-hero-eyebrow">{PRODUCT_SUB_LABEL}</p>
               <h1 id="lp-hero-h">Know which capital fits your company, <span className="lp-hl">and exactly why.<Swoosh className="lp-hero-swoosh" /></span></h1>
               <p className="lp-lede">
                 Deligato understands your company, shows how capital-ready you are, finds the kinds of capital and the providers that fit, and explains every match with its evidence. Then it helps you run the raise.
@@ -314,19 +307,6 @@ export default function LandingPage() {
             </ol>
           </div>
         </section>
-
-        {stats && (
-          <section className="lp-proofband" aria-label={`Deligato research database, as of ${asOf}`}>
-            <div className="lp-wrap">
-              <dl className="lp-proof">
-                {stats.items.map((it) => (
-                  <div key={it.key}><dt>{it.label}</dt><dd className="ui-num">{it.value.toLocaleString('en-US')}</dd></div>
-                ))}
-              </dl>
-              <p className="lp-asof">As of {asOf}. Counted live from our research database.</p>
-            </div>
-          </section>
-        )}
 
         {/* ---------- NOT A DIRECTORY ---------- */}
         <section id="different" className="lp-section" aria-labelledby="lp-diff-h">
@@ -492,7 +472,7 @@ export default function LandingPage() {
         <div className="lp-wrap lp-footer-row">
           <div className="lp-footer-brand">
             <Wordmark onDark={false} />
-            <p>Capital Intelligence for founders and growing companies. Part of Conncct.</p>
+            <p>{PRODUCT_SUB_LABEL} for founders and growing companies. Part of Conncct.</p>
           </div>
           <nav aria-label="Footer" className="lp-footer-nav">
             <a href="#journey">How it works</a>

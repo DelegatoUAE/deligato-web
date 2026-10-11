@@ -9,12 +9,14 @@ import { bandLabel } from '../lib/readiness';
 import { FundraisingNotice } from '../components/capital/bits';
 import { fmtInt, fmtUsd, POSITIONING } from '../lib/format';
 import { pipelineCounts } from '../lib/home';
-import { hasMatching, upgradeHref } from '../lib/plan';
+import { capacityLine } from '../lib/plan';
 
 export default function CapitalOverviewPage() {
-  const { company, companyId, readiness, run, runLoading, capitalNeedConfirmed, entitlements, entitlementsKnown } = useCompany();
-  const noMatching = entitlementsKnown && !hasMatching(entitlements); // D68: Free has no matching
-  const pipeQ = useApi(() => listPipeline(companyId).then((x) => x.pipeline || []), [companyId]);
+  const { company, companyId, readiness, run, runLoading, capitalNeedConfirmed } = useCompany();
+  // D73: every plan has ranked matches; the pipeline tile reads the plan's active capacity.
+  const listQ = useApi(() => listPipeline(companyId), [companyId]);
+  const pipeQ = { ...listQ, data: listQ.data ? (listQ.data.pipeline || []) : undefined };
+  const activeCap = listQ.data?.capacity?.active ? capacityLine(listQ.data.capacity.active, 'active') : null;
   const drQ = useApi(() => getDataRoom(companyId), [companyId]);
   const r = readiness?.readiness;
   const pipeline = pipeQ.data;
@@ -26,8 +28,8 @@ export default function CapitalOverviewPage() {
     { label: 'Company', description: 'Done', status: 'done', href: '/company' },
     { label: 'Readiness', description: r ? bandLabel(r) : 'Not scored', status: r ? 'done' : 'current', href: '/capital/readiness' },
     { label: 'Capital need', description: capitalNeedConfirmed ? `${fmtUsd(company.raise_usd) || ''} ${company.instrument || ''}` : 'To confirm', status: capitalNeedConfirmed ? 'done' : 'current', href: '/capital/find?step=need' },
-    { label: noMatching ? 'Capital routes' : 'Routes and matches', description: noMatching ? 'Matching is in Capital Raising' : run ? `${fmtInt(run.counts?.eligible)} pass your filters` : 'Not run yet', status: run ? 'done' : capitalNeedConfirmed ? 'current' : 'upcoming', href: '/capital/find?step=routing' },
-    { label: 'Shortlist and pipeline', description: gated ? 'In Capital Raising' : pipeline ? `${pc.saved} shortlisted · ${pc.inPipeline} in pipeline` : '', status: pipeline?.length ? 'done' : 'upcoming', href: '/capital/pipeline' },
+    { label: 'Routes and matches', description: run ? `${fmtInt(run.counts?.eligible)} pass your filters` : 'Not run yet', status: run ? 'done' : capitalNeedConfirmed ? 'current' : 'upcoming', href: '/capital/find?step=routing' },
+    { label: 'Shortlist and pipeline', description: gated ? 'Not on your plan' : pipeline ? `${pc.saved} shortlisted · ${pc.inPipeline} in pipeline` : '', status: pipeline?.length ? 'done' : 'upcoming', href: '/capital/pipeline' },
     { label: 'Data room', description: drQ.data ? `${drQ.data.completeness_pct}% ready` : '', status: drQ.data?.completeness_pct >= 100 ? 'done' : 'upcoming', href: '/capital/data-room' },
   ];
 
@@ -37,15 +39,9 @@ export default function CapitalOverviewPage() {
       <PageHeader title="Capital" subtitle={POSITIONING}
         actions={<Button as={Link} to="/capital/find" variant="accent" size="lg">Find the right capital</Button>} />
       <section className="home-stats" aria-label="Capital at a glance">
-        {noMatching ? (
-          <StatTile as={Link} to={upgradeHref('capital-raising')} label="Investor matches" value="Capital Raising" foot="Your plan shows the routes that fit, without naming providers" />
-        ) : (
-          <>
-            <StatTile as={Link} to="/capital/matches" label="Verified fits" loading={runLoading} value={run ? fmtInt(bucket('eligible')) : 'Not yet'} foot={run ? `${fmtInt(bucket('possible'))} possible · ${fmtInt(bucket('likely_outside'))} likely outside` : 'Appears after your first match'} />
-            <StatTile as={Link} to="/capital/matches" label="Pass the hard filters" loading={runLoading} value={run ? fmtInt(run.counts?.eligible) : 'Not yet'} foot={run?.counts?.considered ? `of ${fmtInt(run.counts.considered)} active sources` : ''} />
-          </>
-        )}
-        <StatTile as={Link} to="/capital/pipeline" label="In pipeline" loading={!pipeline && !gated && !pipeQ.error} value={gated ? 'Locked' : pipeline ? pc.inPipeline : 'Couldn\'t load'} foot={gated ? 'Included in Capital Raising' : pipeline ? `${pc.saved} shortlisted` : ''} />
+        <StatTile as={Link} to="/capital/matches" label="Verified fits" loading={runLoading} value={run ? fmtInt(bucket('eligible')) : 'Not yet'} foot={run ? `${fmtInt(bucket('possible'))} possible · ${fmtInt(bucket('likely_outside'))} likely outside` : 'Appears after your first match'} />
+        <StatTile as={Link} to="/capital/matches" label="Pass the hard filters" loading={runLoading} value={run ? fmtInt(run.counts?.eligible) : 'Not yet'} foot={run?.counts?.considered ? `of ${fmtInt(run.counts.considered)} active sources` : ''} />
+        <StatTile as={Link} to="/capital/pipeline" label="In pipeline" loading={!pipeline && !gated && !pipeQ.error} value={gated ? 'Locked' : pipeline ? pc.inPipeline : 'Couldn\'t load'} foot={gated ? 'Not on your plan' : activeCap ? activeCap.text : pipeline ? `${pc.saved} shortlisted` : ''} />
 
         <StatTile as={Link} to="/capital/data-room" label="Data room" loading={drQ.loading && !drQ.data && !drQ.error} value={drQ.data ? `${drQ.data.completeness_pct}%` : drQ.error ? 'Not yet' : ''} foot={drQ.data ? `${drQ.data.done_count} of ${drQ.data.required_count} required items` : drQ.error ? 'Not available yet' : ''} />
       </section>

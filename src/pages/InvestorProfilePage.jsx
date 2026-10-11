@@ -8,7 +8,7 @@ import MatchScore from '../components/capital/MatchScore';
 import WhyThisFits from '../components/capital/WhyThisFits';
 import { MeetingPrep } from '../components/capital/AiBlocks';
 import useAiConsent from '../lib/useAiConsent';
-import { FundraisingNotice, LoadError, MatchingUpgrade, ReadOnlyNote } from '../components/capital/bits';
+import { FundraisingNotice, GateCard, LoadError, ReadOnlyNote } from '../components/capital/bits';
 import useApi from '../lib/useApi';
 import {
   getSource, getRunNormalised, listPipeline, addToPipeline, previewMatch, FIT_DIMENSIONS, confidenceLevel, stageLabel, fitReasonText, bucketHeadline, tierWithinBucket, investorHref, ticketRange,
@@ -17,7 +17,7 @@ import { submitCorrection, recordNotFit, CORRECTION_FIELDS, FEEDBACK_DOWN_REASON
 import { recordOutcome, kindForRoute } from '../lib/fundraising';
 import { fmtUsd, fmtDate, stealthLabel, countryName, wordsForCodes, plainExclusion } from '../lib/format';
 import { MATCH_SCORE_EXPLAINER } from '../lib/matchview';
-import { gateFor } from '../lib/plan';
+import { canOutreach, gateFor, upgradeTarget } from '../lib/plan';
 
 // D16 provenance labels. Derived from the record's own evidence until the
 // data module publishes per-field labels (it then wins: profile.field_provenance).
@@ -153,8 +153,8 @@ export default function InvestorProfilePage() {
     if (srcQ.error.status === 404) {
       return <EmptyState icon="search" title="We couldn't find this capital source. It may have been retired." action={<Button as={Link} to="/capital/matches" variant="primary">Back to matches</Button>} />;
     }
-    // D68: on Free an investor profile opens only for an investor saved earlier.
-    if (srcQ.error.status === 402) return <MatchingUpgrade savedCount={(pipeQ.data || []).length} companyId={companyId} />;
+    // D73 basic level (Free): a profile opens for the company's own top-ranked matches or saved investors only.
+    if (srcQ.error.status === 402) return <GateCard title="This investor isn't in the matches your plan shows." body={gateFor(srcQ.error).message} code={upgradeTarget(srcQ.error)} />;
     return <LoadError error={srcQ.error} onRetry={srcQ.reload} what="this investor" />;
   }
   const p = srcQ.data?.profile;
@@ -166,8 +166,8 @@ export default function InvestorProfilePage() {
   const fr = p.freshness || {};
   const id = p.identity || {};
   const pipelineItem = (pipeQ.data || []).find((x) => x.record_id === recordId);
-  const canTrack = pipeQ.error?.status !== 402 && !p.read_only; // D68: no new saves on Free
-  const canDraft = Number(entitlements?.outreach_drafts_per_month || 0) > 0;
+  const canTrack = pipeQ.error?.status !== 402 && !p.read_only; // D73: the server counts the shortlist slots
+  const canDraft = canOutreach(entitlements);
   const kind = kindForRoute(app.route);
   const locked = Boolean(p.locked);
   const nonMatch = ineligQ.data?.non_matches?.find((x) => x.record_id === recordId);
@@ -180,7 +180,7 @@ export default function InvestorProfilePage() {
       reloadPipeline();
       toast.success(stage === 'shortlisted' ? `${id.name} is on your shortlist.` : `${id.name} is in your pipeline.`);
     } catch (e) {
-      toast.error(e.upgradeRequired ? (e.code === 'fair_use_limit' ? gateFor(e).message : 'Pipeline tracking is included in Capital Raising.') : `Couldn't save: ${e.message}`);
+      toast.error(e.upgradeRequired || e.status === 402 ? gateFor(e).message : `Couldn't save: ${e.message}`);
     } finally { setBusy(null); }
   }
 
@@ -252,10 +252,10 @@ export default function InvestorProfilePage() {
                 <Button variant="primary" onClick={() => track('shortlisted')} loading={busy === 'shortlisted'}>Shortlist</Button>
                 <Button variant="secondary" onClick={() => track('researching')} loading={busy === 'researching'}>Add to pipeline</Button>
               </>
-            ) : <Button as={Link} to="/packages?highlight=capital-raising" variant="secondary" iconLeft="lock">Shortlist</Button>}
+            ) : <Button as={Link} to="/packages" variant="secondary" iconLeft="lock">Shortlist</Button>}
             {kind === null ? null : canDraft && !locked
               ? <Button as={Link} to={`/capital/outreach?record=${encodeURIComponent(recordId)}&kind=${kind}`} variant="secondary">Prepare outreach</Button>
-              : <Button as={Link} to="/packages?highlight=capital-raising" variant="ghost" iconLeft="lock">Prepare outreach</Button>}
+              : <Button as={Link} to="/packages?highlight=capital-intelligence" variant="ghost" iconLeft="lock">Prepare outreach</Button>}
             <Button variant="ghost" iconLeft="spark" onClick={() => setDialog('brief')}>Prepare for the call</Button>
             <Button variant="ghost" onClick={() => setDialog('dismiss')}>Not for us</Button>
           </div>
@@ -342,7 +342,7 @@ export default function InvestorProfilePage() {
         <Card id="contact" title="Application and contact route">
           {locked ? (
             <div className="locked-route">
-              <p><Badge tone="outline">Locked</Badge> How to reach them is included in Capital Raising.</p>
+              <p><Badge tone="outline">Locked</Badge> Contact routes are included in Capital Intelligence and Capital Raising.</p>
               <Button as={Link} to="/packages?highlight=capital-raising" variant="secondary" size="sm">See packages</Button>
             </div>
           ) : (
@@ -376,7 +376,7 @@ export default function InvestorProfilePage() {
         <Card id="sources" title="Sources">
           <p className="ui-muted">Each fact above carries where it comes from: Capital Provider Verified, Research Verified, Licensed Data Provider, Public Source, AI Inferred or Unknown. Inferred values are never shown as verified.</p>
           {ev.derived_note && <p className="ui-muted">{ev.derived_note}</p>}
-          {locked ? <p className="ui-faint">Source links are included in Capital Raising.</p> : (ev.urls || []).length ? (
+          {locked ? <p className="ui-faint">Source links are included in Capital Intelligence and Capital Raising.</p> : (ev.urls || []).length ? (
             <ul className="plain-list src-list">{ev.urls.map((u) => <li key={u}><a href={u} target="_blank" rel="noreferrer">{u.replace(/^https?:\/\//, '').slice(0, 70)}</a></li>)}</ul>
           ) : <p className="ui-faint">No source links on record.</p>}
         </Card>

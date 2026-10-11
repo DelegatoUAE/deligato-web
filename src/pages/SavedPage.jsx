@@ -5,8 +5,8 @@ import FitPills from '../components/capital/FitPills';
 import SubNav from '../components/SubNav';
 import { useCompany } from '../components/company-context';
 import MatchScore from '../components/capital/MatchScore';
-import { GateCard, LoadError, MatchingUpgrade, ReadOnlyNote } from '../components/capital/bits';
-import { canShortlist } from '../lib/plan';
+import { CapacityMeter, GateCard, LoadError, ReadOnlyNote } from '../components/capital/bits';
+import { canCompare, canOutreach, nextPlanFor } from '../lib/plan';
 import useApi from '../lib/useApi';
 import { listPipeline, updatePipelineItem, removeFromPipeline, investorHref, tierLabel, ticketRange, savedFitLabel } from '../lib/capital';
 import { recordOutcome } from '../lib/fundraising';
@@ -19,9 +19,12 @@ const nameOf = (p) => p.capital_sources?.name || p.record_id;
 
 /** Saved investors: shortlisted, not yet worked in the pipeline. */
 export default function SavedPage() {
-  const { companyId, entitlements, entitlementsKnown, run, reloadPipeline } = useCompany();
+  const { companyId, entitlements, entitlementsRaw, run, reloadPipeline } = useCompany();
   const toast = useToast();
-  const q = useApi(() => listPipeline(companyId).then((x) => x.pipeline || []), [companyId]);
+  const listQ = useApi(() => listPipeline(companyId), [companyId]);
+  const q = { ...listQ, data: listQ.data ? (listQ.data.pipeline || []) : undefined, setData: (fn) => listQ.setData((d) => ({ ...(d || {}), pipeline: fn(d?.pipeline || []) })) };
+  const capacity = listQ.data?.capacity || null;
+  const upgrade = nextPlanFor(entitlementsRaw?.ladder_tier);
   const [busy, setBusy] = useState(null);
   const [removing, setRemoving] = useState(null);
   const [reason, setReason] = useState('wrong_geography');
@@ -29,16 +32,17 @@ export default function SavedPage() {
   const [comparing, setComparing] = useState(false);
   const [sort, setSort] = useState('date');
   const byRecord = new Map((run?.results || []).map((r) => [r.record_id, r]));
-  const canDraft = Number(entitlements?.outreach_drafts_per_month || 0) > 0;
+  const canDraft = canOutreach(entitlements);
+  const compare = canCompare(entitlements);
 
   async function toPipeline(p) {
     setBusy(p.id);
     try {
       const { item } = await updatePipelineItem(p.id, { stage: 'researching' });
       q.setData((l) => l.map((x) => (x.id === p.id ? { ...x, ...item } : x)));
-      reloadPipeline();
+      reloadPipeline(); listQ.reload();
       toast.push({ tone: 'ok', message: 'Moved to your pipeline.', action: <Link to="/capital/pipeline">Open pipeline</Link> });
-    } catch (e) { toast.error(`Couldn't move it: ${e.message}`); } finally { setBusy(null); }
+    } catch (e) { toast.error(e.status === 402 ? e.message : `Couldn't move it: ${e.message}`); } finally { setBusy(null); }
   }
   async function remove() {
     const p = removing;
@@ -48,12 +52,13 @@ export default function SavedPage() {
       await removeFromPipeline(p.id);
       reloadPipeline();
       q.setData((l) => l.filter((x) => x.id !== p.id));
+      listQ.reload();
       toast.success(`${nameOf(p)} removed.`);
     } catch (e) { toast.error(`Couldn't remove: ${e.message}`); } finally { setBusy(null); setRemoving(null); }
   }
 
   const head = <><SubNav section="capital" /><PageHeader title="Shortlist" subtitle="Providers you shortlisted from your matches, to compare and decide who to approach first." actions={<ExportButton kind="shortlist" />} /></>;
-  if (q.error?.status === 402) return <div>{head}<GateCard title="Save investors and track your raise." body="Included in Capital Raising." /></div>;
+  if (q.error?.status === 402) return <div>{head}<GateCard title="Save investors and track your raise." body="Every plan includes a shortlist, up to its limit. Open Plans to see yours." /></div>;
   if (q.error) return <div>{head}<LoadError error={q.error} onRetry={q.reload} what="your shortlist" /></div>;
   if (!q.data) return <div>{head}<SkeletonCards count={3} height={72} /></div>;
   const saved = q.data.filter((p) => p.stage === 'shortlisted').slice().sort((a, b) => (sort === 'score'
@@ -62,27 +67,28 @@ export default function SavedPage() {
       : new Date(b.created_at) - new Date(a.created_at)));
   const toggle = (id) => setPicked((l) => (l.includes(id) ? l.filter((x) => x !== id) : l.length >= 3 ? l : [...l, id]));
   const compareRows = saved.filter((p) => picked.includes(p.id));
-  // D68: on Free, investors saved earlier stay here read-only (the server refuses changes too).
-  const readOnly = q.data.some((p) => p.read_only) || (entitlementsKnown && !canShortlist(entitlements));
+  // D73: an item is read-only only when its bucket is not on the plan (the server says so per item).
+  const readOnly = saved.some((p) => p.read_only);
 
   return (
     <div>
       {head}
-      {readOnly && saved.length > 0 && <ReadOnlyNote />}
-      {readOnly && saved.length === 0 ? <MatchingUpgrade /> : saved.length === 0 ? (
+      {capacity && <div className="cap-row"><CapacityMeter cap={capacity.shortlist} bucket="shortlist" upgrade={upgrade} /></div>}
+      {readOnly && <ReadOnlyNote upgrade={upgrade || 'capital-intelligence'} />}
+      {saved.length === 0 ? (
         <EmptyState icon="bell" title="Nothing shortlisted yet." body="Shortlist investors from your matches to keep them here." action={<Button as={Link} to="/capital/matches" variant="primary">Open matches</Button>} />
       ) : (
         <>
         <div className="ui-row saved-tools">
           <span className="ui-muted">{saved.length} saved. Move one to your pipeline when you start working it.</span>
           <Select aria-label="Sort" value={sort} onChange={(e) => setSort(e.target.value)} options={[{ value: 'date', label: 'Date shortlisted' }, { value: 'score', label: 'Match score when shortlisted' }, { value: 'deadline', label: 'Next deadline' }]} />
-          {!readOnly && <Button variant="secondary" size="sm" disabled={picked.length < 2} onClick={() => setComparing(true)}>Compare {picked.length || ''} selected</Button>}
+          {compare && <Button variant="secondary" size="sm" disabled={picked.length < 2} onClick={() => setComparing(true)}>Compare {picked.length || ''} selected</Button>}
         </div>
-        {saved.length > 0 && !readOnly && <ShortlistSummary companyId={companyId} recordIds={saved.map((p) => p.record_id)} />}
+        {saved.length > 0 && compare && <ShortlistSummary companyId={companyId} recordIds={saved.map((p) => p.record_id)} />}
         <ul className="saved">
           {saved.map((p) => (
             <li key={p.id} className="saved-row">
-              {!readOnly && <label className="saved-pick"><input type="checkbox" checked={picked.includes(p.id)} onChange={() => toggle(p.id)} aria-label={`Compare ${nameOf(p)}`} /></label>}
+              {compare && <label className="saved-pick"><input type="checkbox" checked={picked.includes(p.id)} onChange={() => toggle(p.id)} aria-label={`Compare ${nameOf(p)}`} /></label>}
               <span title="Match score when you shortlisted it"><MatchScore score={p.match_score_at_add} confidence={p.capital_sources?.data_confidence} size="sm" /></span>
               <div className="saved-main">
                 <Link to={investorHref(p.record_id)} className="mrow-name">{nameOf(p)}</Link>
@@ -91,8 +97,8 @@ export default function SavedPage() {
                 {p.capital_sources?.deadline && <span className="ui-muted">Next step: applications close {fmtDate(p.capital_sources.deadline)}.</span>}
               </div>
               <div className="ui-row">
-                {!readOnly && <Button size="sm" variant="primary" onClick={() => toPipeline(p)} loading={busy === p.id}>Move to pipeline</Button>}
-                {!readOnly && canDraft && <Button as={Link} size="sm" variant="ghost" to={`/capital/outreach?record=${encodeURIComponent(p.record_id)}`}>Prepare outreach</Button>}
+                {!p.read_only && <Button size="sm" variant="primary" onClick={() => toPipeline(p)} loading={busy === p.id}>Move to pipeline</Button>}
+                {!p.read_only && canDraft && <Button as={Link} size="sm" variant="ghost" to={`/capital/outreach?record=${encodeURIComponent(p.record_id)}`}>Prepare outreach</Button>}
                 <Button size="sm" variant="ghost" onClick={() => setRemoving(p)}>Remove</Button>
               </div>
             </li>

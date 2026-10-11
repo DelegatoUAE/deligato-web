@@ -1,9 +1,9 @@
 import { createElement } from 'react';
 import { Link } from 'react-router-dom';
-import { Alert, Badge, Button, Card, EmptyState, Icon, Tooltip } from '../../design/ui';
-import { MATCHING_UPGRADE, previewLines, upgradeHref } from '../../lib/plan';
-import { getMatchPreview } from '../../lib/capital';
-import useApi from '../../lib/useApi';
+import { Alert, Badge, Button, Card, EmptyState, Icon, ProgressBar, Tooltip } from '../../design/ui';
+import { basicMatching, canCompare, capacityLine, nextPlanFor, upgradeHref } from '../../lib/plan';
+import { ladderPlan, useLadder } from '../../lib/ladder';
+import { fmtInt } from '../../lib/format';
 import { headingTag, useHeadingLevel } from '../../design/ui/heading-context.js';
 
 export const FUNDRAISING_LINE = 'We help you with fundraising. We never fundraise for you.';
@@ -22,49 +22,70 @@ export function ConncctSourceTag({ label = 'Imported' }) {
 }
 
 /**
- * D68: the Free state wherever matching would be (Matches, Find Capital, profiles). Free has no
- * investor/provider matching; it says so plainly, points to Capital Raising, keeps the capital
- * routes one click away and, when the company saved investors earlier, links to them (read-only).
+ * D73 (supersedes the D68/D69 locked teaser): every plan sees real ranked matches up to its limit
+ * (Free 5, Capital Intelligence 50, Capital Raising 200). This line says how many this plan shows
+ * and, when a higher plan shows more, names it with ITS number from the public catalog. No number is
+ * typed here; without the catalog the line just says less.
  */
-/**
- * D69: the locked teaser. A count (and at most three countries) from the server's aggregate of a
- * real engine run; nothing at all when there is no count. Never a name, score or list.
- */
-export function MatchPreview({ companyId, compact = false }) {
-  const q = useApi(() => (companyId ? getMatchPreview(companyId).catch(() => null) : null), [companyId]);
-  const lines = previewLines(q.data?.preview);
-  if (!lines) return null;
+export function MoreMatchesNote({ shown, eligible, ents, tier, compact = false }) {
+  const catalog = useLadder();
+  const next = nextPlanFor(tier);
+  const nextPlan = next ? ladderPlan(catalog, next) : null;
+  const max = Number.isInteger(ents?.max_results) ? ents.max_results : null;
+  const more = Number.isFinite(eligible) && Number.isFinite(shown) && eligible > shown;
+  if (!more && !nextPlan) return null;
+  const nextMax = nextPlan?.display?.max_results;
+  const lead = Number.isFinite(shown)
+    ? `Showing your top ${fmtInt(shown)} ranked ${shown === 1 ? 'match' : 'matches'}${more ? ` of ${fmtInt(eligible)} that pass your filters` : ''}.`
+    : max ? `Your plan shows your top ${fmtInt(max)} ranked matches per run.` : null;
+  const extra = basicMatching(ents) ? ' with full explanations and contact routes' : canCompare(ents) ? '' : ' with comparison, meeting prep and export';
   return (
-    <div className={`match-teaser${compact ? ' is-compact' : ''}`} role="note">
-      <span className="match-teaser-lock" aria-hidden="true"><Icon name="lock" /></span>
-      <div>
-        <p className="match-teaser-count">{lines.count}</p>
-        {lines.regions && <p className="match-teaser-sub">{lines.regions}</p>}
-        <p className="match-teaser-sub">{lines.upgrade}</p>
-      </div>
-      <Button as={Link} to={upgradeHref('capital-raising')} variant="accent" size="sm" iconRight="arrowRight">{MATCHING_UPGRADE.cta}</Button>
+    <div className={`plan-note${compact ? ' is-compact' : ''}`} role="note">
+      <p>{lead}{nextPlan && nextMax ? ` ${nextPlan.name} shows ${String(nextMax).replace(/^Up to/, 'up to')} per run${extra}.` : ''}</p>
+      {nextPlan && <Button as={Link} to={upgradeHref(next)} variant="secondary" size="sm" iconRight="arrowRight">See {nextPlan.name}</Button>}
     </div>
   );
 }
 
-export function MatchingUpgrade({ savedCount = 0, showRoutes = true, companyId = null }) {
+/** D73: the plan's explanation, AI and outreach levels, in the API's own words (shown honestly, never inflated). */
+export function PlanLevels({ display }) {
+  const rows = [['Explanations', display?.match_explanation_level], ['AI', display?.ai_level], ['Outreach', display?.outreach_level]]
+    .filter(([, v]) => v);
+  if (!rows.length) return null;
   return (
-    <Card className="match-upgrade" eyebrow="Capital Raising" title={MATCHING_UPGRADE.title}>
-      <MatchPreview companyId={companyId} />
-      <p>{MATCHING_UPGRADE.body}</p>
-      {savedCount > 0 && <p className="ui-muted">{MATCHING_UPGRADE.readOnly}</p>}
-      <div className="ui-row">
-        <Button as={Link} to={upgradeHref('capital-raising')} variant="accent" iconRight="arrowRight">{MATCHING_UPGRADE.cta}</Button>
-        {showRoutes && <Button as={Link} to="/capital/find" variant="secondary">See the capital routes that fit</Button>}
-        {savedCount > 0 && <Button as={Link} to="/capital/saved" variant="link">View your {savedCount} saved {savedCount === 1 ? 'investor' : 'investors'}</Button>}
-      </div>
-    </Card>
+    <p className="plan-levels" aria-label="What your plan includes here">
+      {rows.map(([k, v]) => <span key={k} className="plan-level"><span className="plan-level-k">{k}</span> {/^not included$/i.test(v) ? 'Not on your plan' : v}</span>)}
+    </p>
   );
 }
 
-/** D68: one line above a Free company's earlier saves. */
-export function ReadOnlyNote() {
-  return <Alert tone="info" title="Read-only on your plan">{MATCHING_UPGRADE.readOnly} <Link to={upgradeHref('capital-raising')}>See Capital Raising</Link>.</Alert>;
+/**
+ * D73 active-capacity meter for the shortlist or the active pipeline, from GET /capital/pipeline
+ * `capacity` ({ used, limit }). Over or at the limit says what frees a slot; nothing is ever deleted.
+ */
+export function CapacityMeter({ cap, bucket, upgrade = null }) {
+  if (!cap) return null;
+  const c = capacityLine(cap, bucket);
+  const tone = c.state === 'over' ? 'bad' : c.state === 'full' ? 'warn' : 'gold';
+  return (
+    <div className={`cap-meter is-${c.state}`} data-bucket={bucket}>
+      {c.limit > 0
+        ? <ProgressBar value={Math.min(c.used, c.limit)} max={c.limit} tone={tone} label={bucket === 'shortlist' ? 'Shortlist' : 'Active pipeline'} valueText={c.text} />
+        : <p className="cap-meter-text"><strong>{bucket === 'shortlist' ? 'Shortlist' : 'Active pipeline'}</strong> {c.text}</p>}
+      {c.hint && (
+        <p className="cap-meter-hint">{c.hint}{upgrade && (c.state === 'full' || c.state === 'over' || c.state === 'none') ? <> <Link to={upgradeHref(upgrade)}>See plans</Link></> : null}</p>
+      )}
+    </div>
+  );
+}
+
+/** D73: items whose bucket is not on the plan (e.g. active items on Free) stay visible, read-only. */
+export function ReadOnlyNote({ upgrade = 'capital-intelligence' }) {
+  return (
+    <Alert tone="info" title="Some saved investors are read-only on your plan">
+      You can view them, move them to closed, passed or rejected, or remove them. They stay in your history. <Link to={upgradeHref(upgrade)}>See plans</Link>.
+    </Alert>
+  );
 }
 
 /** A locked feature: what it does, which package unlocks it, one CTA. */

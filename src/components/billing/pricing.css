@@ -197,3 +197,8 @@
 @media (max-width: 1023px) { .pr2-services .pr2-svc { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 639px) { .pr2-svc-switch { width: 100%; } .pr2-svc-switch button { flex: 1; justify-content: center; padding: 0 var(--s-2); } }
 @media (max-width: 639px) { .pr2-svc-switch button { white-space: nowrap; font-size: var(--text-xs); gap: var(--s-1); } }
+
+/* D73: services card when the plan already includes the report; compare footnote for unpublished cells. */
+.pr2-svc-included { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2); font-size: var(--text-sm); color: var(--text-soft); }
+.pr2-table td.is-pending { color: var(--text-faint); }
+.pr2-compare-foot { margin: var(--s-3) 0 0; font-size: var(--text-xs); color: var(--text-faint); }

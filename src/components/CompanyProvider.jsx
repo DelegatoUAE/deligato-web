@@ -30,7 +30,7 @@ export default function CompanyProvider({ me, children }) {
   const entQ = useApi(() => (companyId ? getEntitlements(companyId) : null), [companyId]);
   const runQ = useApi(() => (companyId ? getLatestRun(companyId) : null), [companyId]);
   // Nav counts and Home tiles; each may fail on its own (402 on trial plans).
-  const pipeQ = useApi(() => (companyId ? listPipeline(companyId).then((x) => x.pipeline || []) : null), [companyId]);
+  const pipeQ = useApi(() => (companyId ? listPipeline(companyId) : null), [companyId]);
   const drQ = useApi(() => (companyId ? getDataRoom(companyId) : null), [companyId]);
 
   const setCompanyId = useCallback((id) => {
@@ -74,7 +74,9 @@ export default function CompanyProvider({ me, children }) {
       capitalNeedConfirmed: Boolean(company?.capital_need_confirmed_at) || hasRun,
       reloadCompanies,
       reloadReadiness,
-      pipeline: pipeQ.data ?? null,
+      pipeline: pipeQ.data ? (pipeQ.data.pipeline || []) : null,
+      // D73: company-wide bucket counts against the plan's shortlist / active limits (null on older APIs).
+      pipelineCapacity: pipeQ.data?.capacity || null,
       pipelineError: pipeQ.error,
       reloadPipeline,
       dataRoom: drQ.data ?? null,

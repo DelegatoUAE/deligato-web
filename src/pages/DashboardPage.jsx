@@ -5,8 +5,9 @@ import useApi from '../lib/useApi';
 import { getCommandCenter, isUnavailable } from '../lib/companyIntel';
 import { firstName, countryName, fmtUsd, fmtDate, fmtMonths, timingLabel, plural, plainIntel, todayIso, companyWord } from '../lib/format';
 import { partOfDay } from '../lib/home';
-import { LoadError, FundraisingNotice, MatchPreview } from '../components/capital/bits';
-import { hasMatching } from '../lib/plan';
+import { CapacityMeter, LoadError, FundraisingNotice, MoreMatchesNote } from '../components/capital/bits';
+import MatchRow from '../components/capital/MatchRow';
+import { nextPlanFor } from '../lib/plan';
 import ClassicHome, { Waiting } from '../components/home/ClassicHome';
 import { ChangeList, AttentionList, AskPrompts, SpecialistLink, Delta, UpgradeLine } from '../components/intel/IntelBits';
 
@@ -19,8 +20,7 @@ import { ChangeList, AttentionList, AskPrompts, SpecialistLink, Delta, UpgradeLi
  * there is no combined score (D40). Prominence follows the API's order.
  */
 export default function DashboardPage() {
-  const { me, staff, company, companyId, companiesLoading, dataRoom, entitlements, entitlementsKnown } = useCompany();
-  const noMatching = entitlementsKnown && !hasMatching(entitlements); // D69: Free and Company Intelligence
+  const { me, staff, company, companyId, companiesLoading, dataRoom, entitlements, entitlementsRaw, run, pipelineCapacity } = useCompany();
   const q = useApi(() => (companyId ? getCommandCenter(companyId) : null), [companyId]);
   const name = firstName(me?.profile?.full_name || me?.user?.user_metadata?.full_name);
 
@@ -42,7 +42,7 @@ export default function DashboardPage() {
       <Greeting name={name} company={company} snapshot={cc.snapshot} />
 
       <NextBlock next={cc.next} />
-      {noMatching && <MatchPreview companyId={companyId} />}
+      <MatchesStrip run={run} ents={entitlements} tier={entitlementsRaw?.ladder_tier} capacity={pipelineCapacity} />
 
       <section aria-label={`Your ${companyWord(company)}'s signals`} className="cc-signals">
         <h2 className="cc-h">Where you stand <span className="cc-h-note">Each signal is measured on its own. There is no combined score.</span></h2>
@@ -57,7 +57,7 @@ export default function DashboardPage() {
         <section aria-labelledby="cc-changed">
           <h2 id="cc-changed" className="cc-h">What changed</h2>
           <ChangeList items={dedupe(cc.what_changed, cc.attention)} limit={5} empty="Nothing material has changed recently. Your monthly check-in is the main source of change." />
-          {cc.what_changed_scope === 'last_change_only' && <UpgradeLine note="Your plan shows your last Financial Health change. Company Intelligence follows your record, readiness and finances continuously." />}
+          {cc.what_changed_scope === 'last_change_only' && <UpgradeLine note="Your plan shows your last Financial Health change. Capital Intelligence follows your record, readiness and finances continuously." />}
           {cc.what_changed?.length > 0 && <Link to="/company/intelligence" className="cc-more">All changes and attention →</Link>}
         </section>
         <section aria-labelledby="cc-attn">
@@ -71,6 +71,29 @@ export default function DashboardPage() {
       <AskPrompts prompts={cc.ask_ai?.prompts} title={`Ask about your ${companyWord(company)}`} />
       <FundraisingNotice />
     </div>
+  );
+}
+
+/**
+ * D73 (replaces the D69 locked teaser): every plan's top ranked matches on Home (Free 5 with basic
+ * explanations and no contact routes; Capital Intelligence 50; Capital Raising 200), how many the plan
+ * shows, and the shortlist / active pipeline capacity. Numbers come from the run and the API.
+ */
+function MatchesStrip({ run, ents, tier, capacity }) {
+  if (!run?.results?.length) return null;
+  const upgrade = nextPlanFor(tier);
+  return (
+    <section className="cc-matches" aria-labelledby="cc-matches-h">
+      <h2 id="cc-matches-h" className="cc-h">Your top matches <Link to="/capital/matches" className="cc-h-link">See all</Link></h2>
+      <ul className="mrows">{run.results.slice(0, 3).map((x) => <MatchRow key={x.record_id} r={x} runId={run.run_id} />)}</ul>
+      <MoreMatchesNote compact shown={run.results.length} eligible={run.counts?.eligible} ents={ents} tier={tier} />
+      {capacity && (
+        <div className="cap-row">
+          <CapacityMeter cap={capacity.shortlist} bucket="shortlist" upgrade={upgrade} />
+          <CapacityMeter cap={capacity.active} bucket="active" upgrade={upgrade} />
+        </div>
+      )}
+    </section>
   );
 }
 

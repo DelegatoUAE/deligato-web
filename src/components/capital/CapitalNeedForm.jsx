@@ -189,7 +189,7 @@ export default function CapitalNeedForm({ firstRun = false, onSaved, submitLabel
       </FormField>
 
       <FormField label={<span className="need-label">When do you need the money in the bank?</span>} error={errors.target_funding_date}
-        hint="Optional. With a date, we tell you when to start raising for your route (Company Intelligence).">
+        hint="Optional. With a date, we tell you when to start raising for your route (Capital Intelligence and Capital Raising).">
         <Input id="target-date" type="date" value={form.target_funding_date} min={new Date().toISOString().slice(0, 10)} onChange={(e) => set('target_funding_date', e.target.value)} />
       </FormField>
 

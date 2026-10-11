@@ -120,7 +120,7 @@ export default function FinancialHealthPage() {
         {d.history ? <History points={d.history} trend={d.trend} /> : (
           <>
             {d.previous ? <p>Previous result: <strong>{d.previous.score ?? 'not scored'}</strong> {d.previous.band ? `· ${d.previous.band}` : ''} on {fmtDate(d.previous.computed_at)}.</p> : <p className="ui-muted">Your first result. The next check-in shows what changed.</p>}
-            <UpgradeLine note={d.locked?.note || 'Company Intelligence adds full history, trends and state-change alerts.'} />
+            <UpgradeLine note={d.locked?.note || 'Capital Intelligence adds full history, trends and state-change alerts.'} />
           </>
         )}
       </section>

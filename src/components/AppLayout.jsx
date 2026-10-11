@@ -10,6 +10,7 @@ import ErrorBoundary from './ErrorBoundary';
 import { CLIENT_NAV } from '../lib/portal';
 import { tierLabel } from '../lib/plan';
 import { PAGE_SUFFIX } from '../lib/format';
+import { PRODUCT_SUB_LABEL } from '../lib/brand';
 import { ASK_EVENT } from '../lib/ask';
 
 const TITLES = [
@@ -87,7 +88,7 @@ export default function AppLayout({ children }) {
     ? [{ items: [{ id: 'home', label: 'Home', icon: 'home', href: '/', end: true }, { id: 'settings', label: 'Settings', icon: 'settings', href: '/settings' }] }]
     : nav;
 
-  // W4: the ladder tier names the plan, so a Company Intelligence subscriber is never labelled "Free".
+  // W4: the ladder tier names the plan (D73: "Capital Intelligence" is the $29 plan, never the product sub-label).
   const planName = tierLabel(entitlementsRaw?.ladder_tier) || plan?.label || null;
   const profile = me?.profile || {};
   const name = profile.full_name || me?.user?.email || 'You';
@@ -101,7 +102,7 @@ export default function AppLayout({ children }) {
     <div className="ui-shell-brand">
       <div>
         <div className="ui-wordmark">Deligato</div>
-        <span className="ui-wordmark-sub">Capital Intelligence</span>
+        <span className="ui-wordmark-sub">{PRODUCT_SUB_LABEL}</span>
       </div>
       {companies?.length > 1 && (
         <div className="coswitch">
