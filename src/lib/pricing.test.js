@@ -273,3 +273,67 @@ test('api 65702e4: D73 limits and compare published, so nothing is "not publishe
   assert.deepEqual(row('dataroom_active_guests')[0].values, ['Not included', 'Coming later', 'Coming later']);
   assert.ok(!cmp.groups.flatMap((g) => g.rows).some((r) => r.key === 'ai_calls_per_month'), 'hidden limits never become a row');
 });
+
+// ---- RC3 phase 3 (api rc3-phase3-5): capital-intelligence sold; benefits; booking
+const RC3_PLANS = {
+  currency: 'USD', price_version: 'founding',
+  plans: [
+    { id: 'readiness-free', name: 'Free', tier: 'free', prices: [{ key: 'free', billing: 'free', amount_usd: 0 }], display: { max_results: 'Up to 5' } },
+    { id: 'capital-readiness', name: 'Capital Readiness Report', prices: [{ key: 'readiness_one_time', billing: 'one_time', amount_usd: 54 }] },
+    { id: 'capital-assessment', name: 'Capital Readiness + Advisor', prices: [{ key: 'readiness_plus_one_time', billing: 'one_time', amount_usd: 99 }] },
+    { id: 'capital-intelligence', name: 'Capital Intelligence', tier: 'capital_intelligence', prices: [{ key: 'ci_monthly', billing: 'monthly', amount_usd: 29 }, { key: 'ci_annual', billing: 'annual', amount_usd: 290 }], limits: { seats: '3 team members', deal_room_storage_gb: '2 GB' }, display: { max_results: 'Up to 50', data_room: 'Private document storage' } },
+    { id: 'capital-raising', name: 'Capital Raising', tier: 'capital_raising', prices: [{ key: 'cr_monthly', billing: 'monthly', amount_usd: 99 }], display: { max_results: 'Up to 200' } },
+  ],
+  platform: ['readiness-free', 'capital-intelligence', 'capital-raising'],
+  d73_platform: { plans: ['readiness-free', 'capital-intelligence', 'capital-raising'], not_sold_until_phase_3: [], pending: { 'capital-intelligence': { dataroom_active_guests: '4b (D55), shown as coming later' } }, limits: {} },
+  services: ['capital-readiness', 'capital-assessment'],
+  checkout: { enabled: false },
+};
+
+test('RC3 phase 3: Capital Intelligence comes from the price list and is checkout-able (payments still decide); 2 GB is live, not "later"', () => {
+  const plans = platformOf(RC3_PLANS);
+  assert.deepEqual(plans.map((p) => [p.id, p.checkout !== false]), [['readiness-free', true], ['capital-intelligence', true], ['capital-raising', true]]);
+  const ci = plans.find((p) => p.id === 'capital-intelligence');
+  assert.equal(ci.from_catalog, undefined, 'priced by billing, not read from the catalog');
+  assert.ok(planBullets(ci).includes('Data room: 2 GB of private document storage'), planBullets(ci).join(' | '));
+  assert.ok(!planBullets(ci).some((b) => /later release/.test(b)));
+  assert.equal(planForTier(RC3_PLANS, 'capital_intelligence').id, 'capital-intelligence', 'the step-down radio prices Capital Intelligence');
+});
+
+test('RC3 phase 3 benefits: report open / opens after the first renewal; expert time active / pending / ending; booking lengths', async () => {
+  const { benefitLines, bookingOptions, minutesLabel } = await import('./pricing.js');
+  assert.equal(minutesLabel(120), '2 hours');
+  assert.equal(minutesLabel(90), '1 hour 30 minutes');
+  assert.equal(minutesLabel(40), '40 minutes');
+  let b = benefitLines({ readiness: { included: true, available: true, basis: 'annual' }, advisory: { available: true, status: 'active', minutes_per_year: 40, balance: 30, reserved: 10, booking_available: true, year: { end: '2027-11-01T00:00:00Z' } } });
+  assert.equal(b.readiness.state, 'open');
+  assert.match(b.advisory.text, /^30 minutes of 40 minutes left this subscription year until 1 November 2027\. 10 minutes booked\.$/);
+  assert.equal(b.advisory.canBook, true);
+  b = benefitLines({ readiness: { included: true, available: false, available_from: '2026-12-11T00:00:00Z' }, advisory: { available: true, status: 'pending', minutes_per_year: 120, balance: 0, eligible_from: '2027-01-11T00:00:00Z' } });
+  assert.match(b.readiness.text, /opens after your first renewal, on 11 December 2026/);
+  assert.match(b.advisory.text, /^2 hours a year with an advisor\. On monthly billing it opens from your third paid month, around 11 January 2027\.$/);
+  assert.equal(b.advisory.canBook, false);
+  b = benefitLines({ advisory: { available: true, status: 'ending', minutes_per_year: 0, balance: 0, reserved: 40 } });
+  assert.match(b.advisory.text, /40 minutes you already booked are still honoured/);
+  assert.deepEqual(benefitLines({ readiness: { included: false }, advisory: { available: true, status: 'not_included', minutes_per_year: 0 } }), { readiness: null, advisory: null }, 'Free: nothing promised');
+  assert.deepEqual(benefitLines({ advisory: { available: false, status: 'unavailable' } }), { readiness: null, advisory: null });
+  assert.equal(benefitLines({ advisory: { available: true, status: 'active', minutes_per_year: 40, balance: 40, booking_available: false } }).advisory.canBook, false, 'D50: experts off -> no booking');
+  assert.deepEqual(bookingOptions(40), [20, 30, 40]);
+  assert.deepEqual(bookingOptions(120), [20, 30, 40, 60, 90, 120]);
+  assert.deepEqual(bookingOptions(10), [10]);
+  assert.deepEqual(bookingOptions(0), []);
+  assert.equal(billingErrorCopy({ code: 'readiness_included', message: 'x' }).kind, 'conflict');
+  assert.equal(billingErrorCopy({ code: 'advisory_balance_low', message: 'x' }).kind, 'conflict');
+});
+
+test('RC3 phase 3 source pins: Settings steps a raise down to Capital Intelligence; the experts page books against the ledger', () => {
+  const pb = readFileSync(join(SRC, 'components/billing/PlanBilling.jsx'), 'utf8');
+  assert.match(pb, /useState\('capital-intelligence'\)/);
+  assert.doesNotMatch(pb, /setStepTo\('company-intelligence'\)/);
+  assert.match(pb, /<PlanBenefits /);
+  const bl = readFileSync(join(SRC, 'lib/billing.js'), 'utf8');
+  assert.match(bl, /stepDownTo = 'capital-intelligence'/);
+  assert.match(bl, /advisory_minutes: minutes/);
+  const ex = readFileSync(join(SRC, 'pages/ExpertsPage.jsx'), 'utf8');
+  assert.doesNotMatch(ex, /Booking against it opens soon/);
+});

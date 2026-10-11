@@ -249,7 +249,7 @@ export function PricingFaq({ data, catalog = null }) {
     },
     (ci || cr) && {
       q: 'What is the expert time in my plan?',
-      a: `Paid plans include time with an advisor each subscription year: ${[ci, cr].filter(Boolean).map((p) => `${p.name}, ${advisoryLabel(p.entitlements?.advisory_minutes_per_year ?? p.display?.advisory_minutes_per_year) || 'none'}`).join('; ')}. It is separate from the one-time Capital Readiness services.`,
+      a: `Paid plans include time with an advisor each subscription year: ${[ci, cr].filter(Boolean).map((p) => `${p.name}, ${advisoryLabel(p.entitlements?.advisory_minutes_per_year ?? p.display?.advisory_minutes_per_year) || 'none'}`).join('; ')}. You book it from Settings, Plan and billing. Yearly plans get it, and the Capital Readiness Report, from day one; on monthly billing the report opens after your first renewal and expert time from your third paid month. It is separate from the one-time Capital Readiness services.`,
     },
     cr && {
       q: 'Can I export my matches and pipeline?',
@@ -257,7 +257,7 @@ export function PricingFaq({ data, catalog = null }) {
     },
     paid && {
       q: 'How does the credit work?',
-      a: `If you bought a Capital Readiness Report or Capital Readiness + Advisor and move to Capital Raising within ${paid.credit.window_days} days, ${money(paid.credit.amount_usd)} counts toward it, monthly or yearly. For Capital Readiness + Advisor, ${money(paid.credit.amount_usd)} is credited and the advisor session is not. It is the only credit and it applies once.`,
+      a: `If you bought a Capital Readiness Report or Capital Readiness + Advisor and move to Capital Raising within ${paid.credit.window_days} days, ${money(paid.credit.amount_usd)} counts toward it, monthly or yearly. For Capital Readiness + Advisor, ${money(paid.credit.amount_usd)} is credited and the advisor session is not. It applies once. Moving up from ${ci ? ci.name : 'Capital Intelligence'} to Capital Raising, the unused part of your current plan is credited by our payment provider.`,
     },
     days && {
       q: `What are the ${days} days included with the report?`,

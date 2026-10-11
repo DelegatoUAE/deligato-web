@@ -56,7 +56,7 @@ export default function PackagesPage() {
   const cta = (plan, price, story = {}) => {
     if (isCurrent(plan)) return <Badge tone="ok">{plan.tier ? 'Your plan' : 'Bought'}</Badge>;
     if (Number(price?.amount_usd) === 0) return <Badge tone="neutral">Included</Badge>;
-    // D73: Capital Intelligence is shown with its real limits but billing sells it only from RC3 phase 3.
+    // D73: a plan the API marks as not sold yet is shown, never sold (none since RC3 phase 3; payments stay off).
     if (plan.checkout === false) return <Button variant="secondary" block disabled>Opens with payments</Button>;
     return (
       <Button variant={plan.id === 'capital-raising' ? 'accent' : plan.id === 'capital-assessment' ? 'primary' : 'secondary'} iconRight="arrowRight" block
@@ -136,7 +136,7 @@ export default function PackagesPage() {
 
       {choosingPlan && (
         <CheckoutDialog key={`${choosingPlan.id}-${choosing.price}`} open onClose={closeCheckout} plan={choosingPlan} initialPriceKey={choosing.price}
-          companyId={companyId} credit={credit} versionLabel={data.price_version_label} />
+          companyId={companyId} credit={credit} versionLabel={data.price_version_label} currentProduct={subQ.data?.subscription?.product_id || null} />
       )}
       <Modal open={Boolean(asking)} onClose={() => setAsking(null)} size="sm" title={asking?.name || ''}
         description="Optional specialist help is arranged separately, never through checkout. We record that you asked; nothing is charged."

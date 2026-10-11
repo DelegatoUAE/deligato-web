@@ -12,7 +12,7 @@ const TestCheckout = import.meta.env.DEV ? lazy(() => import('./TestCheckout')) 
  * Payments off (503 payments_not_enabled) is a calm, honest state: nothing is charged,
  * and nothing pretends to succeed. Advisor/consulting items never reach here (D50).
  */
-export default function CheckoutDialog({ open, onClose, plan, initialPriceKey, companyId, credit, versionLabel }) {
+export default function CheckoutDialog({ open, onClose, plan, initialPriceKey, companyId, credit, versionLabel, currentProduct = null }) {
   const prices = plan?.prices || [];
   const [priceKey, setPriceKey] = useState(initialPriceKey && prices.some((p) => p.key === initialPriceKey) ? initialPriceKey : prices[0]?.key);
   const [state, setState] = useState({ step: 'confirm' });
@@ -22,6 +22,8 @@ export default function CheckoutDialog({ open, onClose, plan, initialPriceKey, c
   const creditApplies = plan.id === 'capital-raising' && credit && Number(credit.amount_usd) > 0 && (credit.toward || []).includes('capital-raising');
   const creditUsd = creditApplies ? Math.min(Number(credit.amount_usd), Number(price.amount_usd)) : 0;
   const founding = plan.id === 'capital-raising' ? foundingLabel(plan, versionLabel) : null;
+  // OD-16 A (RC3 phase 3): moving up from Capital Intelligence, its subscription stops when this payment completes.
+  const upgradeFromCi = plan.id === 'capital-raising' && ['capital-intelligence', 'company-intelligence'].includes(currentProduct);
 
   async function go() {
     setState({ step: 'busy' });
@@ -77,6 +79,7 @@ export default function CheckoutDialog({ open, onClose, plan, initialPriceKey, c
           {creditApplies && <div className="co-total"><dt>First payment</dt><dd>{money(Math.max(0, Number(price.amount_usd) - creditUsd))}</dd></div>}
         </dl>
         {founding && price.locked_months ? <p className="ui-muted">{founding}.</p> : null}
+        {upgradeFromCi && <p className="ui-muted">Your Capital Intelligence subscription stops when this payment completes, and the unused part is credited by our payment provider. Nothing in your account is deleted.</p>}
         {creditApplies && credit.expires_at && <p className="ui-faint">The credit is applied once, at checkout, and is available until {new Date(credit.expires_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}.</p>}
         <p className="ui-muted">You complete payment on our payment provider&apos;s secure page. Prices in USD.</p>
         {state.step === 'error' && <Alert tone={state.copy.kind === 'conflict' ? 'warn' : 'bad'} title={state.copy.title}>{state.copy.body}</Alert>}

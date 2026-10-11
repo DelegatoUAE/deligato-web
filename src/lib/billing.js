@@ -13,7 +13,9 @@ export const createCheckout = ({ companyId, productId, priceKey, idempotencyKey 
 
 export const getSubscription = (companyId) => apiFetch(`/api/v1/billing/subscription?company_id=${encodeURIComponent(companyId)}`);
 
-export const cancelPlan = (companyId, stepDownTo = 'company-intelligence') =>
+// RC3 phase 3: a Capital Raising subscription steps down to Capital Intelligence (the api still accepts the
+// pre-RC3 'company-intelligence' and reads it as the same plan).
+export const cancelPlan = (companyId, stepDownTo = 'capital-intelligence') =>
   apiFetch('/api/v1/billing/cancel', { method: 'POST', body: JSON.stringify({ company_id: companyId, step_down_to: stepDownTo }) });
 
 export const refundCheckout = (companyId, checkoutId) =>
@@ -28,3 +30,13 @@ export function safeRedirect(url, origin = typeof window !== 'undefined' ? windo
   } catch { /* not a URL */ }
   return null;
 }
+
+// D73 expert time in the plan (RC3 phase 3: the api's advisory ledger, through Expert Access).
+export const getAdvisory = (companyId) => apiFetch(`/api/v1/experts/advisory?company_id=${encodeURIComponent(companyId)}`);
+
+/** Book expert time from the plan's yearly allowance: the minutes are reserved; an advisor confirms a time. */
+export const bookPlanExpertTime = ({ companyId, minutes, topic, note }) =>
+  apiFetch('/api/v1/experts/requests', {
+    method: 'POST',
+    body: JSON.stringify({ company_id: companyId, kind: 'expert_help', advisory_minutes: minutes, topic, note }),
+  });

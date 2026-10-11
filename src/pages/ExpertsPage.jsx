@@ -6,7 +6,7 @@ import ExpertCard from '../components/ExpertCard';
 import { useCompany } from '../components/company-context';
 import useApi from '../lib/useApi';
 import { getTaxonomy, interpretNeed, matchExperts, listDirectory, requestExpertHelp, saveBrief, ENGAGEMENT, URGENCY, SENIORITY } from '../lib/experts';
-import { advisoryLabel } from '../lib/plan';
+import { PlanExpertTime } from '../components/billing/PlanBenefits';
 import { getUnlocks } from '../lib/capital';
 import { readinessGapFactors } from '../lib/readiness';
 import { BRIDGE_LABEL, expertBridge } from '../lib/expertise';
@@ -14,22 +14,6 @@ import { isMissingEndpoint } from '../lib/auth';
 import { fmtUsd } from '../lib/format';
 
 const EXAMPLES = ['a fractional CFO for 2 days a week', 'help with our cap table before a SAFE', 'UAE corporate tax registration'];
-
-/**
- * D73 annual expert time (40 minutes on Capital Intelligence, 2 hours on Capital Raising, from the
- * API). D74 (4) removed the free 20-minute session. Booking against the allowance is RC3 phase 3
- * (the ledger), so this card states the allowance and does not book.
- */
-function PlanExpertTime({ minutes }) {
-  const label = advisoryLabel(minutes);
-  if (!label) return null;
-  return (
-    <Card className="assess" title="Expert time in your plan">
-      <p><strong>{label} per subscription year</strong> with an advisor, included in your plan.</p>
-      <p className="ui-muted">Booking against it opens soon. Until then, request help below and our team arranges it.</p>
-    </Card>
-  );
-}
 
 function CapitalAssessment({ companyId }) {
   const toast = useToast();
@@ -186,7 +170,7 @@ export default function ExpertsPage() {
         </section>
       )}
 
-      <PlanExpertTime minutes={entitlements?.advisory_minutes_per_year} />
+      {Number(entitlements?.advisory_minutes_per_year) > 0 && <PlanExpertTime companyId={companyId} />}
       {/* D73: a plan that includes the Capital Readiness Report is never prompted to buy it. */}
       {!entitlements?.capital_readiness_included && <CapitalAssessment companyId={companyId} />}
 

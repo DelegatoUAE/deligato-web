@@ -108,7 +108,8 @@ export function billingErrorCopy(err) {
     return { kind: 'conflict', title: 'Specialist help is arranged separately.', body: 'Expert and advisor help is optional and never bought through checkout.' };
   }
   if (['already_subscribed', 'already_active', 'step_down_instead', 'pass_not_cancellable', 'already_scheduled', 'credit_in_use',
-    'refund_window_closed', 'not_first_payment', 'credit_already_used', 'not_refundable', 'no_subscription'].includes(code)) {
+    'refund_window_closed', 'not_first_payment', 'credit_already_used', 'not_refundable', 'no_subscription', 'readiness_included',
+    'advisory_balance_low', 'advisory_not_included'].includes(code)) {
     return { kind: 'conflict', title: CONFLICT_TITLE[code] || 'That change is not available.', body: err.message || '' };
   }
   if (err?.status === 0 || code === 'network') return { kind: 'error', title: "We couldn't reach the server.", body: 'Nothing has been charged. Check your connection and try again.' };
@@ -127,6 +128,9 @@ const CONFLICT_TITLE = {
   credit_already_used: 'This purchase was credited toward an upgrade.',
   not_refundable: 'This payment cannot be refunded.',
   no_subscription: 'There is no subscription to cancel.',
+  readiness_included: 'Your plan already includes this report.',
+  advisory_balance_low: 'Not enough expert time left this year.',
+  advisory_not_included: 'No expert time to book yet.',
 };
 
 /** True when the API says this checkout can still be refunded (first payment, inside the window). */
@@ -143,6 +147,57 @@ export function creditUsedBy(checkout, all = []) {
   if (!checkout || !['capital-readiness', 'capital-assessment'].includes(checkout.product_id)) return false;
   const at = new Date(checkout.completed_at || 0);
   return all.some((c) => c !== checkout && c.status === 'completed' && Number(c.credit_usd) > 0 && new Date(c.completed_at || 0) >= at);
+}
+
+// ---- D73 plan benefits (RC3 phase 3): GET /billing/subscription -> benefits { readiness, advisory } ----
+
+/** "40 minutes" / "2 hours" / "1 hour 30 minutes" for a number of minutes. */
+export function minutesLabel(n) {
+  const m = Number(n);
+  if (!Number.isFinite(m) || m <= 0) return '0 minutes';
+  const h = Math.floor(m / 60); const r = m % 60;
+  const hp = h ? `${h} ${h === 1 ? 'hour' : 'hours'}` : '';
+  const mp = r ? `${r} minutes` : '';
+  return [hp, mp].filter(Boolean).join(' ');
+}
+
+const day = (d) => (d ? new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : null);
+
+/**
+ * The words for the two D73 benefits that depend on paid time, from the API's benefits block. Never a
+ * promise the API did not make: null when the plan does not include the benefit.
+ * -> { readiness: { state, text } | null, advisory: { state, text, balance, canBook } | null }
+ */
+export function benefitLines(benefits) {
+  const out = { readiness: null, advisory: null };
+  const r = benefits?.readiness;
+  if (r && (r.included || r.purchased)) {
+    if (r.available) {
+      out.readiness = { state: 'open', text: r.basis === 'purchase' ? 'Your Capital Readiness Report is yours: you bought it.' : 'Included in your plan and ready for you.' };
+    } else {
+      out.readiness = { state: 'pending', text: `Included in your plan. On monthly billing it opens after your first renewal${r.available_from ? `, on ${day(r.available_from)}` : ''}.` };
+    }
+  }
+  const a = benefits?.advisory;
+  if (a && a.available && (a.minutes_per_year > 0 || a.status === 'ending')) {
+    if (a.status === 'pending') {
+      out.advisory = { state: 'pending', balance: 0, canBook: false,
+        text: `${minutesLabel(a.minutes_per_year)} a year with an advisor. On monthly billing it opens from your third paid month${a.eligible_from ? `, around ${day(a.eligible_from)}` : ''}.` };
+    } else if (a.status === 'ending') {
+      out.advisory = { state: 'ending', balance: a.balance, canBook: false, text: `Your plan no longer includes expert time. ${a.reserved ? `${minutesLabel(a.reserved)} you already booked are still honoured.` : ''}`.trim() };
+    } else {
+      const until = a.year?.end ? ` until ${day(a.year.end)}` : '';
+      out.advisory = { state: 'active', balance: a.balance, canBook: Boolean(a.booking_available) && a.balance > 0,
+        text: `${minutesLabel(a.balance)} of ${minutesLabel(a.minutes_per_year)} left this subscription year${until}.${a.reserved ? ` ${minutesLabel(a.reserved)} booked.` : ''}` };
+    }
+  }
+  return out;
+}
+
+/** Session lengths a founder may book from the balance (the API takes 10 to 120 in steps of 10). */
+export function bookingOptions(balance) {
+  const b = Number(balance) || 0;
+  return [20, 30, 40, 60, 90, 120].filter((m) => m <= b).concat(b > 0 && b < 20 ? [10] : []);
 }
 
 /** The Company Intelligence bridge from a $54/$99 purchase: the latest expiry, or null. */
@@ -163,12 +218,11 @@ export function idempotencyKey(productId, priceKey, rand = Math.random) {
 
 // ---- D73: 3 platform plans (Free · Capital Intelligence · Capital Raising) + 2 one-time services ----
 //
-// GET /billing/plans prices only what checkout sells. Until RC3 phase 3 moves the $29 checkout to
-// `capital-intelligence`, the list publishes the D73 ladder unpriced in `d73_platform`, and the $29
-// column it prices is the restricted `company-intelligence` bundle. So a D73 plan the price list does
-// not carry is read from the public catalog (GET /packages/catalog: name, tagline, prices, display)
-// and marked `checkout: false` (it cannot be bought until billing sells it). Nothing here knows a
-// number: every limit and price is the API's.
+// GET /billing/plans prices only what checkout sells. Since RC3 phase 3 (api rc3-phase3-5) it prices the
+// D73 ladder itself (`capital-intelligence` at $29/$290; the restricted `company-intelligence` bundle is
+// never listed). An older API (RC3 phases 1-2) published the ladder unpriced in `d73_platform`: a D73 plan
+// the price list does not carry is then read from the public catalog (GET /packages/catalog) and marked
+// `checkout: false`. Nothing here knows a number: every limit and price is the API's.
 
 const LEGACY_PLATFORM = ['readiness-free', 'company-intelligence', 'capital-raising'];
 const SERVICES = ['capital-readiness', 'capital-assessment'];
@@ -263,7 +317,7 @@ const D73_BULLETS = [
 
 export const PLAN_STORY = {
   'readiness-free': { promise: 'See where you stand and your first ranked matches.', cta: 'Start free' },
-  'capital-intelligence': { promise: 'Prepare your raise and manage who you approach.', cta: 'Choose Capital Intelligence' },
+  'capital-intelligence': { promise: 'Prepare your raise and manage who you approach.', cta: 'Start preparing' },
   'capital-raising': { promise: 'Run your raise end-to-end, with the full workflow.', cta: 'Start raising' },
   'capital-readiness': {
     label: 'Capital Readiness Report', promise: 'A structured assessment of what is ready, what is missing and what to fix next.', cta: 'Get your report',

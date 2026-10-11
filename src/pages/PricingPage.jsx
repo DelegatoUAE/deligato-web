@@ -13,7 +13,7 @@ import '../components/billing/billing.css';
 
 // Public pricing at /pricing (D73: Free · Capital Intelligence · Capital Raising + 2 one-time services).
 // Every price, label and limit is rendered from GET /api/v1/billing/plans (and GET /packages/catalog for
-// a D73 plan the price list does not price until RC3 phase 3); if it can't load,
+// a D73 plan an older price list did not price); if it can't load,
 // no price is shown (never a hard-coded one). Checkout behaves exactly as before: signed out,
 // every action goes to sign-up; signed in, a paid choice opens the Plans page, where payments
 // stay off until billing is switched on.
@@ -43,7 +43,7 @@ export default function PricingPage() {
     const variant = plan.id === 'capital-raising' ? 'accent' : plan.id === 'capital-assessment' ? 'primary' : free ? 'primary' : 'secondary';
     if (!signedIn) return <Button as={Link} to="/signup" variant={variant} iconRight="arrowRight" block>{label}</Button>;
     if (free) return <Button as={Link} to="/" variant="secondary" iconRight="arrowRight" block>Open the app</Button>;
-    // D73: a plan billing does not sell yet (Capital Intelligence until RC3 phase 3) is shown, never sold.
+    // D73: a plan billing does not sell yet is shown, never sold (none since RC3 phase 3; payments stay off).
     if (plan.checkout === false) return <Button variant={variant} block disabled>Opens with payments</Button>;
     return (
       <Button as={Link} to={`/packages?choose=${encodeURIComponent(plan.id)}&price=${encodeURIComponent(price.key)}`} variant={variant} iconRight="arrowRight" block>
