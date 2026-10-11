@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Alert, Badge, Button, Card, EmptyState, PageHeader, Skeleton } from '../design/ui';
+import { Alert, Badge, Button, Card, PageHeader, Skeleton } from '../design/ui';
 import SubNav from '../components/SubNav';
 import ExpertBridgeLink from '../components/ExpertBridgeLink';
+import ReadinessIntro from '../components/capital/ReadinessIntro';
 import { useCompany } from '../components/company-context';
 import { ReadinessSnapshot, FactorBars } from '../components/capital/Readiness';
 import { LoadError } from '../components/capital/bits';
@@ -46,20 +47,7 @@ export default function ReadinessPage() {
 
   if (readinessLoading) return <div>{head}<Skeleton h="300px" /></div>;
   if (readinessError) return <div>{head}<LoadError error={readinessError} what="your readiness" /></div>;
-  if (!r) {
-    return (
-      <div>{head}
-        <EmptyState icon="gauge" title={`How ready is ${company.name} to raise?`}
-          body="Answer a short set of questions about your runway, raise, revenue and team. It takes about 5 minutes. You'll get a Capital Readiness Score (Conncct method) and the three gaps worth closing first."
-          action={(
-            <div className="ui-stack ui-stack-sm" style={{ justifyItems: 'center' }}>
-              <Button as={Link} to="/capital/readiness/assess" variant="accent">Get your score</Button>
-            </div>
-          )} />
-        <p className="ui-faint" style={{ textAlign: 'center' }}>Investors look for the same things this checks. It also decides which help we suggest.</p>
-      </div>
-    );
-  }
+  if (!r) return <div><SubNav section="capital" /><ReadinessIntro company={company} /></div>;
 
   return (
     <div className="readiness">

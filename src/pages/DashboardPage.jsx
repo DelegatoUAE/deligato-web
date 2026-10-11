@@ -5,10 +5,12 @@ import useApi from '../lib/useApi';
 import { getCommandCenter, isUnavailable } from '../lib/companyIntel';
 import { firstName, countryName, fmtUsd, fmtDate, fmtMonths, timingLabel, plural, plainIntel, todayIso, companyWord } from '../lib/format';
 import { partOfDay } from '../lib/home';
+import { signalStatus, TONE_WORD } from '../lib/signal-status';
 import { CapacityMeter, LoadError, FundraisingNotice, MoreMatchesNote } from '../components/capital/bits';
 import MatchRow from '../components/capital/MatchRow';
 import { nextPlanFor } from '../lib/plan';
-import ClassicHome, { Waiting } from '../components/home/ClassicHome';
+import ClassicHome from '../components/home/ClassicHome';
+import WelcomeHome from '../components/home/WelcomeHome';
 import { ChangeList, AttentionList, AskPrompts, SpecialistLink, Delta, UpgradeLine } from '../components/intel/IntelBits';
 
 /**
@@ -25,7 +27,7 @@ export default function DashboardPage() {
   const name = firstName(me?.profile?.full_name || me?.user?.user_metadata?.full_name);
 
   if (companiesLoading) return <CcSkeleton />;
-  if (!company) return <Waiting staff={staff} name={name} />;
+  if (!company) return <WelcomeHome staff={staff} name={name} />;
   // Before migration 016 the live layer answers 503: keep the previous Home rather than a blank page.
   if (q.error && isUnavailable(q.error)) return <ClassicHome />;
   if (q.error) return <div className="cc"><Greeting name={name} company={company} /><LoadError error={q.error} onRetry={q.reload} what="your Command Center" /></div>;
@@ -119,6 +121,7 @@ function Greeting({ name, company, snapshot }) {
   const goal = snapshot?.goal?.name;
   return (
     <header className="cc-head">
+      <span className="mx-rule" aria-hidden="true" />
       <p className="cc-eyebrow">{`Good ${partOfDay()}${name ? `, ${name}` : ''}`}</p>
       <h1>{co.name}</h1>
       <p className="cc-sub">{[co.stage, co.sector, countryName(co.hq_country_iso2 || company?.hq_country_iso2)].filter(Boolean).join(' · ')}</p>
@@ -216,13 +219,20 @@ function Signal({ kind, s, high }) {
       : t?.start_by ? `Start raising by ${fmtDate(t.start_by)}` : t?.status === 'no_target_date' ? 'Set a target date'
         : timingLabel(s.raise_timing) || (!s.confirmed ? "Confirm what you're raising" : '');
   }
+  const st = signalStatus(kind, s);
   return (
-    <Link to={to} className={`sig${high ? ' sig-high' : ''}`}>
-      <span className="sig-name">{meta.title}{high && <span className="sig-flag"> · leads for you</span>}</span>
+    <Link to={to} className={`sig sig-${st.tone}${high ? ' sig-high' : ''}`}>
+      <span className="sig-top">
+        <span className="sig-name">{meta.title}</span>
+        {TONE_WORD[st.tone] && <span className={`sig-status is-${st.tone}`}>{TONE_WORD[st.tone]}</span>}
+      </span>
+      {high && <span className="sig-flag">Leads for you</span>}
       <span className="sig-value">{value}</span>
       {line && <span className="sig-line">{line}</span>}
+      {st.pct != null && <span className="sig-bar" aria-hidden="true"><i style={{ width: `${st.pct}%` }} /></span>}
       {delta && <Delta direction={delta.direction}>{delta.text}</Delta>}
       {foot && <span className="sig-foot">{foot}</span>}
+      <span className="sig-act">{st.action}<Icon name="arrowRight" size={14} /></span>
     </Link>
   );
 }

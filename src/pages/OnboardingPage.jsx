@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
-import { Alert, Button, Card, ChipToggle, FormField, Input, ProgressSteps, Select, Textarea, useToast } from '../design/ui';
+import { Alert, Button, Card, ChipToggle, FormField, Input, Select, Textarea, useToast } from '../design/ui';
 import { useCompany } from '../components/company-context';
 import { createCompany } from '../lib/companies';
-import { POSITIONING, fmtUsd, countryName } from '../lib/format';
+import { fmtUsd, countryName } from '../lib/format';
 import { countryOptions } from '../lib/countries';
 
 const COUNTRY_OPTIONS = countryOptions();
@@ -109,12 +109,23 @@ export default function OnboardingPage() {
   return (
     <div className="onboard" ref={topRef}>
       <header className="onboard-head">
-        <p className="home-positioning onboard-line">{POSITIONING}</p>
+        <span className="mx-rule" aria-hidden="true" />
         <h1>Tell us about your company</h1>
-        <p className="ui-muted">These facts drive which kinds of capital fit you and who we match you with. You can change them later in Company.</p>
+        <p className="onboard-lede">These facts decide which kinds of capital fit you and who we match you with. About 3 minutes; you can change them later in Company.</p>
       </header>
-      <ProgressSteps className="find-steps" steps={STEPS.map((s, i) => ({ label: s, status: i < step ? 'done' : i === step ? 'current' : 'upcoming', onClick: i < step ? () => setStep(i) : undefined }))} />
       <Card className="onboard-card">
+        <nav className="ob-steps" aria-label="Setup progress">
+          <p className="ob-steps-n">Step {step + 1} of {STEPS.length}<span>{STEPS[step]}</span></p>
+          <ol className="ob-seg">
+            {STEPS.map((label, i) => (
+              <li key={label} className={i < step ? 'is-done' : i === step ? 'is-current' : ''} aria-current={i === step ? 'step' : undefined}>
+                {i < step
+                  ? <button type="button" onClick={() => setStep(i)}><i aria-hidden="true" /><span>{label}</span></button>
+                  : <span className="ob-seg-in"><i aria-hidden="true" /><span>{label}</span></span>}
+              </li>
+            ))}
+          </ol>
+        </nav>
         {step === 0 && (
           <div className="ui-form ui-form-2">
             <FormField label="Company name" required error={errors.company_name} wide><Input value={f.company_name} onChange={set('company_name')} autoComplete="organization" /></FormField>
@@ -177,8 +188,8 @@ export default function OnboardingPage() {
         )}
         {error && <Alert tone="bad">{error}</Alert>}
         <div className="onboard-nav">
-          {step > 0 ? <Button variant="ghost" onClick={() => setStep(step - 1)}>Back</Button> : <span />}
-          {step < 3 ? <Button variant="primary" onClick={next}>Continue</Button> : <Button variant="accent" loading={busy} onClick={create}>Create my company</Button>}
+          {step > 0 ? <Button variant="secondary" size="lg" onClick={() => setStep(step - 1)}>Back</Button> : <span />}
+          {step < 3 ? <Button variant="primary" size="lg" iconRight="arrowRight" onClick={next}>Continue</Button> : <Button variant="primary" size="lg" loading={busy} onClick={create}>Create my company</Button>}
         </div>
       </Card>
       <p className="ui-faint onboard-foot"><Link to="/experts">Only looking for an expert?</Link></p>
