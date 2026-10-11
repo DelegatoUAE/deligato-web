@@ -1,4 +1,6 @@
+import { createElement } from 'react';
 import cx from './cx.js';
+import { HeadingLevel, headingTag, useHeadingLevel } from './heading-context.js';
 
 /**
  * Card: the default content container.
@@ -19,12 +21,13 @@ export default function Card({
   subtitle,
   action,
   footer,
-  titleAs: TitleAs = 'h3',
+  titleAs,
   className,
   children,
   ...rest
 }) {
   const padded = paddedProp ?? pad ?? true;
+  const level = useHeadingLevel();
   const hasHead = title || subtitle || action || eyebrow;
   return (
     <As
@@ -43,13 +46,13 @@ export default function Card({
         <div className="ui-card-head">
           <div>
             {eyebrow && <div className="ui-eyebrow">{eyebrow}</div>}
-            {title && <TitleAs className="ui-card-title">{title}</TitleAs>}
+            {title && createElement(titleAs || headingTag(level), { className: 'ui-card-title' }, title)}
             {subtitle && <p className="ui-card-sub">{subtitle}</p>}
           </div>
           {action && <div className="ui-card-action">{action}</div>}
         </div>
       )}
-      {children}
+      {title ? <HeadingLevel.Provider value={level + 1}>{children}</HeadingLevel.Provider> : children}
       {footer && <div className="ui-card-foot">{footer}</div>}
     </As>
   );

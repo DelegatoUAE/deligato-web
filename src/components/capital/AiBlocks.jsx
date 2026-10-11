@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Alert, Badge, Button, Icon, Skeleton } from '../../design/ui';
 import useTask from '../../lib/useTask';
-import { fmtDate, stealthLabel, wordsForCodes, stripEvidenceIds } from '../../lib/format';
+import { fmtDate, stealthLabel, wordsForCodes, stripEvidenceIds, fieldLabel } from '../../lib/format';
 import { upgradeHref } from '../../lib/plan';
 
 // Server text is already cleaned (api 2f2a75f); these stay as a fallback.
@@ -41,10 +41,10 @@ export function Cite({ c }) {
   const date = c.as_of ? fmtDate(c.as_of) : null;
   const label = stealthLabel(c.provenance) || 'Unknown';
   const value = Array.isArray(c.value) ? c.value.join(', ') : c.value;
-  const tip = [c.field && `${c.field}: ${wordsForCodes(String(value ?? 'not on record'))}`, label, date && `checked ${date}`, c.source_name].filter(Boolean).join(' · ');
+  const tip = [c.field && `${fieldLabel(c.field)}: ${wordsForCodes(String(value ?? 'not on record'))}`, label, date && `checked ${date}`, c.source_name].filter(Boolean).join(' · ');
   return (
     <span className={`cite${c.verified ? ' is-verified' : ''}`} title={tip} tabIndex={0} aria-label={`Source: ${tip}`}>
-      <span className="cite-f">{c.field || 'field'}</span>
+      <span className="cite-f">{fieldLabel(c.field) || 'Source'}</span>
       <span className="cite-p">{label}{date ? ` · ${date}` : ''}</span>
     </span>
   );
@@ -95,7 +95,7 @@ export function ShortlistSummary({ companyId, recordIds }) {
       <div className="aisec-head">
         <div>
           <h2 className="aisec-h">Your shortlist at a glance</h2>
-          <p className="ui-muted">A summary of the providers you saved, built from the match engine's counts and the source of each fact.</p>
+          <p className="ui-muted">A summary of the providers you shortlisted, built from the match engine's counts and the source of each fact.</p>
         </div>
         {!s.result && !s.loading && !s.gate && (
           <Button variant="secondary" size="sm" iconLeft="spark" onClick={() => run({ company_id: companyId, record_ids: recordIds.slice(0, 15) })}>Summarise my shortlist</Button>

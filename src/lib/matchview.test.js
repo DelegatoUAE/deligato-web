@@ -50,3 +50,32 @@ test('the Ticket fit column sorts by fit state, not by ticket size', () => {
   assert.deepEqual(ids(sortMatches(rs, 'ticket', 'desc')), ['b', 'a']);
   assert.deepEqual(ids(sortMatches(rs, 'ticket_size', 'desc')), ['a', 'b']);
 });
+
+test('the Match score explainer is the approved phrase, verbatim (positioning §4)', async () => {
+  const { MATCH_SCORE_EXPLAINER } = await import('./matchview.js');
+  assert.equal(MATCH_SCORE_EXPLAINER, 'Fit counts for most of the score. How much we know about the investor pulls it toward the middle. Unknown details never add points. This score is about fit, not your chance of raising.');
+});
+
+test('a run made on a smaller plan is flagged after an upgrade (UAT F08)', async () => {
+  const { runBelowPlan } = await import('./matchview.js');
+  const five = { results: new Array(5).fill({}), counts: { eligible: 1001 } };
+  assert.equal(runBelowPlan(five, null), true);
+  assert.equal(runBelowPlan(five, 5), false);
+  assert.equal(runBelowPlan({ results: new Array(200).fill({}), counts: { eligible: 1123 } }, null), false);
+  assert.equal(runBelowPlan({ results: new Array(3).fill({}), counts: { eligible: 3 } }, null), false);
+});
+
+test('one label system on shortlist and pipeline: evidence bucket first, tier only as strength (UAT #9)', async () => {
+  const { savedFitLabel, tierLabel } = await import('./matchview.js');
+  assert.equal(tierLabel('possible'), 'Moderate fit');
+  assert.equal(tierLabel('strong'), 'Strong fit');
+  assert.equal(savedFitLabel({ fit_tier_at_add: 'possible' }, { bucket: 'eligible', fit_tier: 'possible' }), 'Verified fit');
+  assert.equal(savedFitLabel({ fit_tier_at_add: 'strong' }, { bucket: 'eligible', fit_tier: 'strong' }), 'Verified fit · Strong fit');
+  assert.equal(savedFitLabel({ fit_tier_at_add: 'strong' }, { bucket: 'possible', fit_tier: 'possible' }), 'Possible');
+  assert.equal(savedFitLabel({ fit_tier_at_add: 'strong' }, { bucket: 'possible', fit_tier: 'strong' }), "Possible · Strong fit on what's known");
+  assert.equal(savedFitLabel({ fit_tier_at_add: 'possible' }, null), 'Moderate fit when saved');
+  assert.equal(savedFitLabel({}, null), null);
+  for (const b of ['eligible', 'possible', 'likely_outside']) for (const t of ['strong', 'possible', 'lead']) {
+    assert.doesNotMatch(savedFitLabel({ fit_tier_at_add: t }, { bucket: b, fit_tier: t }), /eligible|Possible fit/);
+  }
+});

@@ -2,8 +2,11 @@ import { lazy, Suspense, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Alert, Button, ChipToggle, FormField, Input } from '../design/ui';
 import AuthLayout from '../components/AuthLayout';
+import { afterSignIn } from '../lib/team';
 import PasswordInput from '../components/PasswordInput';
+import { publicAuthError } from '../lib/errorDetails';
 import { apiFetch, setSession } from '../lib/auth';
+import ResendConfirmation from '../components/ResendConfirmation';
 
 const DevRegister = import.meta.env.DEV ? lazy(() => import('../components/DevRegister')) : null;
 
@@ -14,11 +17,14 @@ export default function SignupPage() {
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(null);
+  const [pwError, setPwError] = useState(null);
   const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });
 
   async function onSubmit(e) {
     e.preventDefault();
-    if (form.password.length < 8) { setError('Use at least 8 characters for your password.'); return; }
+    // UAT F29: the error sits on the field, and focus moves there.
+    if (form.password.length < 8) { setPwError('Use at least 8 characters for your password.'); document.getElementById('signup-password')?.focus(); return; }
+    setPwError(null);
     setError(null);
     setBusy(true);
     try {
@@ -26,12 +32,13 @@ export default function SignupPage() {
       // Production confirms the email first: the account exists but there is no session yet.
       if (data && data.session && data.session.access_token) {
         setSession(data.session);
-        navigate('/onboarding');
+        navigate(afterSignIn('/onboarding'));
       } else {
         setSent(data && data.message ? data.message : 'Check your email to confirm your address, then sign in.');
       }
     } catch (err) {
-      setError(err.message);
+      // UAT F16: a server fault never shows its internals (e.g. an env variable name).
+      setError(publicAuthError(err, 'Sign-up is unavailable right now. Try again shortly.'));
     } finally {
       setBusy(false);
     }
@@ -42,6 +49,8 @@ export default function SignupPage() {
       <AuthLayout title="Check your email" subtitle={`We sent a confirmation link to ${form.email}.`}>
         <div className="ui-stack">
           <Alert tone="ok">{sent}</Alert>
+          <p className="login-alt">No email after a few minutes? Check your spam or junk folder, then:</p>
+          <ResendConfirmation email={form.email} />
           <p className="login-alt">Confirmed already? <Link to="/login">Sign in</Link></p>
         </div>
       </AuthLayout>
@@ -53,7 +62,7 @@ export default function SignupPage() {
       <form className="ui-stack" onSubmit={onSubmit}>
         <FormField label="Your name" required><Input autoComplete="name" value={form.full_name} onChange={set('full_name')} required /></FormField>
         <FormField label="Work email" required><Input type="email" autoComplete="email" value={form.email} onChange={set('email')} required /></FormField>
-        <FormField label="Password" required hint="At least 8 characters."><PasswordInput autoComplete="new-password" value={form.password} onChange={set('password')} required /></FormField>
+        <FormField label="Password" required hint="At least 8 characters." error={pwError}><PasswordInput id="signup-password" autoComplete="new-password" value={form.password} onChange={set('password')} required /></FormField>
         <FormField label="Company name" optional><Input autoComplete="organization" value={form.organization} onChange={set('organization')} /></FormField>
         <FormField label="Which describes you?">
           {() => <ChipToggle single label="Account type" value={[form.account_type]} onChange={(v) => setForm({ ...form, account_type: v[0] || 'founder' })}
@@ -66,7 +75,7 @@ export default function SignupPage() {
       </form>
       {DevRegister && (
         <Suspense fallback={null}>
-          <DevRegister fullName={form.full_name} email={form.email} onCreated={() => navigate('/onboarding')} />
+          <DevRegister fullName={form.full_name} email={form.email} onCreated={() => navigate(afterSignIn('/onboarding'))} />
         </Suspense>
       )}
     </AuthLayout>

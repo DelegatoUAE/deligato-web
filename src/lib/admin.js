@@ -86,7 +86,7 @@ export const URGENT_RAISE_ISSUES = new Set(['target_date_passed', 'raise_start_p
 export const EVIDENCE_LABEL = { verified: 'Verified', sourced: 'Sourced', inferred: 'Inferred', missing: 'Missing' };
 export const EVIDENCE_TONE = { verified: 'ok', sourced: 'neutral', inferred: 'warn', missing: 'bad' };
 
-export const BUCKET_LABEL = { eligible: 'Verified eligible', possible: 'Possible', likely_outside: 'Likely outside mandate' };
+export const BUCKET_LABEL = { eligible: 'Verified fit', possible: 'Possible', likely_outside: 'Likely outside mandate' };
 export const TIER_LABEL = { strong: 'Strong fit', possible: 'Possible fit', lead: 'Research lead' };
 export const STAGE_LABEL = {
   shortlisted: 'Shortlisted', researching: 'Researching', intro_requested: 'Intro requested', contacted: 'Contacted',

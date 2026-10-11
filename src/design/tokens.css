@@ -133,6 +133,13 @@
   --gold-line:     var(--gold-300);
   --track:         var(--cream-2);   /* empty part of bars and rings */
 
+  /* intelligence blue (D68 pricing): Company Intelligence and actions,
+     a quiet accent beside navy (trust) and gold (the one signal). */
+  --intel:         var(--info-600);
+  --intel-strong:  var(--info-700);
+  --intel-tint:    var(--info-050);
+  --intel-line:    var(--info-200);
+
   /* status: bg (wash) · tint (badge fill) · border · fg (text on tint)
      · fg-strong (text on wash) · solid (marks, fills) · on-solid */
   --ok-bg: var(--ok-050);     --ok-tint: var(--ok-100);     --ok-border: var(--ok-200);
@@ -321,6 +328,10 @@
   --gold-wash: rgba(231, 168, 30, 0.08);
   --gold-line: rgba(231, 168, 30, 0.35);
   --track: rgba(255, 255, 255, 0.09);
+  --intel:         var(--info-400);
+  --intel-strong:  var(--info-200);
+  --intel-tint:    rgba(90, 156, 203, 0.10);
+  --intel-line:    rgba(90, 156, 203, 0.35);
 
   --ok-bg: rgba(76, 175, 114, 0.10);  --ok-tint: rgba(76, 175, 114, 0.18);  --ok-border: rgba(76, 175, 114, 0.45);
   --ok-fg: #8EDBA9;  --ok-fg-strong: #B7E4C7;  --ok-solid: #4CAF72;  --on-ok-solid: var(--navy);
@@ -412,6 +423,10 @@
   --gold-wash:     rgba(231, 168, 30, 0.08);
   --gold-line:     rgba(240, 188, 78, 0.55);
   --track:         rgba(255, 255, 255, 0.09);
+  --intel:         var(--info-400);
+  --intel-strong:  var(--info-200);
+  --intel-tint:    rgba(90, 156, 203, 0.10);
+  --intel-line:    rgba(90, 156, 203, 0.35);
 
   --ok-bg: rgba(76, 175, 114, 0.10);  --ok-tint: rgba(76, 175, 114, 0.18);  --ok-border: rgba(76, 175, 114, 0.45);
   --ok-fg: #8EDBA9;  --ok-fg-strong: #B7E4C7;  --ok-solid: #4CAF72;  --on-ok-solid: var(--navy);
@@ -508,6 +523,10 @@
     --gold-wash:     rgba(231, 168, 30, 0.08);
     --gold-line:     rgba(240, 188, 78, 0.55);
     --track:         rgba(255, 255, 255, 0.09);
+    --intel:         var(--info-400);
+    --intel-strong:  var(--info-200);
+    --intel-tint:    rgba(90, 156, 203, 0.10);
+    --intel-line:    rgba(90, 156, 203, 0.35);
 
     --ok-bg: rgba(76, 175, 114, 0.10);  --ok-tint: rgba(76, 175, 114, 0.18);  --ok-border: rgba(76, 175, 114, 0.45);
     --ok-fg: #8EDBA9;  --ok-fg-strong: #B7E4C7;  --ok-solid: #4CAF72;  --on-ok-solid: var(--navy);

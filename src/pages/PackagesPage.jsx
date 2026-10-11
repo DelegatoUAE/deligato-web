@@ -2,16 +2,17 @@ import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Badge, Button, Card, Modal, PageHeader, Skeleton, useToast } from '../design/ui';
 import { useCompany } from '../components/company-context';
-import { FundraisingNotice, LoadError } from '../components/capital/bits';
-import PlanColumns, { OptionalSupport, PricingFaq } from '../components/billing/PlanColumns';
+import { FundraisingNotice, LoadError, MatchPreview } from '../components/capital/bits';
+import { hasMatching } from '../lib/plan';
+import { BillingToggle, CompareTable, PlatformPlans, PricingFaq, ServicesSection } from '../components/billing/PricingPlans';
 import CheckoutDialog from '../components/billing/CheckoutDialog';
 import useApi from '../lib/useApi';
 import { getCatalog, getRecommendation, selectPackage } from '../lib/packages';
 import { getPlans, getSubscription } from '../lib/billing';
-import { cleanCopy, columnsOf, money, priceLine } from '../lib/pricing';
+import { cleanCopy, columnsOf, hasAnnual, money, platformOf, priceLine } from '../lib/pricing';
 
 /**
- * Plans, signed in (D60/D61, D45/D46/D50). The five columns from GET /billing/plans,
+ * Plans, signed in (D68: 3 platform plans + 2 one-time services, D45/D46/D50). From GET /billing/plans,
  * "Choose" → checkout (CheckoutDialog). Expert / Advisor help stays an optional branch
  * beside the plans: it is never sold through checkout (D50); asking about it records interest only.
  * ?highlight=<id> marks a column (upgrade prompts); ?choose=<id>&price=<key> opens checkout (from /pricing).
@@ -29,8 +30,9 @@ export default function PackagesPage() {
   const [asking, setAsking] = useState(null);
   const [busy, setBusy] = useState(false);
   const [requested, setRequested] = useState({});
+  const [billing, setBilling] = useState('monthly');
 
-  const head = <PageHeader title="Plans" subtitle="Understand where you stand for free. Keep your company ready. Run your raise. Prices in USD." />;
+  const head = <PageHeader title="Plans" subtitle="Start free. Upgrade when you need more: Company Intelligence keeps you ready, Capital Raising adds investor matching and execution. Prices in USD." />;
   if (plansQ.error) return <div>{head}<LoadError error={plansQ.error} onRetry={plansQ.reload} what="plans" /></div>;
   if (!plansQ.data) return <div>{head}<Skeleton h="480px" /></div>;
 
@@ -50,15 +52,17 @@ export default function PackagesPage() {
     if (params.has('choose') || params.has('price')) { const p = new URLSearchParams(params); p.delete('choose'); p.delete('price'); setParams(p, { replace: true }); }
   };
 
-  const cta = (plan, price) => {
+  const cta = (plan, price, story = {}) => {
     if (isCurrent(plan)) return <Badge tone="ok">{plan.tier ? 'Your plan' : 'Bought'}</Badge>;
     if (Number(price?.amount_usd) === 0) return <Badge tone="neutral">Included</Badge>;
     return (
-      <Button variant={plan.id === 'capital-raising' ? 'accent' : 'secondary'} block onClick={() => setChoosing({ id: plan.id, price: price.key })}>
-        Choose {plan.name}
+      <Button variant={plan.id === 'capital-raising' ? 'accent' : plan.id === 'capital-assessment' ? 'primary' : 'secondary'} iconRight="arrowRight" block
+        onClick={() => setChoosing({ id: plan.id, price: price.key })}>
+        {story.cta || `Choose ${plan.name}`}
       </Button>
     );
   };
+  const annualNote = platformOf(data).flatMap((p) => p.prices || []).find((x) => x.billing === 'annual')?.note || null;
 
   // Optional support items (catalog): interest only, never checkout (D50).
   const optional = (catQ.data?.optional_support?.items || []).map((i) => ({ ...i, ...((catQ.data?.packages || []).concat(catQ.data?.add_ons || []).find((p) => p.id === i.id) || {}) }));
@@ -89,11 +93,28 @@ export default function PackagesPage() {
       {!data.checkout?.enabled && (
         <p className="pr-payments-off" role="status"><strong>Payments open soon.</strong> Your plan isn&apos;t charged yet.</p>
       )}
+      {entitlementsRaw && !hasMatching(entitlementsRaw.entitlements) && (
+        <>
+          <MatchPreview companyId={companyId} />
+          <p className="pr-credit-banner" role="note"><strong>Your plan has no investor matching.</strong> Company Intelligence is continuous intelligence on your company; matched investors and capital providers, why each fits, your shortlist, pipeline and outreach are part of Capital Raising. Investors you shortlisted earlier stay visible, read-only.</p>
+        </>
+      )}
 
-      <PlanColumns data={data} cta={cta} highlight={highlight} star={currentTier === 'free' ? star : null} isCurrent={isCurrent} />
+      {hasAnnual(data) && <div className="pr2-bar"><BillingToggle value={billing} onChange={setBilling} note={annualNote} /></div>}
+      <PlatformPlans data={data} cta={cta} billing={billing} highlight={highlight} isCurrent={isCurrent} />
       {data.fair_use?.footnote && <p className="pr-foot">“Full access / plan limits”: {cleanCopy(data.fair_use.footnote)}</p>}
 
-      <OptionalSupport data={data} action={<Button as={Link} to="/experts" variant="secondary">Find an expert</Button>} />
+      <ServicesSection data={data} cta={cta} highlight={highlight} isCurrent={isCurrent} />
+      <CompareTable data={data} />
+
+      <section className="pr-optional" aria-labelledby="pr-opt-h">
+        <div>
+          <p className="pr-stage">Optional</p>
+          <h3 id="pr-opt-h" className="pr-name">{cleanCopy(data.optional_support?.label) || 'Need specialist help?'}</h3>
+          <p className="pr-tag">Every company can request one free 20-minute consultant session through Expert Access. Other expert and advisor help is priced separately and entirely optional: every plan above works without it.</p>
+        </div>
+        <Button as={Link} to="/experts" variant="secondary">Find an expert</Button>
+      </section>
       {optional.length > 0 && (
         <ul className="branch">
           {optional.map((p) => (

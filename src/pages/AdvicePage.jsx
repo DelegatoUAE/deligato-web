@@ -3,13 +3,13 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Alert, Button, Card, EmptyState, Modal, PageHeader, SkeletonCards, useToast } from '../design/ui';
 import SubNav from '../components/SubNav';
 import { useCompany } from '../components/company-context';
-import { GateCard, LoadError } from '../components/capital/bits';
+import { GateCard, LoadError, MatchingUpgrade } from '../components/capital/bits';
 import useApi from '../lib/useApi';
 import { getUnlocks, runMatch, investorHref, filterLabel } from '../lib/capital';
 import { getAdvice } from '../lib/advice';
 import { saveCapitalNeed } from '../lib/companies';
 import ExpertBridgeLink from '../components/ExpertBridgeLink';
-import { fmtInt, fmtUsd } from '../lib/format';
+import { fmtInt, fmtUsd, fieldLabel } from '../lib/format';
 import { logEvent } from '../lib/events';
 
 const NEED_FIELDS = ['raise_usd', 'instrument', 'investor_types_sought'];
@@ -41,7 +41,7 @@ export default function AdvicePage() {
       logEvent('advice.lever_applied', { field: u.field, from: u.from, to: u.to, unlocks: u.unlocks, loses: u.loses, net: u.net }, companyId);
       const res = await runMatch(companyId);
       reloadCompanies(); reloadRun();
-      toast.success(`Applied. Your matches were re-run (${fmtInt(res.counts?.eligible)} eligible).`);
+      toast.success(`Applied. Your matches were re-run (${fmtInt(res.counts?.eligible)} pass your filters).`);
       navigate(`/capital/matches${res.run_id ? `?run=${res.run_id}` : ''}`);
     } catch (e) {
       toast.error(`Couldn't apply this: ${e.message}`);
@@ -49,6 +49,8 @@ export default function AdvicePage() {
   }
 
   const head = <><SubNav section="capital" /><PageHeader title="Improve your matches" subtitle={`What would open more, or better, investors for ${company.name}. Based on today's database.`} /></>;
+  // D68: "what would open more investors" is part of matching (Capital Raising).
+  if (uq.error?.status === 402) return <div>{head}<MatchingUpgrade /></div>;
   if (uq.error && uq.error.status !== 503) return <div>{head}<LoadError error={uq.error} onRetry={uq.reload} what="your options" /></div>;
   if (!uq.data && !uq.error) return <div>{head}<SkeletonCards count={4} height={90} /></div>;
 
@@ -85,7 +87,7 @@ export default function AdvicePage() {
                     <div className="lever-head"><strong>{u.label}</strong><GainLoss u={u} /></div>
                     {u.actionable && <p className="ui-muted">{u.actionable}</p>}
                     {u.caveat && <p className="lever-caveat">{u.caveat}</p>}
-                    {u.net < 0 && <p className="lever-neg">Net loss: you'd lose {fmtInt(u.loses)} sources you qualify for today to gain {fmtInt(u.unlocks)}.</p>}
+                    {u.net < 0 && <p className="lever-neg">Net loss: you'd lose {fmtInt(u.loses)} sources that match you today to gain {fmtInt(u.unlocks)}.</p>}
                     {u.examples?.length > 0 && (
                       <p className="ui-muted">e.g. {u.examples.map((x, i) => <span key={x.record_id}>{i ? ' · ' : ''}<Link to={investorHref(x.record_id)}>{x.name}</Link></span>)}</p>
                     )}
@@ -117,7 +119,7 @@ export default function AdvicePage() {
             {resolvable.map((x) => (
               <li key={x.field} className="lever">
                 <p><strong>{x.label} so {fmtInt(x.moves_from_unknown)} investors can be properly checked.</strong></p>
-                <p className="ui-muted">Some will fit, some won't. Your list may get shorter but more accurate.{x.field === 'instrument' ? " Today these count as eligible only because we don't know your instrument." : ''}</p>
+                <p className="ui-muted">Some will fit, some won't. Your list may get shorter but more accurate.{x.field === 'instrument' ? " Today these pass your filters only because we don't know your instrument." : ''}</p>
                 {NEED_FIELDS.includes(x.field) ? <Button as={Link} to="/capital/need" size="sm" variant="secondary">Set in Capital need</Button>
                   : <Button as={Link} to="/company/business" size="sm" variant="secondary">Edit company details</Button>}
               </li>
@@ -153,13 +155,13 @@ export default function AdvicePage() {
 
       {gaps.length > 0 && (
         <Card title="Help us know more" subtitle="Our data">
-          <ul className="plain-list">{gaps.map((g, i) => <li key={i}>{g.message || `${fmtInt(g.count)} possible fits have no ${g.field} on record.`}</li>)}</ul>
+          <ul className="plain-list">{gaps.map((g, i) => <li key={i}>{g.message || `${fmtInt(g.count)} possible fits have no ${fieldLabel(g.field).toLowerCase()} on record.`}</li>)}</ul>
         </Card>
       )}
       {!uq.data?.unlocks?.length && !resolvable.length && !dom && uq.data && (
         <EmptyState icon="check" title="Nothing to change right now." body="No option opens meaningfully more investors, and your profile has no blanks." />
       )}
-      <p className="ui-muted">Not sure where to start? <Link to="/experts#assessment">Get Capital Readiness Plus</Link>: $99, your readiness report plus one 40-minute advisor session.</p>
+      <p className="ui-muted">Not sure where to start? <Link to="/experts#assessment">Get Capital Readiness + Advisor</Link>: your readiness report plus one 40-minute advisor session. Every company can also request one free 20-minute consultant session.</p>
 
       <Modal open={Boolean(preview)} onClose={() => setPreview(null)} title={preview?.label} description="What changes if you apply this to your capital need and re-run."
         footer={<><Button variant="ghost" onClick={() => setPreview(null)}>Cancel</Button><Button variant="primary" loading={applying} onClick={() => apply(preview)}>Apply to my capital need and re-run</Button></>}>

@@ -10,7 +10,7 @@ import { fmtDate, humanise } from '../../lib/format';
 import './billing.css';
 
 const PLAN_ROWS = ['financial_health_history', 'company_intel_live', 'checkin', 'capital_timing', 'record_full', 'next_best_actions', 'notifications',
-  'max_results', 'investor_profile_depth', 'pipeline_items', 'crm', 'outreach_drafts_per_month', 'data_room'];
+  'max_results', 'investor_profile_depth', 'match_refresh', 'pipeline_items', 'crm', 'outreach_drafts_per_month', 'export', 'data_room'];
 const POLLS = 10;
 
 /**
@@ -121,7 +121,7 @@ export default function PlanBilling({ companyId, entitlementsRaw, reloadEntitlem
             <summary>Everything in your plan</summary>
             <ul className="plan-ladder plan-rows">
               {PLAN_ROWS.filter((k) => k in display).map((k) => (
-                <li key={k}><span>{catQ.data?.entitlement_keys?.[k]?.label || humanise(k)}</span><span className="ui-muted">{displayValue(display, k)}{k === 'data_room' && /shar/i.test(display[k] || '') ? ' (sharing opens with the Living Deal Room)' : ''}</span></li>
+                <li key={k}><span>{catQ.data?.entitlement_keys?.[k]?.label || humanise(k)}</span><span className="ui-muted">{displayValue(display, k)}</span></li>
               ))}
             </ul>
           </details>
@@ -159,6 +159,12 @@ export default function PlanBilling({ companyId, entitlementsRaw, reloadEntitlem
                   </Button>
                 </div>
               )}
+            </Card>
+          )}
+
+          {sub.test_access && !s && (
+            <Card title="Internal test access">
+              <p>{name(sub.test_access.product_id)} is switched on for internal testing{sub.test_access.ends_at ? <> until <strong>{fmtDate(sub.test_access.ends_at)}</strong></> : null}. Nothing is charged.</p>
             </Card>
           )}
 

@@ -15,9 +15,9 @@ import { ASK_EVENT } from '../lib/ask';
 const TITLES = [
   [/^\/$/, 'Home'],
   [/^\/capital\/find/, 'Find capital'],
-  [/^\/capital\/readiness/, 'Readiness'],
+  [/^\/capital\/readiness/, 'Capital readiness'],
   [/^\/capital\/matches\/./, 'Capital provider'],
-  [/^\/capital\/matches/, 'My matches'],
+  [/^\/capital\/matches/, 'Capital matches'],
   [/^\/capital\/saved/, 'Shortlist'],
   [/^\/capital\/pipeline/, 'Pipeline'],
   [/^\/capital\/data-room/, 'Data room'],
@@ -42,7 +42,7 @@ const TITLES = [
   [/^\/onboarding/, 'Set up your company'],
   [/^\/dev/, 'Import a company (dev)'],
 ];
-const titleFor = (path) => TITLES.find(([re]) => re.test(path))?.[1] || 'Capital Access';
+const titleFor = (path) => TITLES.find(([re]) => re.test(path))?.[1] || 'Deligato';
 
 const TABS = [
   { to: '/', label: 'Home', icon: 'home', end: true },
@@ -101,7 +101,7 @@ export default function AppLayout({ children }) {
     <div className="ui-shell-brand">
       <div>
         <div className="ui-wordmark">Deligato</div>
-        <span className="ui-wordmark-sub">Capital Access</span>
+        <span className="ui-wordmark-sub">Capital Intelligence</span>
       </div>
       {companies?.length > 1 && (
         <div className="coswitch">

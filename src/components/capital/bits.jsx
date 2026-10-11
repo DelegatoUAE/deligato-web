@@ -1,6 +1,10 @@
+import { createElement } from 'react';
 import { Link } from 'react-router-dom';
 import { Alert, Badge, Button, Card, EmptyState, Icon, Tooltip } from '../../design/ui';
-import { upgradeHref } from '../../lib/plan';
+import { MATCHING_UPGRADE, previewLines, upgradeHref } from '../../lib/plan';
+import { getMatchPreview } from '../../lib/capital';
+import useApi from '../../lib/useApi';
+import { headingTag, useHeadingLevel } from '../../design/ui/heading-context.js';
 
 export const FUNDRAISING_LINE = 'We help you with fundraising. We never fundraise for you.';
 
@@ -17,13 +21,60 @@ export function ConncctSourceTag({ label = 'Imported' }) {
   );
 }
 
+/**
+ * D68: the Free state wherever matching would be (Matches, Find Capital, profiles). Free has no
+ * investor/provider matching; it says so plainly, points to Capital Raising, keeps the capital
+ * routes one click away and, when the company saved investors earlier, links to them (read-only).
+ */
+/**
+ * D69: the locked teaser. A count (and at most three countries) from the server's aggregate of a
+ * real engine run; nothing at all when there is no count. Never a name, score or list.
+ */
+export function MatchPreview({ companyId, compact = false }) {
+  const q = useApi(() => (companyId ? getMatchPreview(companyId).catch(() => null) : null), [companyId]);
+  const lines = previewLines(q.data?.preview);
+  if (!lines) return null;
+  return (
+    <div className={`match-teaser${compact ? ' is-compact' : ''}`} role="note">
+      <span className="match-teaser-lock" aria-hidden="true"><Icon name="lock" /></span>
+      <div>
+        <p className="match-teaser-count">{lines.count}</p>
+        {lines.regions && <p className="match-teaser-sub">{lines.regions}</p>}
+        <p className="match-teaser-sub">{lines.upgrade}</p>
+      </div>
+      <Button as={Link} to={upgradeHref('capital-raising')} variant="accent" size="sm" iconRight="arrowRight">{MATCHING_UPGRADE.cta}</Button>
+    </div>
+  );
+}
+
+export function MatchingUpgrade({ savedCount = 0, showRoutes = true, companyId = null }) {
+  return (
+    <Card className="match-upgrade" eyebrow="Capital Raising" title={MATCHING_UPGRADE.title}>
+      <MatchPreview companyId={companyId} />
+      <p>{MATCHING_UPGRADE.body}</p>
+      {savedCount > 0 && <p className="ui-muted">{MATCHING_UPGRADE.readOnly}</p>}
+      <div className="ui-row">
+        <Button as={Link} to={upgradeHref('capital-raising')} variant="accent" iconRight="arrowRight">{MATCHING_UPGRADE.cta}</Button>
+        {showRoutes && <Button as={Link} to="/capital/find" variant="secondary">See the capital routes that fit</Button>}
+        {savedCount > 0 && <Button as={Link} to="/capital/saved" variant="link">View your {savedCount} saved {savedCount === 1 ? 'investor' : 'investors'}</Button>}
+      </div>
+    </Card>
+  );
+}
+
+/** D68: one line above a Free company's earlier saves. */
+export function ReadOnlyNote() {
+  return <Alert tone="info" title="Read-only on your plan">{MATCHING_UPGRADE.readOnly} <Link to={upgradeHref('capital-raising')}>See Capital Raising</Link>.</Alert>;
+}
+
 /** A locked feature: what it does, which package unlocks it, one CTA. */
 export function GateCard({ title, body, code = 'capital-raising', cta = 'See plans', compact = false }) {
+  const level = useHeadingLevel();
   return (
     <Card tone="outline" className={`gate${compact ? ' gate-compact' : ''}`}>
       <div className="gate-icon" aria-hidden="true"><Icon name="lock" /></div>
       <div className="gate-body">
-        <h3 className="gate-title">{title}</h3>
+        {createElement(headingTag(level), { className: 'gate-title' }, title)}
         {body && <p>{body}</p>}
       </div>
       <Button as={Link} to={upgradeHref(code)} variant="secondary" size="sm">{cta}</Button>

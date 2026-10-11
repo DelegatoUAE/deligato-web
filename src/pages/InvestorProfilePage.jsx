@@ -8,14 +8,15 @@ import MatchScore from '../components/capital/MatchScore';
 import WhyThisFits from '../components/capital/WhyThisFits';
 import { MeetingPrep } from '../components/capital/AiBlocks';
 import useAiConsent from '../lib/useAiConsent';
-import { FundraisingNotice, LoadError } from '../components/capital/bits';
+import { FundraisingNotice, LoadError, MatchingUpgrade, ReadOnlyNote } from '../components/capital/bits';
 import useApi from '../lib/useApi';
 import {
   getSource, getRunNormalised, listPipeline, addToPipeline, previewMatch, FIT_DIMENSIONS, confidenceLevel, stageLabel, fitReasonText, bucketHeadline, tierWithinBucket, investorHref, ticketRange,
 } from '../lib/capital';
 import { submitCorrection, recordNotFit, CORRECTION_FIELDS, FEEDBACK_DOWN_REASONS } from '../lib/learning';
 import { recordOutcome, kindForRoute } from '../lib/fundraising';
-import { fmtUsd, fmtDate, stealthLabel, countryName, wordsForCodes } from '../lib/format';
+import { fmtUsd, fmtDate, stealthLabel, countryName, wordsForCodes, plainExclusion } from '../lib/format';
+import { MATCH_SCORE_EXPLAINER } from '../lib/matchview';
 import { gateFor } from '../lib/plan';
 
 // D16 provenance labels. Derived from the record's own evidence until the
@@ -40,7 +41,9 @@ function Prov({ profile, field, value }) {
   const l = provenance(profile, field, value);
   const fp = profile.field_provenance?.[field];
   const tip = fp && typeof fp === 'object' ? [stealthLabel(fp.label_text), stealthLabel(fp.basis), fp.source_name, fp.as_of && `as of ${fp.as_of}`].filter(Boolean).join(' · ') : l;
-  return <Badge tone={provTone(l)} size="sm" className="prov" title={tip}>{l}</Badge>;
+  // R-CI-F2: the date is visible text, not only a hover title (touch users can't hover).
+  const asOf = fp && typeof fp === 'object' && fp.as_of && l !== PROV.unknown ? fmtDate(fp.as_of) : null;
+  return <span className="prov-wrap"><Badge tone={provTone(l)} size="sm" className="prov" title={tip}>{l}</Badge>{asOf && <span className="prov-date">{asOf}</span>}</span>;
 }
 
 const list = (a) => (Array.isArray(a) && a.length ? a.join(', ') : null);
@@ -150,6 +153,8 @@ export default function InvestorProfilePage() {
     if (srcQ.error.status === 404) {
       return <EmptyState icon="search" title="We couldn't find this capital source. It may have been retired." action={<Button as={Link} to="/capital/matches" variant="primary">Back to matches</Button>} />;
     }
+    // D68: on Free an investor profile opens only for an investor saved earlier.
+    if (srcQ.error.status === 402) return <MatchingUpgrade savedCount={(pipeQ.data || []).length} companyId={companyId} />;
     return <LoadError error={srcQ.error} onRetry={srcQ.reload} what="this investor" />;
   }
   const p = srcQ.data?.profile;
@@ -161,7 +166,7 @@ export default function InvestorProfilePage() {
   const fr = p.freshness || {};
   const id = p.identity || {};
   const pipelineItem = (pipeQ.data || []).find((x) => x.record_id === recordId);
-  const canTrack = pipeQ.error?.status !== 402;
+  const canTrack = pipeQ.error?.status !== 402 && !p.read_only; // D68: no new saves on Free
   const canDraft = Number(entitlements?.outreach_drafts_per_month || 0) > 0;
   const kind = kindForRoute(app.route);
   const locked = Boolean(p.locked);
@@ -173,7 +178,7 @@ export default function InvestorProfilePage() {
       const { item } = await addToPipeline({ profile_id: companyId, record_id: recordId, match_score_at_add: result?.match_score ?? null, stage, fit_tier_at_add: result?.fit_tier, run_id: runQ.data?.run_id });
       pipeQ.setData((l) => [...(l || []), item]);
       reloadPipeline();
-      toast.success(stage === 'shortlisted' ? `Saved ${id.name}.` : `${id.name} is in your pipeline.`);
+      toast.success(stage === 'shortlisted' ? `${id.name} is on your shortlist.` : `${id.name} is in your pipeline.`);
     } catch (e) {
       toast.error(e.upgradeRequired ? (e.code === 'fair_use_limit' ? gateFor(e).message : 'Pipeline tracking is included in Capital Raising.') : `Couldn't save: ${e.message}`);
     } finally { setBusy(null); }
@@ -240,20 +245,21 @@ export default function InvestorProfilePage() {
           <div className="inv-actions">
             {pipelineItem ? (
               pipelineItem.stage === 'shortlisted'
-                ? <Button as={Link} to="/capital/saved" variant="secondary" iconLeft="check">Saved</Button>
+                ? <Button as={Link} to="/capital/saved" variant="secondary" iconLeft="check">Shortlisted</Button>
                 : <Button as={Link} to="/capital/pipeline" variant="secondary" iconLeft="check">In pipeline · {stageLabel(pipelineItem.stage)}</Button>
             ) : canTrack ? (
               <>
-                <Button variant="primary" onClick={() => track('shortlisted')} loading={busy === 'shortlisted'}>Save</Button>
+                <Button variant="primary" onClick={() => track('shortlisted')} loading={busy === 'shortlisted'}>Shortlist</Button>
                 <Button variant="secondary" onClick={() => track('researching')} loading={busy === 'researching'}>Add to pipeline</Button>
               </>
-            ) : <Button as={Link} to="/packages?highlight=capital-raising" variant="secondary" iconLeft="lock">Save</Button>}
+            ) : <Button as={Link} to="/packages?highlight=capital-raising" variant="secondary" iconLeft="lock">Shortlist</Button>}
             {kind === null ? null : canDraft && !locked
               ? <Button as={Link} to={`/capital/outreach?record=${encodeURIComponent(recordId)}&kind=${kind}`} variant="secondary">Prepare outreach</Button>
               : <Button as={Link} to="/packages?highlight=capital-raising" variant="ghost" iconLeft="lock">Prepare outreach</Button>}
             <Button variant="ghost" iconLeft="spark" onClick={() => setDialog('brief')}>Prepare for the call</Button>
             <Button variant="ghost" onClick={() => setDialog('dismiss')}>Not for us</Button>
           </div>
+          {p.read_only && <ReadOnlyNote />}
         </div>
         <div className="inv-score">
           {result ? (
@@ -271,9 +277,9 @@ export default function InvestorProfilePage() {
       </nav>
 
       {notInRun && (
-        <Alert tone="warn" title="Not eligible for your profile">
+        <Alert tone="warn" title="Outside your current matches">
           {ineligQ.loading && !ineligQ.data ? 'Checking why…' : nonMatch?.why_not?.length ? (
-            <ul className="plain-list">{nonMatch.why_not.map((w, i) => <li key={i}>{w}</li>)}</ul>
+            <ul className="plain-list">{nonMatch.why_not.map((w, i) => <li key={i}>{plainExclusion(w)}</li>)}</ul>
           ) : 'This source is outside your current matches. No Match score is shown.'}
         </Alert>
       )}
@@ -296,7 +302,7 @@ export default function InvestorProfilePage() {
               <WhyThisFits companyId={companyId} runId={runQ.data?.run_id} match={result} consent={consent} />
               {result.why_matched && <div className="mcard-why"><span className="mcard-why-label">Why you match</span><p>{wordsForCodes(result.why_matched)}</p></div>}
               {result.ai_reasoning && <p className="mcard-ai"><Badge tone="gold" size="sm">AI-refined</Badge> {result.ai_reasoning}</p>}
-              <details className="explainer"><summary>What the Match score means</summary><p>How strongly the evidence supports this fit, out of 100. Facts we can't confirm lower it, so a strong fit with gaps in our data can score lower. It is not your chance of raising.</p></details>
+              <details className="explainer"><summary>What the Match score means</summary><p>{MATCH_SCORE_EXPLAINER}</p></details>
             </>
           ) : <p className="ui-muted">No Match score: this source isn't in your current matches.</p>}
         </Card>
@@ -342,7 +348,7 @@ export default function InvestorProfilePage() {
           ) : (
             <>
               <dl className="facts">
-                <div><dt>Route</dt><dd>{app.route || 'Unknown'} <Prov profile={p} field="contact_route" value={app.route} /></dd></div>
+                <div><dt>Route</dt><dd>{app.route && app.route !== 'Unknown' ? <>{app.route} <Prov profile={p} field="contact_route" value={app.route} /></> : NOT_ON_RECORD}</dd></div>
                 <div><dt>Applications</dt><dd>{app.status === 'open' ? 'Open' : app.status === 'closed' ? 'Closed' : 'Not on record'}</dd></div>
                 {app.deadline && <div><dt>Deadline</dt><dd>{fmtDate(app.deadline)}</dd></div>}
                 {app.next_intake && <div><dt>Next intake</dt><dd>{app.next_intake}</dd></div>}

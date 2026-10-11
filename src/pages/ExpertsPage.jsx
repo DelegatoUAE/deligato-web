@@ -5,7 +5,7 @@ import SubNav from '../components/SubNav';
 import ExpertCard from '../components/ExpertCard';
 import { useCompany } from '../components/company-context';
 import useApi from '../lib/useApi';
-import { getTaxonomy, interpretNeed, matchExperts, listDirectory, requestExpertHelp, saveBrief, ENGAGEMENT, URGENCY, SENIORITY } from '../lib/experts';
+import { getTaxonomy, interpretNeed, matchExperts, listDirectory, requestExpertHelp, saveBrief, ENGAGEMENT, URGENCY, SENIORITY, INTRO_SESSION_TOPIC, listExpertRequests, requestIntroSession } from '../lib/experts';
 import { getUnlocks } from '../lib/capital';
 import { readinessGapFactors } from '../lib/readiness';
 import { BRIDGE_LABEL, expertBridge } from '../lib/expertise';
@@ -13,6 +13,38 @@ import { isMissingEndpoint } from '../lib/auth';
 import { fmtUsd } from '../lib/format';
 
 const EXAMPLES = ['a fractional CFO for 2 days a week', 'help with our cap table before a SAFE', 'UAE corporate tax registration'];
+
+/** D68: every company can request one 20-minute consultant session (arranged by our team). */
+function IntroSession({ companyId }) {
+  const toast = useToast();
+  const reqQ = useApi(() => (companyId ? listExpertRequests(companyId).then((x) => x.requests || []).catch(() => []) : []), [companyId]);
+  const [open, setOpen] = useState(false);
+  const [note, setNote] = useState('');
+  const [busy, setBusy] = useState(false);
+  const used = (reqQ.data || []).find((r) => r.topic === INTRO_SESSION_TOPIC && !['cancelled', 'declined'].includes(r.status));
+  async function send() {
+    setBusy(true);
+    try {
+      await requestIntroSession(companyId, note);
+      toast.success('Requested. Our team will confirm a time with you.');
+      setOpen(false);
+      reqQ.reload();
+    } catch (e) {
+      toast.error(e.code === 'intro_session_used' ? 'Your company has already requested its 20-minute session.'
+        : isMissingEndpoint(e) ? "Requests aren't connected in this environment yet." : `Couldn't send the request: ${e.message}`);
+    } finally { setBusy(false); }
+  }
+  return (
+    <Card className="assess" title="Your free 20-minute consultant session"
+      action={used ? <Badge tone="ok">Requested</Badge> : <Button variant="secondary" onClick={() => setOpen(true)} disabled={!companyId || reqQ.data === undefined}>Request a session</Button>}>
+      <p className="ui-muted">One per company, on every plan. Talk through where your company stands with a consultant; our team confirms a time with you.</p>
+      <Modal open={open} onClose={() => setOpen(false)} title="Request your 20-minute session" description="A request to our team inside the platform. Nobody is emailed by the system, and nothing is charged."
+        footer={<><Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button><Button variant="primary" loading={busy} onClick={send}>Request a session</Button></>}>
+        <FormField label="What would you like to cover?" optional><Textarea rows={3} value={note} onChange={(e) => setNote(e.target.value)} /></FormField>
+      </Modal>
+    </Card>
+  );
+}
 
 function CapitalAssessment({ companyId }) {
   const toast = useToast();
@@ -22,7 +54,7 @@ function CapitalAssessment({ companyId }) {
   async function send() {
     setBusy(true);
     try {
-      await requestExpertHelp({ company_id: companyId, kind: 'capital_assessment', topic: 'Capital Readiness Plus', note });
+      await requestExpertHelp({ company_id: companyId, kind: 'capital_assessment', topic: 'Capital Readiness + Advisor', note });
       toast.success('Requested. An advisor will confirm a time with you. No payment is taken in this app.');
       setOpen(false);
     } catch (e) {
@@ -30,11 +62,11 @@ function CapitalAssessment({ companyId }) {
     } finally { setBusy(false); }
   }
   return (
-    <Card id="assessment" className="assess" title="Start here if you're not sure" action={<Button variant="secondary" onClick={() => setOpen(true)} disabled={!companyId}>Request Capital Readiness Plus</Button>}>
-      <p><strong>Capital Readiness Plus · $99: your readiness report plus one 40-minute advisor session</strong></p>
+    <Card id="assessment" className="assess" title="Start here if you're not sure" action={<Button variant="secondary" onClick={() => setOpen(true)} disabled={!companyId}>Request Capital Readiness + Advisor</Button>}>
+      <p><strong>Capital Readiness + Advisor: your readiness report plus one 40-minute advisor session</strong> · <Link to="/packages?highlight=capital-assessment">See the price</Link></p>
       <p className="ui-muted">A 40-minute session with an advisor who reviews your readiness and maps your gaps.</p>
-      <Modal open={open} onClose={() => setOpen(false)} title="Request Capital Readiness Plus" description="A request to our team inside the platform. Nobody is emailed by the system, and no payment is taken in this app."
-        footer={<><Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button><Button variant="primary" loading={busy} onClick={send}>Request Capital Readiness Plus</Button></>}>
+      <Modal open={open} onClose={() => setOpen(false)} title="Request Capital Readiness + Advisor" description="A request to our team inside the platform. Nobody is emailed by the system, and no payment is taken in this app."
+        footer={<><Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button><Button variant="primary" loading={busy} onClick={send}>Request Capital Readiness + Advisor</Button></>}>
         <FormField label="Anything we should know?" optional><Textarea rows={3} value={note} onChange={(e) => setNote(e.target.value)} /></FormField>
       </Modal>
     </Card>
@@ -169,6 +201,7 @@ export default function ExpertsPage() {
         </section>
       )}
 
+      <IntroSession companyId={companyId} />
       <CapitalAssessment companyId={companyId} />
 
       <section aria-labelledby="dir-h">
@@ -177,7 +210,7 @@ export default function ExpertsPage() {
           <Alert tone="warn">{isMissingEndpoint(dirQ.error) ? "The expert directory isn't connected in this environment yet." : `Couldn't load experts: ${dirQ.error.message}`}</Alert>
         ) : !dirQ.data ? <Skeleton h="160px" /> : dirQ.data.length ? (
           <div className="ui-grid ui-grid-3">{dirQ.data.slice(0, 12).map((e) => <ExpertCard key={e.id} expert={e} />)}</div>
-        ) : <p className="ui-muted">No experts listed yet. Request Capital Readiness Plus and we'll route you.</p>}
+        ) : <p className="ui-muted">No experts listed yet. Request your 20-minute session or Capital Readiness + Advisor and we'll route you.</p>}
       </section>
     </div>
   );

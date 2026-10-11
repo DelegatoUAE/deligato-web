@@ -1,4 +1,6 @@
+import { createElement } from 'react';
 import cx from './cx.js';
+import { HeadingLevel, headingTag, useHeadingLevel } from './heading-context.js';
 
 /**
  * Panel: a feature surface, larger radius than a card.
@@ -17,19 +19,20 @@ export default function Panel({
   children,
   ...rest
 }) {
+  const level = useHeadingLevel();
   return (
     <As className={cx('ui-panel', `ui-panel-${tone}`, tone === 'navy' && 'ui-on-navy', className)} {...rest}>
       {(title || subtitle || action || eyebrow) && (
         <div className="ui-panel-head">
           <div>
             {eyebrow && <div className="ui-eyebrow">{eyebrow}</div>}
-            {title && <h2 className="ui-panel-title">{title}</h2>}
+            {title && createElement(headingTag(level), { className: 'ui-panel-title' }, title)}
             {subtitle && <p className="ui-panel-sub">{subtitle}</p>}
           </div>
           {action}
         </div>
       )}
-      {children}
+      {title ? <HeadingLevel.Provider value={level + 1}>{children}</HeadingLevel.Provider> : children}
     </As>
   );
 }

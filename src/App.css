@@ -12,9 +12,16 @@
 .coswitch .ui-input { background: rgba(255,255,255,0.06); color: #fff; border-color: rgba(255,255,255,0.18); }
 .signout { color: var(--navy-200) !important; }
 .planlink { text-decoration: none !important; }
+/* combined-rc2 F-1: on phones the plan badge gives way (ellipsis) so the top bar never pushes past the
+   viewport; a long plan name ("Company Intelligence") used to overflow by ~20px at 390. */
+@media (max-width: 639px) {
+  .ui-shell-top-actions > .planlink { min-width: 0; flex: 0 1 auto; overflow: hidden; }
+  .ui-shell-top-actions > .planlink .ui-badge { display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+}
 .page { min-width: 0; }
 .page > div > .ui-page-head, .page .ui-page-head { margin-bottom: var(--s-6); }
 .page .ui-card + .ui-card, .page .ui-card + .ui-alert, .page .ui-alert + .ui-card { margin-top: var(--s-4); }
+.page .ui-card + .ui-grid { margin-top: var(--s-4); }
 .sec-h { font-size: var(--text-lg); margin: var(--s-8) 0 var(--s-3); }
 .sub-h { font-size: var(--text-sm); margin: var(--s-4) 0 var(--s-2); color: var(--text-soft); }
 .back { display: inline-block; margin-bottom: var(--s-4); font-size: var(--text-sm); }
@@ -358,6 +365,25 @@
 .consents { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-4); }
 .consents li { display: flex; justify-content: space-between; gap: var(--s-4); align-items: start; }
 .consents p { margin: 2px 0 0; font-size: var(--text-sm); }
+/* Outreach: how to reach the investor (UAT #10) */
+.composer-reach { margin: var(--s-1) 0 0; font-size: var(--text-sm); color: var(--text); }
+
+/* Settings → Team and access */
+.team-seats { margin: 0 0 var(--s-3); font-size: var(--text-sm); }
+.team-who { display: grid; gap: 2px; min-width: 0; }
+.team-who strong, .team-email { overflow-wrap: anywhere; }
+.team-role-select { min-width: 120px; max-width: 200px; }
+.team-role { display: inline-flex; gap: var(--s-2); align-items: center; flex-wrap: wrap; }
+.team-invite { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) auto; gap: var(--s-3); align-items: start; margin-bottom: var(--s-3); }
+.team-invite-go { padding-top: 1.6rem; }
+.team-link { display: flex; gap: var(--s-2); align-items: center; margin-top: var(--s-2); }
+.team-link .ui-input { flex: 1; min-width: 0; font-size: var(--text-sm); }
+.invite-page { max-width: 520px; margin: var(--s-8) auto; padding: 0 var(--s-4); }
+@media (max-width: 767px) {
+  .team-invite { grid-template-columns: 1fr; }
+  .team-invite-go { padding-top: 0; }
+  .team-link { flex-direction: column; align-items: stretch; }
+}
 .switch { display: inline-flex; gap: var(--s-2); align-items: center; font-size: var(--text-sm); cursor: pointer; }
 .switch input { width: 36px; height: 20px; accent-color: var(--brand-fill); }
 .welcomep h1 { font-size: var(--text-3xl); letter-spacing: -0.02em; max-width: 22ch; }
@@ -457,7 +483,11 @@
 .xresults { display: grid; gap: var(--s-3); }
 .xfitrows { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-2); }
 .xfitrow { display: grid; grid-template-columns: 190px 1fr auto; gap: var(--s-3); align-items: center; font-size: var(--text-sm); }
-@media (max-width: 700px) { .xfitrow { grid-template-columns: 1fr; } }
+@media (max-width: 700px) {
+  /* Phones: chip and source label keep their own width instead of stretching across the card. */
+  .xfitrow { grid-template-columns: 1fr; gap: 4px; padding-bottom: var(--s-2); border-bottom: 1px solid var(--border-soft); }
+  .xfitrow > .ui-fit, .xfitrow > .xprov { justify-self: start; }
+}
 .xfitrow-detail { color: var(--text-soft); }
 .xprov { font-size: 11px; color: var(--text-faint); border: 1px solid var(--border); border-radius: var(--r-full); padding: 1px 8px; white-space: nowrap; }
 .xprov.is-inferred { border-style: dashed; border-color: var(--accent); color: var(--text-accent); font-style: italic; }
@@ -714,7 +744,7 @@
 .cite { display: inline-flex; align-items: center; gap: 6px; padding: 2px 8px; border-radius: var(--r-full); border: 1px solid var(--border-strong); background: var(--surface); font-size: var(--text-2xs); cursor: help; }
 .cite.is-verified { border-color: var(--ok-border); background: var(--ok-bg); }
 .cite:focus-visible { outline: none; box-shadow: var(--ring); }
-.cite-f { font-weight: var(--fw-semibold); color: var(--text-strong); text-transform: capitalize; }
+.cite-f { font-weight: var(--fw-semibold); color: var(--text-strong); }
 .cite-p { color: var(--text-soft); }
 .whyfits-unknown, .whyfits-next, .whyfits-gate { margin: 0; font-size: var(--text-sm); }
 .whyfits-gate { display: inline-flex; gap: 6px; align-items: center; }
@@ -731,8 +761,13 @@
 .rrow-meta { font-size: var(--text-xs); color: var(--text-soft); white-space: nowrap; }
 .rrow-chev { color: var(--text-faint); }
 @media (max-width: 640px) { .rrow-btn { grid-template-columns: minmax(0, 1fr) auto; } .rrow-meta { grid-column: 1 / -1; } .rrow-chev { display: none; } }
-.rcard-reasons li { display: grid; grid-template-columns: 1.1em minmax(0, 1fr); column-gap: 6px; align-items: baseline; }
-.rcard-reasons li > .ui-badge { grid-column: 2; justify-self: start; margin-top: 2px; }
+/* UAT F32: the source pill sits on the reason's own line (right), and under it on phones. */
+.rcard-reasons li { display: grid; grid-template-columns: 1.1em minmax(0, 1fr) auto; column-gap: 6px; align-items: baseline; }
+.rcard-reasons li > .ui-badge { margin-left: 0; justify-self: end; }
+@media (max-width: 640px) {
+  .rcard-reasons li { grid-template-columns: 1.1em minmax(0, 1fr); }
+  .rcard-reasons li > .ui-badge { grid-column: 2; justify-self: start; margin-top: 2px; }
+}
 @media (max-width: 640px) {
   .rrow { margin-bottom: 6px; }
   .rrow-btn { padding: 10px 14px; row-gap: 2px; }
@@ -998,6 +1033,18 @@
 .dr-mode { margin: 0; font-size: var(--text-sm); color: var(--text-soft); line-height: 1.7; }
 .dr-mode .ui-badge { margin-right: var(--s-2); }
 .dr-dates { display: inline-flex; flex-wrap: wrap; gap: var(--s-2); align-items: center; font-size: var(--text-xs); color: var(--text-soft); }
+/* U-1 stored files */
+.dr-file { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px var(--s-3); align-items: start; margin-top: var(--s-2); padding: var(--s-2) var(--s-3); border: 1px solid var(--border-soft); border-left: 3px solid var(--border); border-radius: var(--r-sm); background: var(--surface-warm); }
+.dr-file > .ui-icon { margin-top: 2px; color: var(--text-soft); }
+.dr-file.is-expiring { border-left-color: var(--warn-solid); }
+.dr-file.is-expired { border-left-color: var(--bad-solid); }
+.dr-file-main { display: grid; gap: 2px; min-width: 0; }
+.dr-file-name { font-size: var(--text-sm); font-weight: var(--fw-semibold); color: var(--text-strong); overflow-wrap: anywhere; }
+.dr-file-meta { font-size: var(--text-xs); color: var(--text-soft); }
+.dr-file-actions { grid-column: 2; display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin-top: 4px; }
+.dr-pick { display: flex; flex-wrap: wrap; gap: var(--s-2); align-items: center; min-width: 0; }
+.dr-pick .ui-muted { font-size: var(--text-xs); overflow-wrap: anywhere; }
+@media (max-width: 700px) { .dr-file-actions { grid-column: 1 / -1; } }
 .dealroom-soon { display: grid; grid-template-columns: auto 1fr auto; gap: var(--s-4); align-items: center; margin-top: var(--s-6); padding: var(--s-5) var(--s-6); border-radius: var(--r-lg); background: var(--surface-warm); border: 1px solid var(--border-soft); }
 .dealroom-soon p { margin: 0; }
 .dealroom-soon .ui-icon { color: var(--text-accent); }
@@ -1063,11 +1110,6 @@
 .login-form .ui-faint { font-size: var(--text-xs); line-height: var(--lh-normal); }
 .login-secure { display: flex; gap: 8px; align-items: flex-start; margin: var(--s-4) 0 0; padding-top: var(--s-4); border-top: 1px solid var(--border-soft); font-size: var(--text-xs); color: var(--text-soft); line-height: var(--lh-normal); }
 .login-secure svg { width: 14px; height: 14px; flex: none; margin-top: 2px; }
-.pw-field { position: relative; }
-.pw-field .ui-input { padding-right: 64px; width: 100%; }
-.pw-toggle { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); height: 32px; padding: 0 10px; border: 0; border-radius: var(--r-sm); background: transparent; color: var(--text-link); font: inherit; font-size: var(--text-xs); font-weight: var(--fw-semibold); cursor: pointer; }
-.pw-toggle:hover { background: var(--surface-hover); }
-.pw-toggle:focus-visible { outline: none; box-shadow: var(--ring); }
 @media (max-width: 1100px) { .login-photo { width: min(70%, 460px); opacity: 0.85; } .login-script { display: none; } }
 @media (max-width: 900px) {
   .login { grid-template-columns: 1fr; }
@@ -1107,3 +1149,29 @@
 .login-script { bottom: var(--s-10); }
 .login-swoosh-sm { bottom: -0.55em; left: 6%; width: 70%; }
 @media (max-height: 820px) { .login-photo { display: none; } .login-script { position: relative; left: auto; bottom: auto; margin: auto 0 var(--s-12); } }
+/* R-CI-F2: provenance label plus its date as plain text (no hover needed, no two-line pills). */
+.prov-wrap { display: inline-flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+.prov-date { font-size: var(--text-xs); color: var(--text-faint); white-space: nowrap; }
+/* A disabled action says why in plain text (touch users can't hover a tooltip). */
+.xd-locked { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+.xd-locked .ui-faint { font-size: var(--text-xs); }
+/* Insights: four tiles read as one row on desktop and a 2×2 grid on phones. */
+.home-stats.insights-stats { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@media (max-width: 600px) { .home-stats.insights-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } .home-stats.insights-stats > :first-child { grid-column: auto; } }
+
+/* ==== D69 LOCKED TEASER ==== */
+.match-teaser { display: grid; grid-template-columns: auto 1fr auto; gap: var(--s-3) var(--s-4); align-items: center; margin: 0 0 var(--s-4); padding: var(--s-4) var(--s-5); border: 1px solid var(--gold-line); border-radius: var(--r-lg); background: var(--gold-wash); }
+.match-teaser-lock { display: grid; place-items: center; width: 36px; height: 36px; border-radius: var(--r-md); background: var(--surface); color: var(--text-accent); }
+.match-teaser-lock svg { width: 18px; height: 18px; }
+.match-teaser-count { margin: 0; font-size: var(--text-lg); font-weight: var(--fw-semibold); color: var(--text-strong); }
+.match-teaser-sub { margin: 2px 0 0; font-size: var(--text-sm); color: var(--text-soft); }
+.match-teaser.is-compact { padding: var(--s-3) var(--s-4); }
+.match-teaser.is-compact .match-teaser-count { font-size: var(--text-md); }
+@media (max-width: 639px) { .match-teaser { grid-template-columns: auto 1fr; } .match-teaser > .ui-btn { grid-column: 1 / -1; } }
+
+/* Show password (5 Oct v2): a visible control under the field, never inside it */
+.pw-field { display: grid; gap: 6px; }
+.pw-field .ui-input { width: 100%; }
+.pw-toggle { justify-self: end; display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 4px 8px; margin-right: -8px; border: 0; border-radius: var(--r-sm); background: transparent; color: var(--text-link); font: inherit; font-size: var(--text-sm); font-weight: var(--fw-semibold); cursor: pointer; }
+.pw-toggle:hover { background: var(--surface-hover); }
+.pw-toggle:focus-visible { outline: none; box-shadow: var(--ring); }

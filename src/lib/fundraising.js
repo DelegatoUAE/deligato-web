@@ -15,6 +15,22 @@ export const setDataRoomItemStatus = (id, key, body) => apiFetch(`${base(id)}/da
 export const updateDataRoomDoc = (id, docId, body) => apiFetch(`${base(id)}/dataroom/items/${docId}`, json('PATCH', body));
 export const deleteDataRoomDoc = (id, docId) => apiFetch(`${base(id)}/dataroom/items/${docId}`, { method: 'DELETE' });
 
+// ---- data room stored files (U-1): raw bytes to the API, which checks the
+// plan, the type (by content), the size and the quota, and stores the file in
+// private storage. Viewing returns a 60-second signed URL; it is used at once
+// and never kept.
+const fileHeaders = (file) => ({ 'Content-Type': 'application/octet-stream', 'X-File-Name': encodeURIComponent(file.name) });
+export function uploadDataRoomFile(id, docType, file, { document_date, expires_at, title } = {}) {
+  const q = new URLSearchParams({ doc_type: docType });
+  if (document_date) q.set('document_date', document_date);
+  if (expires_at) q.set('expires_at', expires_at);
+  if (title) q.set('title', title);
+  return apiFetch(`${base(id)}/dataroom/files?${q}`, { method: 'POST', headers: fileHeaders(file), body: file });
+}
+export const replaceDataRoomFile = (id, docId, file) => apiFetch(`${base(id)}/dataroom/files/${docId}`, { method: 'PUT', headers: fileHeaders(file), body: file });
+export const getDataRoomFileUrl = (id, docId, { download = false } = {}) => apiFetch(`${base(id)}/dataroom/files/${docId}/url${download ? '?download=1' : ''}`);
+export const getDataRoomFileActivity = (id, docId) => apiFetch(`${base(id)}/dataroom/files/${docId}/activity`);
+
 // ---- outreach (the system drafts; the founder sends)
 export const listDrafts = (id) => apiFetch(`${base(id)}/outreach/drafts`);
 export const getDraft = (id, draftId) => apiFetch(`${base(id)}/outreach/drafts/${draftId}`);
